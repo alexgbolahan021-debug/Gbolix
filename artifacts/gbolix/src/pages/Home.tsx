@@ -270,7 +270,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border py-12 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <img src="/logo.svg" alt="Gbolix" className="h-7" />
+          <img src="/logo-dark.png" alt="Gbolix" className="h-8 w-auto object-contain" />
           <p className="text-sm text-muted-foreground">Build. Automate. Scale. &copy; {new Date().getFullYear()} Gbolix. All rights reserved.</p>
           <div className="flex gap-6">
             <Link href="/services" className="text-sm text-muted-foreground hover:text-foreground">Services</Link>

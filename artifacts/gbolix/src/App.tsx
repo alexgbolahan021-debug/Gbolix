@@ -32,7 +32,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/logo-icon.jpg`,
   },
   variables: {
     colorPrimary: "#00FF66",
@@ -219,6 +219,20 @@ function ClerkProviderWithRoutes() {
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
+      localization={{
+        signIn: {
+          start: {
+            title: "Welcome Back",
+            subtitle: "Access your Gbolix workspace.",
+          },
+        },
+        signUp: {
+          start: {
+            title: "Create Your Account",
+            subtitle: "Start building, automating, and scaling today.",
+          },
+        },
+      }}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       routerPush={(to) => setLocation(stripBase(to))}

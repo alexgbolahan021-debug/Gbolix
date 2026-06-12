@@ -54,11 +54,15 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className={`flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${collapsed ? "w-16" : "w-64"}`}>
         {/* Logo */}
-        <div className="flex items-center h-16 px-4 border-b border-border shrink-0">
+        <div className="flex items-center h-16 px-3 border-b border-border shrink-0">
           {collapsed ? (
-            <span className="text-primary font-bold text-xl">G</span>
+            <img src="/logo-icon.jpg" alt="G" className="h-8 w-8 object-contain rounded-md" />
           ) : (
-            <img src="/logo.svg" alt="Gbolix" className="h-7" />
+            <img
+              src={theme === "dark" ? "/logo-dark.png" : "/logo-light.png"}
+              alt="Gbolix"
+              className="h-8 w-auto object-contain"
+            />
           )}
         </div>
 

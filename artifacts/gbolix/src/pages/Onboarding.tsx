@@ -74,7 +74,7 @@ export default function Onboarding() {
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="text-center mb-10">
-          <img src="/logo.svg" alt="Gbolix" className="h-8 mx-auto mb-2" />
+          <img src="/logo-icon.jpg" alt="Gbolix" className="h-16 w-16 mx-auto mb-3 object-contain rounded-xl" />
           <p className="text-muted-foreground text-sm">Let's personalize your experience</p>
         </div>
 
