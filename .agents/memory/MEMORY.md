@@ -1,0 +1,2 @@
+- [Gbolix Orval hook naming](gbolix-orval-hooks.md) — generated admin hooks use camelCase Orval naming, not custom names; always grep generated api.ts before writing imports
+- [Gbolix admin role setup](gbolix-admin-role.md) — admin role set in DB via SQL; no UI for promotion; `requireAdmin` middleware checks `req.userRole === 'admin'`
