@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { useCompleteOnboarding } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
-import { ChevronRight } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 const steps = [
   {
@@ -60,9 +60,14 @@ export default function Onboarding() {
           },
         },
         {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-            setLocation("/dashboard");
+          onSuccess: (data) => {
+            queryClient.setQueryData(getGetMeQueryKey(), data);
+            queryClient.refetchQueries({ queryKey: getGetMeQueryKey() }).finally(() => {
+              setLocation("/dashboard");
+            });
+          },
+          onError: () => {
+            // Error state is shown via mutation.isError
           },
         }
       );
@@ -72,13 +77,11 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-lg">
-        {/* Logo */}
         <div className="text-center mb-10">
           <img src="/logo-icon.jpg" alt="Gbolix" className="h-16 w-16 mx-auto mb-3 object-contain rounded-xl" />
           <p className="text-muted-foreground text-sm">Let's personalize your experience</p>
         </div>
 
-        {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground">Step {step + 1} of {steps.length}</span>
@@ -87,8 +90,7 @@ export default function Onboarding() {
           <Progress value={progress} className="h-1" data-testid="progress-onboarding" />
         </div>
 
-        {/* Question */}
-        <div className="bg-card border border-border rounded-2xl p-8">
+        <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
           <h2 className="text-xl font-bold mb-6 text-center" data-testid="text-onboarding-question">
             {current.question}
           </h2>
@@ -106,7 +108,8 @@ export default function Onboarding() {
                     ${selected
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border bg-background hover:border-primary/40 hover:bg-accent text-foreground"
-                    }`}
+                    }
+                    disabled:opacity-60 disabled:cursor-not-allowed`}
                 >
                   {option}
                 </button>
@@ -115,17 +118,27 @@ export default function Onboarding() {
           </div>
 
           {mutation.isPending && (
-            <p className="text-center text-muted-foreground text-sm mt-6">Setting up your account...</p>
+            <div className="text-center mt-6 space-y-2">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-muted-foreground text-sm">Setting up your workspace...</p>
+            </div>
+          )}
+
+          {mutation.isError && (
+            <div className="mt-6 flex items-center gap-2 text-destructive bg-destructive/10 rounded-lg px-4 py-3">
+              <AlertCircle size={14} />
+              <p className="text-sm">Something went wrong. Please try again.</p>
+            </div>
           )}
         </div>
 
-        {step > 0 && (
+        {step > 0 && !mutation.isPending && (
           <button
             onClick={() => setStep(step - 1)}
             className="mt-4 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mx-auto"
             data-testid="button-back"
           >
-            Back
+            ← Back
           </button>
         )}
       </div>

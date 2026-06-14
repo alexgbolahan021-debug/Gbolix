@@ -76,7 +76,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 const Icon = item.icon;
                 const active = location === item.href;
                 return (
-                  <Link key={item.href} href={item.href}>
+                  <Link key={item.label} href={item.href}>
                     <div
                       data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, "-")}`}
                       className={`flex items-center gap-3 px-2 py-2 rounded-md mb-1 transition-colors cursor-pointer

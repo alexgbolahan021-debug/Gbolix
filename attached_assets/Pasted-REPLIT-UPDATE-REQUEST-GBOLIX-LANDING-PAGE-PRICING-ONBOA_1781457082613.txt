@@ -1,0 +1,299 @@
+REPLIT UPDATE REQUEST — GBOLIX LANDING PAGE, PRICING & ONBOARDING FIXES
+
+Please make the following improvements across the entire Gbolix platform.
+
+---
+
+1. BRANDING & TYPOGRAPHY
+
+---
+
+The current website feels too generic and template-like.
+
+Update typography:
+
+Headings:
+
+* Use Sora ExtraBold
+
+Body Text:
+
+* Use Inter
+
+The goal is to make Gbolix feel like a premium SaaS and digital operations company.
+
+---
+
+2. HERO SECTION REDESIGN
+
+---
+
+The current hero background is too simple and does not match the quality of the previous version.
+
+Replace the hero background with a premium dark business/technology visual.
+
+Preferred backgrounds:
+
+* Cinematic city skyline
+* Business operations visuals
+* Technology dashboards
+* AI/automation visuals
+* Professional enterprise imagery
+
+Requirements:
+
+* Dark overlay for readability
+* High-quality image or video
+* Premium startup feel
+* Maintain fast loading speed
+
+Keep headline:
+
+Build. Automate. Scale.
+
+Keep CTA buttons but make them more visually attractive.
+
+Primary CTA:
+Bright Green (#00FF66)
+
+Secondary CTA:
+Purple Gradient (#8B5CF6 → #A855F7)
+
+Add modern hover effects and subtle glow effects.
+
+---
+
+3. ADD MORE IMAGES THROUGHOUT THE WEBSITE
+
+---
+
+The site currently contains too much text and not enough visual content.
+
+Add meaningful images across all sections.
+
+Every image must relate directly to the content beside it.
+
+SERVICE IMAGES
+
+Automation Setup:
+
+* CRM dashboards
+* Workflow diagrams
+* Automation systems
+* Business process visuals
+
+App Testing:
+
+* Mobile testing screens
+* QA reports
+* Android devices
+* App analytics
+
+FlutterFlow / Bubble MVP:
+
+* App mockups
+* SaaS dashboards
+* Mobile interfaces
+* Product development visuals
+
+Presentation Design:
+
+* Pitch decks
+* Investor presentations
+* Business slide designs
+
+PRODUCT IMAGES
+
+Gbolix Prospect Finder:
+
+* Lead databases
+* Business prospect dashboards
+* Contact discovery visuals
+
+Gbolix Monitor:
+
+* Monitoring dashboards
+* Alert systems
+* Analytics tracking
+
+Gbolix AI Agent:
+
+* AI assistants
+* Chat interfaces
+* Automation flows
+
+Images should make the platform feel alive and premium.
+
+---
+
+4. BUTTON IMPROVEMENTS
+
+---
+
+Improve all CTA buttons across the site.
+
+Primary Actions:
+
+* Bright Green
+* Glow effect on hover
+
+Secondary Actions:
+
+* Purple gradient
+* Smooth hover animation
+
+Buttons should feel modern and attractive.
+
+---
+
+5. PRICING PAGE CALCULATOR
+
+---
+
+The pricing page currently does not function correctly.
+
+Create a working pricing calculator.
+
+Users should be able to:
+
+STEP 1
+Select one or multiple services.
+
+Example:
+
+CRM Workflow Automation ($79)
+WhatsApp Automation ($119)
+API Integration ($149)
+
+STEP 2
+System automatically calculates total price.
+
+Example:
+
+Selected Services:
+CRM Workflow Automation
+API Integration
+
+Total:
+$228
+
+STEP 3
+Click Continue
+
+If user is not logged in:
+Redirect to Create Account page.
+
+If user is logged in:
+Proceed directly to checkout/request creation.
+
+STEP 4
+Automatically create a service request record after checkout.
+
+The calculator must update totals in real time.
+
+---
+
+6. PRODUCTS SECTION
+
+---
+
+Keep all products as COMING SOON.
+
+Do not enable purchases.
+
+Products:
+
+* Gbolix Prospect Finder
+* Gbolix Monitor
+* Gbolix AI Agent
+
+Display:
+COMING SOON badge
+
+Disable ordering.
+
+---
+
+7. ONBOARDING BUG FIX (HIGH PRIORITY)
+
+---
+
+Current issue:
+
+User signs up.
+User completes onboarding.
+System displays:
+
+"Setting up your account..."
+
+and never redirects.
+
+Fix onboarding flow completely.
+
+Required flow:
+
+Signup
+↓
+Onboarding Questions
+↓
+Save All Answers
+↓
+Set onboarding_completed = true
+↓
+Create/Update User Profile
+↓
+Redirect Automatically To Dashboard
+
+No infinite loading states.
+
+No stuck screens.
+
+No manual refresh required.
+
+If onboarding data saves successfully, redirect immediately to:
+
+/dashboard
+
+---
+
+8. DASHBOARD POLISH
+
+---
+
+Improve overall dashboard design.
+
+Make it look more professional and premium.
+
+Add:
+
+* Better spacing
+* Better card shadows
+* Better visual hierarchy
+* Better typography
+* Better responsiveness
+
+Keep focus on service business.
+
+Products remain disabled for now.
+
+---
+
+9. GENERAL DESIGN IMPROVEMENTS
+
+---
+
+The goal is for Gbolix to feel like:
+
+* A premium SaaS company
+* A digital operations studio
+* A startup-focused automation agency
+
+Increase visual quality across all pages.
+
+Reduce empty sections.
+
+Use more meaningful visuals.
+
+Improve trust and professionalism.
+
+Focus on conversion and credibility.

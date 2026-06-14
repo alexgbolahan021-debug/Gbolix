@@ -47,6 +47,7 @@
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
   --font-sans: "Inter", sans-serif;
+  --font-heading: "Sora", sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
