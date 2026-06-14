@@ -112,6 +112,8 @@ import AdminFiles from "@/pages/admin/AdminFiles";
 import AdminInsights from "@/pages/admin/AdminInsights";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
+import DevRoutes from "@/pages/dev/DevRoutes";
+import { DevRouteNavigator } from "@/components/DevRouteNavigator";
 
 import { useGetMe } from "@workspace/api-client-react";
 
@@ -188,6 +190,9 @@ function AppRouter() {
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
 
+      {/* Dev Tools (development only) */}
+      {import.meta.env.DEV && <Route path="/dev/routes" component={DevRoutes} />}
+
       {/* Auth Routes */}
       <Route path="/onboarding" component={OnboardingRoute} />
 
@@ -257,6 +262,7 @@ function App() {
         <ClerkProviderWithRoutes />
       </WouterRouter>
       <Toaster />
+      <DevRouteNavigator />
     </ThemeProvider>
   );
 }
