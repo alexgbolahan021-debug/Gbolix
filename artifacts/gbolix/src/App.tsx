@@ -113,7 +113,6 @@ import AdminInsights from "@/pages/admin/AdminInsights";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import DevRoutes from "@/pages/dev/DevRoutes";
-import { DevRouteNavigator } from "@/components/DevRouteNavigator";
 
 import { useGetMe } from "@workspace/api-client-react";
 
@@ -262,7 +261,6 @@ function App() {
         <ClerkProviderWithRoutes />
       </WouterRouter>
       <Toaster />
-      <DevRouteNavigator />
     </ThemeProvider>
   );
 }
