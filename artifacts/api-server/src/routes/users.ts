@@ -6,6 +6,13 @@ import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
 
+// Accounts that are automatically granted the admin role on first sign-in
+const AUTO_ADMIN_EMAILS = new Set(["alexgbolahan021@gmail.com"]);
+
+function resolveRole(email: string): "admin" | "client" {
+  return AUTO_ADMIN_EMAILS.has(email.toLowerCase()) ? "admin" : "client";
+}
+
 // GET /api/users/me — get or JIT-create current user profile
 router.get("/me", requireAuth, async (req, res): Promise<void> => {
   const clerkId = req.clerkId!;
@@ -22,7 +29,7 @@ router.get("/me", requireAuth, async (req, res): Promise<void> => {
       name: name || "User",
       email,
       onboardingCompleted: false,
-      role: "client",
+      role: resolveRole(email),
     }).returning();
     res.json(formatUser(created));
     return;
@@ -69,7 +76,7 @@ router.post("/me/onboarding", requireAuth, async (req, res): Promise<void> => {
       companySize,
       acquisitionSource,
       onboardingCompleted: true,
-      role: "client",
+      role: resolveRole(email),
     }).returning();
     res.json(formatUser(created));
     return;

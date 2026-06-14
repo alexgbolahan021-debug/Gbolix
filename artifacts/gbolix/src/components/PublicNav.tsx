@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X } from "lucide-react";
+import { Moon, Sun, Menu, X, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { Show } from "@clerk/react";
+import { useGetMe } from "@workspace/api-client-react";
 
 const navLinks = [
   { href: "/",         label: "Home" },
@@ -18,6 +19,8 @@ export function PublicNav() {
   const [scrolled, setScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const [location] = useLocation();
+  const { data: profile } = useGetMe();
+  const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -39,7 +42,7 @@ export function PublicNav() {
             <img
               src={theme === "dark" ? "/logo-dark.png" : "/logo-light.png"}
               alt="Gbolix"
-              className="h-8 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
           </Link>
 
@@ -66,16 +69,41 @@ export function PublicNav() {
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
+
             <Show when="signed-in">
+              {isAdmin && (
+                <Link href="/admin/dashboard">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 border-secondary/40 text-secondary hover:bg-secondary/10 hover:border-secondary/60 transition-all"
+                    data-testid="link-admin-portal"
+                  >
+                    <Shield size={12} />
+                    Admin Portal
+                  </Button>
+                </Link>
+              )}
               <Link href="/dashboard">
-                <Button variant="outline" size="sm" className="hover:border-primary/50 hover:text-primary transition-all" data-testid="link-dashboard">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hover:border-primary/50 hover:text-primary transition-all"
+                  data-testid="link-dashboard"
+                >
                   Dashboard
                 </Button>
               </Link>
             </Show>
+
             <Show when="signed-out">
               <Link href="/sign-in">
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" data-testid="link-login">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                  data-testid="link-login"
+                >
                   Login
                 </Button>
               </Link>
@@ -97,7 +125,11 @@ export function PublicNav() {
           </div>
 
           {/* Mobile toggle */}
-          <button className="md:hidden p-2 text-muted-foreground hover:text-foreground" onClick={() => setOpen(!open)} data-testid="button-mobile-menu">
+          <button
+            className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+            onClick={() => setOpen(!open)}
+            data-testid="button-mobile-menu"
+          >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
@@ -109,29 +141,49 @@ export function PublicNav() {
               <Link
                 key={l.label}
                 href={l.href}
-                className={`block px-3 py-2.5 rounded-md text-sm transition-colors hover:bg-accent ${location === l.href ? "text-primary" : "text-muted-foreground"}`}
+                className={`block px-3 py-2.5 rounded-md text-sm transition-colors hover:bg-accent ${
+                  location === l.href ? "text-primary" : "text-muted-foreground"
+                }`}
                 onClick={() => setOpen(false)}
               >
                 {l.label}
               </Link>
             ))}
-            <Link href="/contact" className="block px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground" onClick={() => setOpen(false)}>
+            <Link
+              href="/contact"
+              className="block px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+              onClick={() => setOpen(false)}
+            >
               Contact
             </Link>
+            {isAdmin && (
+              <Link href="/admin/dashboard" onClick={() => setOpen(false)}>
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm text-secondary hover:bg-secondary/10">
+                  <Shield size={13} /> Admin Portal
+                </div>
+              </Link>
+            )}
             <div className="flex gap-2 pt-3 px-1">
-              <Link href="/sign-in" className="flex-1">
-                <Button variant="outline" size="sm" className="w-full" data-testid="link-login-mobile">Login</Button>
-              </Link>
-              <Link href="/sign-up" className="flex-1">
-                <Button
-                  size="sm"
-                  className="w-full font-semibold"
-                  style={{ background: "linear-gradient(135deg, #00FF66, #22D3EE)", color: "#0B0F14" }}
-                  data-testid="link-get-started-mobile"
-                >
-                  Get Started
-                </Button>
-              </Link>
+              <Show when="signed-out">
+                <Link href="/sign-in" className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full" data-testid="link-login-mobile">Login</Button>
+                </Link>
+                <Link href="/sign-up" className="flex-1">
+                  <Button
+                    size="sm"
+                    className="w-full font-semibold"
+                    style={{ background: "linear-gradient(135deg, #00FF66, #22D3EE)", color: "#0B0F14" }}
+                    data-testid="link-get-started-mobile"
+                  >
+                    Get Started
+                  </Button>
+                </Link>
+              </Show>
+              <Show when="signed-in">
+                <Link href="/dashboard" className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full">Dashboard</Button>
+                </Link>
+              </Show>
             </div>
           </div>
         )}

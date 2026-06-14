@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
@@ -32,7 +33,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo-icon.jpg`,
+    logoImageUrl: `${window.location.origin}${basePath}/logo-g-icon.png`,
   },
   variables: {
     colorPrimary: "#00FF66",
@@ -62,7 +63,7 @@ const clerkAppearance = {
     formFieldSuccessText: "text-[#00FF66]",
     alertText: "text-red-500",
     logoBox: "",
-    logoImage: "h-8",
+    logoImage: "h-14",
     socialButtonsBlockButton: "border-slate-800 hover:bg-slate-800/50",
     formButtonPrimary: "bg-[#00FF66] text-black hover:bg-[#00cc52]",
     formFieldInput: "bg-[#0B0F14] border-slate-800 text-white focus:border-[#00FF66]",
@@ -133,23 +134,36 @@ function SignUpPage() {
 }
 
 function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Redirect to="/dashboard" />
-      </Show>
-      <Show when="signed-out">
-        <Home />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useUser();
+  const { data: profile, isLoading } = useGetMe();
+
+  if (!isLoaded) return <LoadingScreen />;
+  if (!isSignedIn) return <Home />;
+  if (isLoading) return <LoadingScreen />;
+
+  if (profile?.role === "admin") return <Redirect to="/admin/dashboard" />;
+  return <Redirect to="/dashboard" />;
+}
+
+function AccessDeniedRedirect() {
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const toastEl = document.getElementById("gbolix-toast-container");
+      if (toastEl) {
+        const detail = { title: "Access Denied", description: "You don't have permission to view that page.", variant: "destructive" };
+        toastEl.dispatchEvent(new CustomEvent("gbolix:toast", { detail }));
+      }
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
+  return <Redirect to="/dashboard" />;
 }
 
 function ProtectedRoute({ component: Component, adminOnly = false }: { component: any, adminOnly?: boolean }) {
   const { data: profile, isLoading } = useGetMe();
   const { isLoaded, isSignedIn } = useUser();
 
-  if (!isLoaded || isLoading) return <div className="min-h-screen flex items-center justify-center bg-background text-foreground">Loading...</div>;
+  if (!isLoaded || isLoading) return <LoadingScreen />;
 
   if (!isSignedIn) return <Redirect to="/sign-in" />;
 
@@ -157,8 +171,8 @@ function ProtectedRoute({ component: Component, adminOnly = false }: { component
     return <Redirect to="/onboarding" />;
   }
 
-  if (adminOnly && profile?.role !== 'admin') {
-    return <Redirect to="/dashboard" />;
+  if (adminOnly && profile?.role !== "admin") {
+    return <AccessDeniedRedirect />;
   }
 
   return <Component />;
@@ -168,7 +182,7 @@ function OnboardingRoute() {
   const { data: profile, isLoading } = useGetMe();
   const { isLoaded, isSignedIn } = useUser();
 
-  if (!isLoaded || isLoading) return <div className="min-h-screen flex items-center justify-center bg-background text-foreground">Loading...</div>;
+  if (!isLoaded || isLoading) return <LoadingScreen />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
   if (profile?.onboardingCompleted) return <Redirect to="/dashboard" />;
 

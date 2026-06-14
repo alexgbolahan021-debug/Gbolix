@@ -34,75 +34,73 @@ const FadeUp = ({ children, delay = 0, className = "" }: { children: React.React
   </motion.div>
 );
 
-// ─── Canvas particle background ──────────────────────────────────────────────
-function HeroCanvas() {
-  const ref = useRef<HTMLCanvasElement>(null);
+// ─── Cinematic city skyline video background ──────────────────────────────────
+function HeroVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    let animId = 0;
-    const mouse = { x: 0, y: 0 };
-
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const COLORS = ["#00FF66", "#22D3EE", "#A855F7", "#00FF66", "#22D3EE"];
-    interface P { x: number; y: number; vx: number; vy: number; r: number; color: string; }
-    const pts: P[] = Array.from({ length: 65 }, () => ({
-      x: Math.random() * (canvas.width || 1280),
-      y: Math.random() * (canvas.height || 720),
-      vx: (Math.random() - 0.5) * 0.38,
-      vy: (Math.random() - 0.5) * 0.38,
-      r: Math.random() * 1.6 + 0.4,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    }));
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < pts.length; i++) {
-        for (let j = i + 1; j < pts.length; j++) {
-          const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 140) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(0,255,102,${0.07 * (1 - d / 140)})`;
-            ctx.lineWidth = 0.5;
-            ctx.moveTo(pts[i].x, pts[i].y);
-            ctx.lineTo(pts[j].x, pts[j].y);
-            ctx.stroke();
-          }
-        }
-      }
-      pts.forEach(p => {
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 5);
-        g.addColorStop(0, p.color + "BB");
-        g.addColorStop(1, p.color + "00");
-        ctx.beginPath();
-        ctx.fillStyle = g;
-        ctx.arc(p.x, p.y, p.r * 5, 0, Math.PI * 2);
-        ctx.fill();
-        p.x += p.vx + (mouse.x / (canvas.width || 1) - 0.5) * 0.06;
-        p.y += p.vy + (mouse.y / (canvas.height || 1) - 0.5) * 0.06;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-      });
-      animId = requestAnimationFrame(draw);
-    };
-    const onMM = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; };
-    window.addEventListener("mousemove", onMM);
-    draw();
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", resize);
-      window.removeEventListener("mousemove", onMM);
-    };
+    // Lazy-load: start video after initial paint
+    const timer = setTimeout(() => {
+      const v = videoRef.current;
+      if (!v) return;
+      v.load();
+      v.play().catch(() => {});
+    }, 300);
+    return () => clearTimeout(timer);
   }, []);
-  return <canvas ref={ref} className="absolute inset-0 w-full h-full opacity-55 pointer-events-none" />;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* City skyline video */}
+      <video
+        ref={videoRef}
+        muted
+        loop
+        playsInline
+        preload="none"
+        poster="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1920&q=80&auto=format&fit=crop"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{
+          transform: "scale(1.06)",
+          filter: "brightness(0.88) saturate(1.15)",
+          willChange: "transform",
+        }}
+      >
+        <source
+          src="https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_25fps.mp4"
+          type="video/mp4"
+        />
+        <source
+          src="https://videos.pexels.com/video-files/2892277/2892277-hd_1920_1080_25fps.mp4"
+          type="video/mp4"
+        />
+      </video>
+
+      {/* Dark overlay — 63% opacity for text legibility */}
+      <div
+        className="absolute inset-0"
+        style={{ background: "rgba(7, 10, 15, 0.63)" }}
+      />
+
+      {/* Ambient green glow — bottom-left */}
+      <div
+        className="absolute inset-0"
+        style={{ background: "radial-gradient(ellipse at 14% 90%, rgba(0,255,102,0.09) 0%, transparent 52%)" }}
+      />
+
+      {/* Ambient purple glow — bottom-right */}
+      <div
+        className="absolute inset-0"
+        style={{ background: "radial-gradient(ellipse at 86% 90%, rgba(168,85,247,0.09) 0%, transparent 52%)" }}
+      />
+
+      {/* Bottom fade to page background */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-52"
+        style={{ background: "linear-gradient(to top, #0B0F14 0%, transparent 100%)" }}
+      />
+    </div>
+  );
 }
 
 // ─── Count-up hook ────────────────────────────────────────────────────────────
@@ -195,22 +193,7 @@ export default function Home() {
 
       {/* ═══ HERO ══════════════════════════════════════════════════════════════ */}
       <section className="relative flex items-center justify-center min-h-screen overflow-hidden bg-[#0B0F14]">
-        {/* Animated orb blobs */}
-        <div className="absolute top-1/4 left-1/5 w-[550px] h-[550px] bg-[#00FF66]/8 rounded-full blur-[140px] pointer-events-none" style={{ animation: "orb-float-1 18s ease-in-out infinite" }} />
-        <div className="absolute bottom-1/4 right-1/5 w-[480px] h-[480px] bg-[#A855F7]/8 rounded-full blur-[130px] pointer-events-none" style={{ animation: "orb-float-2 22s ease-in-out infinite" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-[#22D3EE]/5 rounded-full blur-[120px] pointer-events-none" style={{ animation: "orb-float-3 14s ease-in-out infinite" }} />
-
-        {/* Grid pattern */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.04]"
-          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='50' height='50' viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h50v1H0zm0 49h50v1H0zM0 0v50h1V0zm49 0v50h1V0z' fill='%2300FF66'/%3E%3C/svg%3E")`, backgroundSize: "50px 50px" }}
-        />
-
-        {/* Canvas particles */}
-        <HeroCanvas />
-
-        {/* Bottom fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+        <HeroVideo />
 
         {/* Content */}
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
