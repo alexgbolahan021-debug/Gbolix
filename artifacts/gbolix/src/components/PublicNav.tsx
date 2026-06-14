@@ -1,24 +1,38 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { Show } from "@clerk/react";
 
 const navLinks = [
-  { href: "/", label: "Home" },
+  { href: "/",         label: "Home" },
   { href: "/services", label: "Services" },
   { href: "/products", label: "Products" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "/pricing",  label: "Pricing" },
+  { href: "/about",    label: "About" },
 ];
 
 export function PublicNav() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const [location] = useLocation();
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-background/90 backdrop-blur-md border-b border-border shadow-sm"
+          : "bg-transparent border-b border-transparent"
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
@@ -30,19 +44,21 @@ export function PublicNav() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-1">
             {navLinks.map(l => (
               <Link
-                key={l.href}
+                key={l.label}
                 href={l.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${location === l.href ? "text-primary" : "text-muted-foreground"}`}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors hover:text-foreground hover:bg-accent/50 ${
+                  location === l.href ? "text-primary" : "text-muted-foreground"
+                }`}
               >
                 {l.label}
               </Link>
             ))}
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -52,45 +68,69 @@ export function PublicNav() {
             </button>
             <Show when="signed-in">
               <Link href="/dashboard">
-                <Button variant="outline" size="sm" data-testid="link-dashboard">Dashboard</Button>
+                <Button variant="outline" size="sm" className="hover:border-primary/50 hover:text-primary transition-all" data-testid="link-dashboard">
+                  Dashboard
+                </Button>
               </Link>
             </Show>
             <Show when="signed-out">
               <Link href="/sign-in">
-                <Button variant="ghost" size="sm" data-testid="link-login">Login</Button>
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" data-testid="link-login">
+                  Login
+                </Button>
               </Link>
               <Link href="/sign-up">
-                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" data-testid="link-get-started">
+                <Button
+                  size="sm"
+                  className="font-semibold transition-all duration-300 hover:-translate-y-px"
+                  style={{
+                    background: "linear-gradient(135deg, #00FF66, #22D3EE)",
+                    color: "#0B0F14",
+                    boxShadow: "0 0 16px rgba(0,255,102,0.3)",
+                  }}
+                  data-testid="link-get-started"
+                >
                   Get Started
                 </Button>
               </Link>
             </Show>
           </div>
 
-          {/* Mobile */}
-          <button className="md:hidden p-2" onClick={() => setOpen(!open)} data-testid="button-mobile-menu">
+          {/* Mobile toggle */}
+          <button className="md:hidden p-2 text-muted-foreground hover:text-foreground" onClick={() => setOpen(!open)} data-testid="button-mobile-menu">
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
+        {/* Mobile menu */}
         {open && (
-          <div className="md:hidden border-t border-border py-4 space-y-2">
+          <div className="md:hidden border-t border-border py-4 space-y-1 bg-background/95 backdrop-blur-md">
             {navLinks.map(l => (
               <Link
-                key={l.href}
+                key={l.label}
                 href={l.href}
-                className="block px-2 py-2 text-sm text-muted-foreground hover:text-foreground"
+                className={`block px-3 py-2.5 rounded-md text-sm transition-colors hover:bg-accent ${location === l.href ? "text-primary" : "text-muted-foreground"}`}
                 onClick={() => setOpen(false)}
               >
                 {l.label}
               </Link>
             ))}
-            <div className="flex gap-2 pt-2">
+            <Link href="/contact" className="block px-3 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground" onClick={() => setOpen(false)}>
+              Contact
+            </Link>
+            <div className="flex gap-2 pt-3 px-1">
               <Link href="/sign-in" className="flex-1">
                 <Button variant="outline" size="sm" className="w-full" data-testid="link-login-mobile">Login</Button>
               </Link>
               <Link href="/sign-up" className="flex-1">
-                <Button size="sm" className="w-full bg-primary text-primary-foreground" data-testid="link-get-started-mobile">Get Started</Button>
+                <Button
+                  size="sm"
+                  className="w-full font-semibold"
+                  style={{ background: "linear-gradient(135deg, #00FF66, #22D3EE)", color: "#0B0F14" }}
+                  data-testid="link-get-started-mobile"
+                >
+                  Get Started
+                </Button>
               </Link>
             </div>
           </div>

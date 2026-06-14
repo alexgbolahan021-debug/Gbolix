@@ -1,0 +1,164 @@
+ADVANCED MOTION & INTERACTIVITY
+
+The website should not feel static.
+
+Currently many sections stop moving once they load.
+
+I want the entire experience to feel alive and responsive while scrolling, hovering, clicking, and navigating.
+
+Scroll Animations
+
+Add smooth scroll-triggered animations throughout the site:
+
+Fade Up
+Fade In
+Slide Left
+Slide Right
+Scale In
+Staggered Card Reveals
+
+Elements should animate when entering the viewport.
+
+Do NOT animate everything at once.
+
+Each section should reveal naturally as the user scrolls.
+
+Parallax Effects
+
+Add subtle parallax movement to:
+
+Hero background
+Large section backgrounds
+Floating shapes
+Decorative gradients
+
+The movement should be smooth and premium.
+
+Not excessive.
+
+Mouse Interaction
+
+Add subtle mouse-based movement:
+
+Cards slightly tilt on hover
+Images slightly zoom
+Buttons react to cursor position
+Glow effects follow the cursor
+
+Should feel similar to modern SaaS websites.
+
+Floating Background Elements
+
+Throughout the site add:
+
+Floating gradient orbs
+Soft glowing particles
+Animated grid patterns
+Slow-moving light streaks
+
+Use Gbolix colors:
+
+Green → Cyan → Purple
+
+Animations should be slow and elegant.
+
+Hero Section Motion
+
+The hero section should remain alive.
+
+Requirements:
+
+Background video or animated scene continues moving
+Floating particles
+Gradient glow pulses
+Buttons animate on hover
+Headline reveals with staggered animation
+Scroll indicator continuously animates
+
+The hero should immediately communicate that Gbolix is a modern technology company.
+
+Service Card Animations
+
+Each service card should:
+
+Lift on hover
+Glow on hover
+Slightly scale up
+Animate image zoom
+Animate icons
+
+Cards should feel interactive.
+
+Product Card Animations
+
+Even though products are marked Coming Soon:
+
+Add hover effects
+Add animated border glow
+Add subtle floating animation
+Add pulse effect on Coming Soon badge
+Testimonial Carousel
+
+The testimonial section should never feel static.
+
+Requirements:
+
+Infinite horizontal movement
+Smooth animation
+Pause on hover
+Resume automatically
+Mobile responsive
+
+Exactly like the original Base44 implementation.
+
+Statistics & Counters
+
+For any statistics section:
+
+Count up animation
+Smooth easing
+Trigger only when visible
+
+Do not display numbers instantly.
+
+Page Transitions
+
+Add smooth transitions between pages:
+
+Home
+Services
+Products
+Pricing
+About
+Contact
+Login
+Register
+Dashboard
+
+Avoid abrupt page changes.
+
+Use subtle fade and slide transitions.
+
+Loading Experience
+
+Create a branded loading screen using the Gbolix "G" logo.
+
+Requirements:
+
+Animated logo
+Green → Cyan → Purple glow
+Smooth fade in/out
+Used during page loading and authentication checks
+Performance Requirement
+
+All animations must remain smooth and optimized.
+
+Target:
+
+60 FPS
+Mobile friendly
+Lazy load images
+Avoid animation lag
+Avoid excessive CPU usage
+
+The goal is to make Gbolix feel like a premium SaaS product similar to Linear, Stripe, Framer, Arc Browser,

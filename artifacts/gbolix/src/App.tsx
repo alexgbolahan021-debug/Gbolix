@@ -110,6 +110,8 @@ import AdminProjects from "@/pages/admin/AdminProjects";
 import AdminMessages from "@/pages/admin/AdminMessages";
 import AdminFiles from "@/pages/admin/AdminFiles";
 import AdminInsights from "@/pages/admin/AdminInsights";
+import About from "@/pages/About";
+import Contact from "@/pages/Contact";
 
 import { useGetMe } from "@workspace/api-client-react";
 
@@ -183,6 +185,8 @@ function AppRouter() {
       <Route path="/services" component={Services} />
       <Route path="/products" component={Products} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/about" component={About} />
+      <Route path="/contact" component={Contact} />
 
       {/* Auth Routes */}
       <Route path="/onboarding" component={OnboardingRoute} />

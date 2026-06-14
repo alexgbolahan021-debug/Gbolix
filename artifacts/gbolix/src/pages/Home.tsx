@@ -1,225 +1,572 @@
+import { useRef, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PublicNav } from "@/components/PublicNav";
-import { ArrowRight, Zap, Bot, Activity, Check } from "lucide-react";
+import { motion, useInView } from "framer-motion";
+import { ArrowRight, Check, Zap, Bot, Activity, Star, Layers, Eye, Headphones, ArrowDown, Timer, ShieldCheck } from "lucide-react";
 
-const services = [
-  {
-    category: "Automation Setup",
-    items: ["CRM Workflow Automation", "WhatsApp Automation", "Email Automation Setup", "Make.com Workflow", "API Integration"],
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=480&q=80&auto=format&fit=crop",
-  },
-  {
-    category: "App Testing",
-    items: ["Google Play Closed Testing (14 Days)", "QA Report", "Android App Ranking Audit"],
-    image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=480&q=80&auto=format&fit=crop",
-  },
-  {
-    category: "FlutterFlow / Bubble MVP",
-    items: ["Landing Page", "Authentication Setup", "Supabase Integration", "Admin Panel", "Client Portal"],
-    image: "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=480&q=80&auto=format&fit=crop",
-  },
-  {
-    category: "Presentation Design",
-    items: ["Pitch Deck", "Company Profile", "Existing Deck Redesign"],
-    image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=480&q=80&auto=format&fit=crop",
-  },
-];
+// ─── Gradient text helper ────────────────────────────────────────────────────
+const GradientText = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <span
+    className={className}
+    style={{
+      background: "linear-gradient(135deg, #00FF66 0%, #22D3EE 50%, #A855F7 100%)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
+    }}
+  >
+    {children}
+  </span>
+);
 
-const products = [
-  { name: "Gbolix Prospect Finder", desc: "Generate verified business prospects.", icon: Zap },
-  { name: "Gbolix Monitor", desc: "Monitor websites and webhooks.", icon: Activity },
-  { name: "Gbolix AI Agent", desc: "Automate conversations and bookings.", icon: Bot },
-];
+// ─── Fade-up animation wrapper ────────────────────────────────────────────────
+const FadeUp = ({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 28 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, margin: "-40px" }}
+    transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+    className={className}
+  >
+    {children}
+  </motion.div>
+);
 
-function HeroBackground() {
+// ─── Canvas particle background ──────────────────────────────────────────────
+function HeroCanvas() {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let animId = 0;
+    const mouse = { x: 0, y: 0 };
+
+    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const COLORS = ["#00FF66", "#22D3EE", "#A855F7", "#00FF66", "#22D3EE"];
+    interface P { x: number; y: number; vx: number; vy: number; r: number; color: string; }
+    const pts: P[] = Array.from({ length: 65 }, () => ({
+      x: Math.random() * (canvas.width || 1280),
+      y: Math.random() * (canvas.height || 720),
+      vx: (Math.random() - 0.5) * 0.38,
+      vy: (Math.random() - 0.5) * 0.38,
+      r: Math.random() * 1.6 + 0.4,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    }));
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+          const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 140) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0,255,102,${0.07 * (1 - d / 140)})`;
+            ctx.lineWidth = 0.5;
+            ctx.moveTo(pts[i].x, pts[i].y);
+            ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      pts.forEach(p => {
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 5);
+        g.addColorStop(0, p.color + "BB");
+        g.addColorStop(1, p.color + "00");
+        ctx.beginPath();
+        ctx.fillStyle = g;
+        ctx.arc(p.x, p.y, p.r * 5, 0, Math.PI * 2);
+        ctx.fill();
+        p.x += p.vx + (mouse.x / (canvas.width || 1) - 0.5) * 0.06;
+        p.y += p.vy + (mouse.y / (canvas.height || 1) - 0.5) * 0.06;
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+      });
+      animId = requestAnimationFrame(draw);
+    };
+    const onMM = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; };
+    window.addEventListener("mousemove", onMM);
+    draw();
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", onMM);
+    };
+  }, []);
+  return <canvas ref={ref} className="absolute inset-0 w-full h-full opacity-55 pointer-events-none" />;
+}
+
+// ─── Count-up hook ────────────────────────────────────────────────────────────
+function useCountUp(target: number, duration = 1800, active = false) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    let start: number | null = null;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      setVal(Math.floor(ease * target));
+      if (p < 1) requestAnimationFrame(step);
+      else setVal(target);
+    };
+    requestAnimationFrame(step);
+  }, [target, duration, active]);
+  return val;
+}
+
+// ─── Stat counter card ────────────────────────────────────────────────────────
+function StatCard({ value, unit, label, desc, color }: { value: number; unit: string; label: string; desc: string; color: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true });
+  const count = useCountUp(value, 1800, inView);
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      <img
-        src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1920&q=85&auto=format&fit=crop"
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="eager"
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/55 to-[#0B0F14]" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[#00FF66]/6 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-[#A855F7]/5 blur-[140px] rounded-full pointer-events-none" />
+    <div ref={ref} className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden group hover:border-primary/30 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,102,0.08)]">
+      <div className="absolute top-4 right-4 flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded-full bg-primary" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
+        <span className="text-[10px] text-primary/60 font-medium">LIVE</span>
+      </div>
+      <p className="text-4xl font-bold mb-1" style={{ fontFamily: "Space Grotesk, sans-serif", color }}>
+        {count}{unit}
+      </p>
+      <p className="font-semibold text-sm mb-1">{label}</p>
+      <p className="text-xs text-muted-foreground">{desc}</p>
     </div>
   );
 }
 
+// ─── Testimonials data ────────────────────────────────────────────────────────
+const testimonials = [
+  { name: "Sarah Chen", role: "Founder, TaskFlow", rating: 5, text: "Gbolix automated our entire client onboarding. What took 3 hours now takes 5 minutes. Absolutely game-changing for our agency." },
+  { name: "Marcus Williams", role: "CEO, BuildLaunch", rating: 5, text: "The FlutterFlow MVP they built was production-ready in 2 weeks. Clean code, great design, seamless delivery." },
+  { name: "Aisha Okafor", role: "Marketing Dir., NovaBrands", rating: 5, text: "Our pitch deck completely transformed after working with Gbolix. Investors noticed immediately. We closed our seed round 3 weeks later." },
+  { name: "James Adeyemi", role: "Indie Developer", rating: 5, text: "Google Play closed testing handled perfectly. The QA report was detailed and their turnaround was incredibly fast." },
+  { name: "Elena Marcou", role: "Ops Lead, Scalepath", rating: 5, text: "The Make.com workflows they set up saved our team 15 hours per week. Professional, fast, and exactly what we needed." },
+  { name: "Kofi Mensah", role: "Founder, GreenStack", rating: 5, text: "Three different services — automation, testing, and a landing page — all delivered on time. Gbolix is now our go-to operations partner." },
+];
+
+// ─── How It Works steps ────────────────────────────────────────────────────────
+const steps = [
+  { num: "01", title: "Request Your Project", desc: "Submit your request through our portal. Describe your needs in detail — we read everything.", icon: ArrowRight },
+  { num: "02", title: "Receive A Quote", desc: "We review your project within 24 hours and send a clear, transparent pricing breakdown.", icon: Timer },
+  { num: "03", title: "Build & Execute", desc: "Our team executes with regular updates. You track progress directly in your dashboard.", icon: Zap },
+  { num: "04", title: "Deliver & Support", desc: "Your work is delivered with documentation. We stay available for follow-up support.", icon: ShieldCheck },
+];
+
+// ─── Why Gbolix features ───────────────────────────────────────────────────────
+const features = [
+  { icon: Layers,      title: "One Workspace",          desc: "Tasks, files, messages, and billing — all in one polished platform. No more scattered tools." },
+  { icon: Star,        title: "Quality First",           desc: "Every deliverable meets premium standards. We don't ship until it's right." },
+  { icon: Eye,         title: "Transparent Delivery",    desc: "Real-time status updates on every project. You always know where things stand." },
+  { icon: Headphones,  title: "Reliable Support",        desc: "Dedicated response within hours, not days. We resolve issues fully — no ghosting." },
+];
+
+// ─── Services data ─────────────────────────────────────────────────────────────
+const services = [
+  { category: "Automation Setup",        image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=480&q=80&auto=format&fit=crop", items: ["CRM Workflow Automation", "WhatsApp Automation", "Make.com Workflow", "API Integration"] },
+  { category: "App Testing",             image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=480&q=80&auto=format&fit=crop", items: ["Google Play Closed Testing", "QA Report", "Android Ranking Audit"] },
+  { category: "FlutterFlow / Bubble",    image: "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=480&q=80&auto=format&fit=crop", items: ["Landing Page", "Auth Setup", "Supabase Integration", "Admin Panel"] },
+  { category: "Presentation Design",     image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=480&q=80&auto=format&fit=crop", items: ["Pitch Deck", "Company Profile", "Deck Redesign"] },
+];
+
+// ─── Products data ─────────────────────────────────────────────────────────────
+const products = [
+  { name: "Gbolix Prospect Finder", tagline: "AI-Powered Prospecting",          image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80&auto=format&fit=crop" },
+  { name: "Gbolix Monitor",         tagline: "Real-Time Website Monitoring",    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80&auto=format&fit=crop" },
+  { name: "Gbolix AI Agent",        tagline: "Automated Conversations & Booking", image: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600&q=80&auto=format&fit=crop" },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function Home() {
+  const [waitlisted, setWaitlisted] = useState<string | null>(null);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <PublicNav />
 
-      {/* Hero */}
-      <section className="relative flex items-center justify-center min-h-screen overflow-hidden">
-        <HeroBackground />
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <Badge className="mb-6 bg-primary/15 text-primary border-primary/30 hover:bg-primary/15 backdrop-blur-sm px-4 py-1.5" data-testid="badge-tagline">
-            Build. Automate. Scale.
-          </Badge>
-          <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6 leading-tight tracking-tight drop-shadow-2xl" style={{ fontFamily: "Sora, sans-serif" }} data-testid="text-hero-headline">
+      {/* ═══ HERO ══════════════════════════════════════════════════════════════ */}
+      <section className="relative flex items-center justify-center min-h-screen overflow-hidden bg-[#0B0F14]">
+        {/* Animated orb blobs */}
+        <div className="absolute top-1/4 left-1/5 w-[550px] h-[550px] bg-[#00FF66]/8 rounded-full blur-[140px] pointer-events-none" style={{ animation: "orb-float-1 18s ease-in-out infinite" }} />
+        <div className="absolute bottom-1/4 right-1/5 w-[480px] h-[480px] bg-[#A855F7]/8 rounded-full blur-[130px] pointer-events-none" style={{ animation: "orb-float-2 22s ease-in-out infinite" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-[#22D3EE]/5 rounded-full blur-[120px] pointer-events-none" style={{ animation: "orb-float-3 14s ease-in-out infinite" }} />
+
+        {/* Grid pattern */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.04]"
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='50' height='50' viewBox='0 0 50 50' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h50v1H0zm0 49h50v1H0zM0 0v50h1V0zm49 0v50h1V0z' fill='%2300FF66'/%3E%3C/svg%3E")`, backgroundSize: "50px 50px" }}
+        />
+
+        {/* Canvas particles */}
+        <HeroCanvas />
+
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+
+        {/* Content */}
+        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <Badge className="mb-6 bg-primary/12 text-primary border-primary/25 hover:bg-primary/12 backdrop-blur-sm px-4 py-1.5 text-xs uppercase tracking-widest">
+              Premium B2B Operations
+            </Badge>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="text-6xl md:text-8xl font-bold text-white mb-6 leading-[1.05] tracking-tight"
+            style={{ fontFamily: "Space Grotesk, sans-serif" }}
+          >
             Build. Automate.<br />
-            <span className="text-primary" style={{ textShadow: "0 0 40px rgba(0,255,102,0.4)" }}>Scale.</span>
-          </h1>
-          <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Helping founders and businesses automate operations, launch products faster, and scale efficiently.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <GradientText>Scale.</GradientText>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
+            className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed"
+          >
+            Helping founders and businesses automate operations, launch products faster, and scale efficiently — all from one platform.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.38 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+          >
             <Link href="/services">
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 gap-2 backdrop-blur-sm px-8 transition-all duration-300 hover:border-white/40"
-                data-testid="button-explore-services"
+                className="border-white/20 text-white hover:bg-white/8 hover:border-white/40 gap-2 px-8 backdrop-blur-sm transition-all duration-300 group"
               >
-                Explore Services <ArrowRight size={16} />
+                Explore Services
+                <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <Link href="/pricing">
               <Button
                 size="lg"
-                className="gap-2 px-8 font-semibold transition-all duration-300"
+                className="gap-2 px-8 font-semibold transition-all duration-300 hover:-translate-y-0.5"
                 style={{
-                  background: "linear-gradient(135deg, #00FF66, #00cc52)",
+                  background: "linear-gradient(135deg, #00FF66 0%, #22D3EE 60%, #A855F7 100%)",
+                  backgroundSize: "200% 200%",
                   color: "#0B0F14",
-                  boxShadow: "0 0 30px rgba(0,255,102,0.35)",
+                  boxShadow: "0 0 32px rgba(0,255,102,0.4), 0 0 80px rgba(0,255,102,0.15)",
+                  animation: "gradient-glow 4s ease infinite",
                 }}
-                data-testid="button-view-pricing"
               >
                 View Pricing
               </Button>
             </Link>
-          </div>
+          </motion.div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-40">
-          <div className="w-px h-12 bg-gradient-to-b from-transparent to-white/60" />
-          <span className="text-xs text-white/60 uppercase tracking-widest">Scroll</span>
-        </div>
-      </section>
-
-      {/* Services preview */}
-      <section className="py-24 px-4 max-w-7xl mx-auto" id="services">
-        <div className="text-center mb-16">
-          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">What We Do</Badge>
-          <h2 className="text-4xl font-extrabold mb-4" style={{ fontFamily: "Sora, sans-serif" }} data-testid="text-services-heading">Services That Scale With You</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">From automation setup to full MVP development — we handle the technical work so you can focus on growth.</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map(s => (
-            <div key={s.category} className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,102,0.07)] group" data-testid={`card-service-${s.category.toLowerCase().replace(/\s/g, "-")}`}>
-              <div className="h-36 overflow-hidden">
-                <img src={s.image} alt={s.category} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-              </div>
-              <div className="p-5">
-                <h3 className="font-semibold mb-3 text-xs uppercase tracking-wider text-primary">{s.category}</h3>
-                <ul className="space-y-1.5">
-                  {s.items.map(item => (
-                    <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <Check size={12} className="text-primary shrink-0 mt-0.5" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="text-center mt-10">
-          <Link href="/services">
-            <Button
-              variant="outline"
-              className="gap-2 hover:border-primary/50 hover:text-primary transition-all duration-300"
-              data-testid="button-view-all-services"
-            >
-              View All Services <ArrowRight size={14} />
-            </Button>
-          </Link>
+        {/* Scroll indicator */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-50">
+          <ArrowDown size={18} className="text-white" style={{ animation: "scroll-bounce 2s ease-in-out infinite" }} />
         </div>
       </section>
 
-      {/* Products coming soon */}
-      <section className="py-24 px-4 bg-card border-y border-border">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">Coming Soon</Badge>
-            <h2 className="text-4xl font-extrabold mb-4" style={{ fontFamily: "Sora, sans-serif" }}>Gbolix Products</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">Powerful tools built for the modern business. Join the waitlist.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {products.map(p => {
-              const Icon = p.icon;
+      {/* ═══ HOW GBOLIX WORKS ══════════════════════════════════════════════════ */}
+      <section className="py-28 px-4 relative">
+        <div className="max-w-6xl mx-auto">
+          <FadeUp className="text-center mb-16">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">How It Works</Badge>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
+              How <GradientText>Gbolix</GradientText> Works
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              A structured, transparent workflow from first request to final delivery.
+            </p>
+          </FadeUp>
+
+          <div className="relative grid md:grid-cols-4 gap-6">
+            {/* Connector line on desktop */}
+            <div className="hidden md:block absolute top-[52px] left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-primary/20 via-[#22D3EE]/30 to-[#A855F7]/20 z-0" />
+
+            {steps.map((step, i) => {
+              const Icon = step.icon;
               return (
-                <div key={p.name} className="bg-background border border-border rounded-2xl p-6 text-center hover:border-secondary/30 transition-all duration-300" data-testid={`card-product-${p.name.toLowerCase().replace(/\s/g, "-")}`}>
-                  <div className="w-14 h-14 bg-secondary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Icon size={24} className="text-secondary" />
+                <FadeUp key={step.num} delay={i * 0.1}>
+                  <div className="bg-card border border-border rounded-2xl p-6 relative z-10 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_0_24px_rgba(0,255,102,0.08)] hover:-translate-y-1">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 mx-auto"
+                      style={{ background: "linear-gradient(135deg, rgba(0,255,102,0.15), rgba(34,211,238,0.1))", border: "1px solid rgba(0,255,102,0.2)" }}>
+                      <Icon size={20} className="text-primary" />
+                    </div>
+                    <p className="text-3xl font-bold mb-2 text-center" style={{ fontFamily: "Space Grotesk, sans-serif", background: "linear-gradient(135deg, #00FF66, #22D3EE)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{step.num}</p>
+                    <h3 className="font-semibold text-center mb-2 text-sm" style={{ fontFamily: "Space Grotesk, sans-serif" }}>{step.title}</h3>
+                    <p className="text-xs text-muted-foreground text-center leading-relaxed">{step.desc}</p>
                   </div>
-                  <h3 className="font-semibold mb-2" style={{ fontFamily: "Sora, sans-serif" }}>{p.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{p.desc}</p>
-                  <Button variant="outline" size="sm" disabled data-testid={`button-coming-soon-${p.name.toLowerCase().replace(/\s/g, "-")}`}>Coming Soon</Button>
-                </div>
+                </FadeUp>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* Stats strip */}
-      <section className="py-14 px-4 border-b border-border">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: "150+", label: "Clients Served" },
-            { value: "500+", label: "Projects Delivered" },
-            { value: "98%", label: "Satisfaction Rate" },
-            { value: "4.9★", label: "Average Rating" },
-          ].map(stat => (
-            <div key={stat.label}>
-              <p className="text-3xl font-extrabold text-primary mb-1" style={{ fontFamily: "Sora, sans-serif" }}>{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
+      {/* ═══ SERVICES ══════════════════════════════════════════════════════════ */}
+      <section className="py-24 px-4 bg-card border-y border-border">
+        <div className="max-w-7xl mx-auto">
+          <FadeUp className="text-center mb-16">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">Services</Badge>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
+              Services That <GradientText>Scale With You</GradientText>
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              From automation to full MVPs — we handle the technical work so you can focus on growth.
+            </p>
+          </FadeUp>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {services.map((s, i) => (
+              <FadeUp key={s.category} delay={i * 0.08}>
+                <div className="bg-background border border-border rounded-2xl overflow-hidden hover:border-primary/35 transition-all duration-300 hover:shadow-[0_0_28px_rgba(0,255,102,0.09)] hover:-translate-y-1 group">
+                  <div className="h-36 overflow-hidden relative">
+                    <img src={s.image} alt={s.category} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                  </div>
+                  <div className="p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-3">{s.category}</p>
+                    <ul className="space-y-1.5">
+                      {s.items.map(item => (
+                        <li key={item} className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <Check size={11} className="text-primary shrink-0 mt-0.5" />{item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </FadeUp>
+            ))}
+          </div>
+
+          <FadeUp className="text-center mt-10">
+            <Link href="/services">
+              <Button variant="outline" className="gap-2 hover:border-primary/50 hover:text-primary transition-all duration-300">
+                View All Services <ArrowRight size={14} />
+              </Button>
+            </Link>
+          </FadeUp>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24 px-4 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
-        <div className="max-w-2xl mx-auto relative z-10">
-          <h2 className="text-4xl font-extrabold mb-4" style={{ fontFamily: "Sora, sans-serif" }}>Ready to scale your business?</h2>
-          <p className="text-muted-foreground mb-8 text-lg">Join founders, agencies, and businesses already using Gbolix.</p>
+      {/* ═══ WHY GBOLIX ════════════════════════════════════════════════════════ */}
+      <section className="py-28 px-4">
+        <div className="max-w-6xl mx-auto">
+          <FadeUp className="text-center mb-16">
+            <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">Why Gbolix</Badge>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
+              It's business without the <GradientText>bottlenecks.</GradientText>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Gbolix replaces fragmented tools, unreliable freelancers, and slow processes with one streamlined operations platform.
+            </p>
+          </FadeUp>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {features.map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <FadeUp key={f.title} delay={i * 0.09}>
+                  <div className="bg-card border border-border rounded-2xl p-6 hover:border-secondary/35 transition-all duration-300 hover:shadow-[0_0_28px_rgba(168,85,247,0.1)] hover:-translate-y-1 group text-center">
+                    <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-secondary/15 transition-colors">
+                      <Icon size={20} className="text-secondary" />
+                    </div>
+                    <h3 className="font-semibold mb-2 text-sm" style={{ fontFamily: "Space Grotesk, sans-serif" }}>{f.title}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
+                </FadeUp>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ TESTIMONIALS CAROUSEL ══════════════════════════════════════════════ */}
+      <section className="py-24 bg-card border-y border-border overflow-hidden">
+        <FadeUp className="text-center mb-12 px-4">
+          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">Client Results</Badge>
+          <h2 className="text-3xl md:text-4xl font-bold" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
+            Trusted by founders <GradientText>& agencies</GradientText>
+          </h2>
+        </FadeUp>
+
+        <div className="relative">
+          <div
+            className="flex gap-5"
+            style={{ animation: "marquee-scroll 38s linear infinite", width: "max-content" }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.animationPlayState = "paused")}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.animationPlayState = "running")}
+          >
+            {[...testimonials, ...testimonials].map((t, i) => (
+              <div key={i} className="w-72 shrink-0 bg-background/80 backdrop-blur-sm border border-border rounded-2xl p-5 hover:border-primary/25 transition-colors">
+                <div className="flex gap-0.5 mb-3">
+                  {Array.from({ length: t.rating }).map((_, s) => (
+                    <Star key={s} size={11} className="fill-[#FFB800] text-[#FFB800]" />
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed mb-4">"{t.text}"</p>
+                <div>
+                  <p className="text-xs font-semibold">{t.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ DIGITAL OPERATIONS STUDIO ══════════════════════════════════════════ */}
+      <section className="py-28 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/4 via-transparent to-secondary/4 pointer-events-none" />
+        <div className="max-w-6xl mx-auto relative z-10">
+          <FadeUp className="text-center mb-16">
+            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">Operations Studio</Badge>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
+              The Digital <GradientText>Operations Studio</GradientText>
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Numbers that speak to our commitment to precision, speed, and results.
+            </p>
+          </FadeUp>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <FadeUp delay={0}><StatCard value={99} unit="%" label="Precision" desc="Project accuracy rate" color="#00FF66" /></FadeUp>
+            <FadeUp delay={0.1}><StatCard value={48} unit="hr" label="Speed" desc="Average delivery time" color="#22D3EE" /></FadeUp>
+            <FadeUp delay={0.2}><StatCard value={98} unit="%" label="Reliability" desc="On-time delivery rate" color="#A855F7" /></FadeUp>
+            <FadeUp delay={0.3}><StatCard value={500} unit="+" label="Execution" desc="Projects completed" color="#00FF66" /></FadeUp>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ PRODUCTS ════════════════════════════════════════════════════════════ */}
+      <section className="py-24 px-4 bg-card border-y border-border">
+        <div className="max-w-6xl mx-auto">
+          <FadeUp className="text-center mb-16">
+            <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">Coming Soon</Badge>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
+              Gbolix <GradientText>Products</GradientText>
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Powerful tools built for the modern business. Join the waitlist to be first in line.
+            </p>
+          </FadeUp>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {products.map((p, i) => (
+              <FadeUp key={p.name} delay={i * 0.1}>
+                <div className="bg-background border border-border rounded-2xl overflow-hidden hover:border-secondary/30 transition-all duration-300 hover:shadow-[0_0_28px_rgba(168,85,247,0.08)] hover:-translate-y-1 group" style={{ animation: `card-float ${5 + i * 1.2}s ease-in-out infinite` }}>
+                  <div className="h-44 overflow-hidden relative">
+                    <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F14] via-[#0B0F14]/40 to-transparent" />
+                    <Badge className="absolute top-3 right-3 text-[10px] backdrop-blur-sm border-0" style={{ background: "linear-gradient(135deg,rgba(168,85,247,0.3),rgba(34,211,238,0.2))", color: "white" }}>
+                      Coming Soon
+                    </Badge>
+                  </div>
+                  <div className="p-5">
+                    <p className="text-[10px] text-secondary font-semibold uppercase tracking-wider mb-1">{p.tagline}</p>
+                    <h3 className="font-bold text-sm mb-3" style={{ fontFamily: "Space Grotesk, sans-serif" }}>{p.name}</h3>
+                    {waitlisted === p.name ? (
+                      <div className="flex items-center gap-2 text-primary text-xs font-semibold">
+                        <Check size={13} /> You're on the waitlist!
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-xs hover:border-secondary/50 hover:text-secondary transition-all"
+                        onClick={() => setWaitlisted(p.name)}
+                      >
+                        Join Waitlist
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </FadeUp>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ CTA ══════════════════════════════════════════════════════════════════ */}
+      <section className="py-28 px-4 text-center relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary/8 blur-[120px] rounded-full" />
+        </div>
+        <FadeUp className="max-w-2xl mx-auto relative z-10">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
+            Ready to <GradientText>scale your business?</GradientText>
+          </h2>
+          <p className="text-muted-foreground mb-8 text-lg">
+            Join founders, agencies, and businesses already using Gbolix.
+          </p>
           <Link href="/sign-up">
             <Button
               size="lg"
-              className="gap-2 px-10 font-semibold transition-all duration-300"
+              className="gap-2 px-10 font-semibold transition-all duration-300 hover:-translate-y-0.5"
               style={{
-                background: "linear-gradient(135deg, #00FF66, #00cc52)",
+                background: "linear-gradient(135deg, #00FF66, #22D3EE, #A855F7)",
                 color: "#0B0F14",
-                boxShadow: "0 0 30px rgba(0,255,102,0.3)",
+                boxShadow: "0 0 32px rgba(0,255,102,0.35), 0 0 80px rgba(0,255,102,0.12)",
               }}
-              data-testid="button-cta-get-started"
             >
               Get Started Free <ArrowRight size={16} />
             </Button>
           </Link>
-        </div>
+        </FadeUp>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-12 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <img src="/logo-dark.png" alt="Gbolix" className="h-8 w-auto object-contain" />
-          <p className="text-sm text-muted-foreground">Build. Automate. Scale. &copy; {new Date().getFullYear()} Gbolix. All rights reserved.</p>
-          <div className="flex gap-6">
-            <Link href="/services" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Services</Link>
-            <Link href="/products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Products</Link>
-            <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+      {/* ═══ FOOTER ═══════════════════════════════════════════════════════════════ */}
+      <footer className="border-t border-border py-14 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-10">
+            <div>
+              <img src="/logo-dark.png" alt="Gbolix" className="h-8 w-auto object-contain mb-3" />
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+                Premium B2B operations automation. We help businesses build, automate, and scale.
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3">Platform</p>
+              <div className="space-y-2">
+                {[["Services", "/services"], ["Products", "/products"], ["Pricing", "/pricing"]].map(([l, h]) => (
+                  <Link key={l} href={h} className="block text-sm text-muted-foreground hover:text-foreground transition-colors">{l}</Link>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3">Company</p>
+              <div className="space-y-2">
+                {[["About", "/about"], ["Contact", "/contact"]].map(([l, h]) => (
+                  <Link key={l} href={h} className="block text-sm text-muted-foreground hover:text-foreground transition-colors">{l}</Link>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3">Account</p>
+              <div className="space-y-2">
+                {[["Sign In", "/sign-in"], ["Create Account", "/sign-up"], ["Dashboard", "/dashboard"]].map(([l, h]) => (
+                  <Link key={l} href={h} className="block text-sm text-muted-foreground hover:text-foreground transition-colors">{l}</Link>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-border pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} Gbolix by Alex Gbolahan. All rights reserved.</p>
+            <p className="text-xs text-muted-foreground">Build. Automate. <GradientText>Scale.</GradientText></p>
           </div>
         </div>
       </footer>

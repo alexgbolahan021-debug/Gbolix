@@ -1,0 +1,368 @@
+I want the landing page to match the visual quality, structure, branding, and user experience of the original Gbolix Base44 version.
+
+DO NOT redesign from scratch.
+
+Instead, upgrade the existing Replit version to closely follow the Base44 structure and feel.
+
+BRANDING
+
+Use the Gbolix brand colors everywhere:
+
+Neon Green (#00FF7F style)
+Cyan
+Purple
+Dark Navy background
+
+Use gradient combinations from the Gbolix logo:
+
+Green → Cyan → Purple
+
+Do NOT use only green.
+
+Buttons, hover states, badges, highlights, cards, progress indicators, and icons should all use brand gradients.
+
+TYPOGRAPHY
+
+Replace the current font.
+
+Use a premium SaaS font similar to the original Base44 design.
+
+Preferred:
+
+Space Grotesk
+Sora
+Outfit
+
+Headings should feel bold and modern.
+
+HERO SECTION
+
+The current hero section is too static.
+
+I want the hero section upgraded to match the Base44 experience.
+
+Requirements:
+
+Animated Background
+
+Use a moving city skyline, technology grid, or futuristic digital animation.
+
+The background must:
+
+slowly move
+have parallax effect
+contain subtle particles
+feel alive
+
+Do NOT use a static image.
+
+Hero Content
+
+Keep:
+
+Build. Automate.
+Scale.
+
+but style it exactly like Base44.
+
+Large bold typography.
+
+Scale should have the green → purple gradient.
+
+Buttons
+
+Primary button:
+
+Explore Services
+
+Secondary button:
+
+View Pricing
+
+Both buttons need:
+
+hover animations
+glow effects
+gradient borders
+smooth transitions
+Scroll Indicator
+
+Add animated scroll indicator.
+
+HOW GBOLIX WORKS
+
+Add the full section that exists in Base44.
+
+Title:
+
+How Gbolix Works
+
+Subtitle:
+
+A structured transparent workflow from first request to final delivery.
+
+Four connected steps:
+
+01 Request Your Project
+
+02 Receive A Quote
+
+03 Build & Execute
+
+04 Deliver & Support
+
+Use:
+
+animated cards
+glowing borders
+step connectors
+hover effects
+SERVICES SECTION
+
+Keep existing services.
+
+Add relevant imagery for every service card.
+
+Examples:
+
+Automation Setup:
+dashboard automation image
+
+Google Play Testing:
+mobile app testing image
+
+FlutterFlow/Bubble:
+app development image
+
+Presentation Design:
+business presentation image
+
+Cards should match Base44 style.
+
+WHY GBOLIX SECTION
+
+Add this entire section from Base44.
+
+Title:
+
+It's business without the bottlenecks.
+
+Subtitle:
+
+Gbolix replaces fragmented tools, unreliable freelancers, and slow processes with one streamlined operations platform.
+
+Add animated feature cards:
+
+One Workspace
+Quality First
+Transparent Delivery
+Reliable Support
+
+Cards should glow on hover.
+
+PRODUCTS SECTION
+
+Keep products as:
+
+COMING SOON
+
+Gbolix Prospect Finder
+Gbolix Monitor
+Gbolix AI Agent
+
+Add proper product illustrations/images.
+
+Add "Join Waitlist" functionality.
+
+Do NOT allow purchases yet.
+
+CLIENT RESULTS SECTION
+
+Add a new section:
+
+Trusted by founders & agencies
+
+Create an auto-scrolling testimonial carousel.
+
+Requirements:
+
+Infinite horizontal movement
+Pause on hover
+Mobile responsive
+Glass cards
+Rating stars
+
+The animation should feel exactly like the Base44 version.
+
+DIGITAL OPERATIONS STUDIO
+
+Add the section currently present in Base44.
+
+Title:
+
+The Digital Operations Studio
+
+Add animated statistic cards:
+
+Precision
+Speed
+Reliability
+Execution
+
+Each icon should have a slow pulsing glow effect.
+
+The small green indicator dots should slowly blink exactly like Base44.
+
+BUTTONS
+
+Fix all button states.
+
+Current buttons feel unfinished.
+
+Every button should have:
+
+Hover:
+
+gradient glow
+lift effect
+color transition
+
+Active:
+
+pressed animation
+
+Focus:
+
+visible accessibility state
+
+Especially:
+
+Login button
+
+Get Started button
+
+Pricing buttons
+
+Service buttons
+
+IMAGES
+
+The site currently feels empty.
+
+Every major section should contain meaningful imagery related to the content.
+
+Examples:
+
+Automation
+AI
+Business Operations
+Analytics
+CRM
+Webhooks
+App Development
+Presentations
+Monitoring
+
+Use optimized images.
+
+ONBOARDING BUG
+
+Fix onboarding flow.
+
+Current issue:
+
+User completes onboarding and remains stuck on:
+
+"Setting up your account..."
+
+Correct behavior:
+
+If onboarding completes successfully:
+
+Save onboarding answers
+Update profile
+Mark onboarding_complete = true
+Redirect immediately to dashboard
+
+No infinite loading state.
+
+PRICING PAGE
+
+Pricing must support future checkout flow.
+
+Implement logic:
+
+User selects service
+User selects package
+Calculate total price
+If not logged in:
+redirect to signup
+After signup:
+return user to checkout
+Complete purchase request
+
+Prepare the structure even if payment is not connected yet.
+
+SEO + GEO IMPROVEMENTS
+
+Improve search visibility without editing index.html.
+
+Create public pages:
+
+About
+
+Include:
+
+H1 heading
+300+ words
+Explain Gbolix
+Explain services
+Explain products
+Explain mission
+Explain founder-led execution
+Contact
+
+Include:
+
+H1 heading
+Contact form
+Email
+Social links
+
+Link both pages from:
+
+Navbar
+Footer
+GEO (Generative Engine Optimization)
+
+Create content that AI systems can understand.
+
+Add structured content sections throughout the site answering:
+
+What is Gbolix?
+Who is Gbolix for?
+What services does Gbolix provide?
+What products is Gbolix building?
+Why choose Gbolix?
+How does Gbolix work?
+
+Use natural language.
+
+Write for both humans and AI assistants.
+
+FINAL GOAL
+
+The final site should feel like:
+
+Linear + Vercel + Stripe + Arc Browser
+
+combined with
+
+the original Base44 Gbolix design.
+
+Premium.
+Modern.
+Animated.
+Trustworthy.
+Founder-focused.
+High-converting.
