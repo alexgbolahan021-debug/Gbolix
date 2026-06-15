@@ -36,50 +36,32 @@ const FadeUp = ({ children, delay = 0, className = "" }: { children: React.React
 
 // ─── Cinematic city skyline video background ──────────────────────────────────
 function HeroVideo() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    // Lazy-load: start video after initial paint
-    const timer = setTimeout(() => {
-      const v = videoRef.current;
-      if (!v) return;
-      v.load();
-      v.play().catch(() => {});
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* City skyline video */}
       <video
-        ref={videoRef}
+        src="/hero-video.mp4"
+        autoPlay
         muted
         loop
         playsInline
-        preload="none"
+        preload="auto"
         poster="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1920&q=80&auto=format&fit=crop"
         className="absolute inset-0 w-full h-full object-cover"
         style={{
-          transform: "scale(1.06)",
-          filter: "brightness(0.88) saturate(1.15)",
-          willChange: "transform",
+          transform: "scale(1.05)",
+          filter: "brightness(0.88) saturate(1.12)",
         }}
-      >
-        <source
-          src="https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_25fps.mp4"
-          type="video/mp4"
-        />
-        <source
-          src="https://videos.pexels.com/video-files/2892277/2892277-hd_1920_1080_25fps.mp4"
-          type="video/mp4"
-        />
-      </video>
+        onPlay={() => console.log("Hero video playing successfully")}
+        onError={(e) => {
+          const vid = e.target as HTMLVideoElement;
+          console.warn("Hero video error:", vid.error?.code, vid.error?.message, vid.currentSrc);
+        }}
+      />
 
-      {/* Dark overlay — 63% opacity for text legibility */}
+      {/* Dark overlay — 62% */}
       <div
         className="absolute inset-0"
-        style={{ background: "rgba(7, 10, 15, 0.63)" }}
+        style={{ background: "rgba(7, 10, 15, 0.62)" }}
       />
 
       {/* Ambient green glow — bottom-left */}
