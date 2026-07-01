@@ -1,0 +1,302 @@
+PHASE 2 — COMPLETE GBOLIX PREMIUM EXPERIENCE
+
+Continue upgrading the Gbolix platform and implement the following features while maintaining the existing dark premium SaaS design, responsive layout, and green-to-purple brand identity.
+
+========================
+
+1. ADMIN-INITIATED PROJECT MESSAGING
+   ========================
+
+Create a Project Messaging System for SERVICES ONLY.
+
+Rules:
+
+* Messaging must NOT be available for Products.
+* Messaging must NOT be connected to Credits.
+* Messaging must only be linked to Service Requests / Projects.
+
+Workflow:
+
+1. Client submits a service request.
+2. Project is created normally.
+3. Client sees NO chat initially.
+4. In Admin Dashboard, every project has a:
+   "Start Conversation" button.
+5. Only after admin clicks Start Conversation:
+
+   * Create conversation thread.
+   * Admin sends first message.
+6. Conversation then becomes visible to client.
+
+Client Experience:
+
+Once conversation exists:
+
+* Show floating chat bubble in bottom-right.
+* Show unread message badge.
+* Display conversations in:
+
+  * Dashboard
+  * My Tasks
+  * Project Details
+
+Features:
+
+* Permanent message history
+* Chronological order
+* Text messages
+* Image uploads
+* File uploads
+* PDF support
+* DOCX support
+* ZIP support
+* JPG support
+* PNG support
+
+Display:
+
+* Sender name
+* Sender role
+* Timestamp
+* Read status
+
+Project Linking:
+
+* One conversation per project.
+* Clients with multiple projects see separate threads.
+* Admin can switch between project conversations.
+
+Notifications:
+
+* Client notified when admin replies.
+* Admin notified when client replies.
+* No real-time sockets required.
+* Refresh loads latest data.
+
+UI:
+
+* Modern SaaS messaging UI
+* Match Gbolix theme
+* Mobile responsive
+* Green accent chat bubble
+
+========================
+2. ADMIN INSIGHTS & ONBOARDING ANALYTICS
+========================================
+
+Create a dedicated Admin Analytics page.
+
+Store and display onboarding answers.
+
+Show onboarding information inside each user profile.
+
+Analytics Dashboard:
+
+Total Users
+
+Users by Country
+
+Users by Business Type
+
+Users by Team Size
+
+Users by Lead Source
+
+Users by Service Interest
+
+Users by Product Interest
+
+Most Requested Services
+
+Conversion Funnel
+
+Registration → Onboarding → Request Submitted
+
+Visual Charts:
+
+Bar Charts
+
+Pie Charts
+
+Growth Charts
+
+Recent User Activity
+
+Export CSV functionality
+
+========================
+3. PREMIUM CLIENT DASHBOARD
+===========================
+
+Add premium SaaS interactions:
+
+* Skeleton loading states
+* Animated counters
+* Activity feed animations
+* Smooth transitions
+* Empty states
+* Success animations
+* Notification center
+
+Inspired by:
+
+* Linear
+* Stripe
+* Notion
+* Vercel
+* Modern AI SaaS apps
+
+========================
+4. HOW GBOLIX WORKS SECTION
+===========================
+
+Upgrade the existing section.
+
+As user scrolls:
+
+Step 1 lights up
+
+Then Step 2
+
+Then Step 3
+
+Then Step 4
+
+Add:
+
+* Progress line animation
+* Glow effect
+* Number transitions
+* Scroll-triggered reveals
+
+Match the original Base44 experience.
+
+========================
+5. TESTIMONIAL CAROUSEL
+=======================
+
+Upgrade Client Results section.
+
+Create two independent rows.
+
+Top row:
+Slides move right continuously.
+
+Bottom row:
+Slides move left continuously.
+
+Features:
+
+* Infinite loop
+* Pause on hover
+* Touch support
+* Mobile responsive
+
+Match Base44 premium movement.
+
+========================
+6. VISUAL ENHANCEMENT
+=====================
+
+Improve all public pages.
+
+Add relevant images:
+
+Services Page
+
+About Page
+
+Contact Page
+
+Pricing Page
+
+Product Pages
+
+Images must directly relate to content.
+
+Use:
+
+* Automation imagery
+* SaaS dashboards
+* Product development
+* Teams
+* Business operations
+* AI workflows
+
+Maintain premium appearance.
+
+========================
+7. BRAND CONSISTENCY
+====================
+
+Apply Gbolix brand colors consistently.
+
+Primary Gradient:
+
+Green → Cyan → Purple
+
+Buttons:
+
+Animated hover states
+
+Glow effects
+
+Gradient borders
+
+Navigation:
+
+Hover states
+
+Active indicators
+
+Micro-interactions
+
+Avoid plain green-only styling.
+
+========================
+8. ABOUT PAGE UPGRADE
+=====================
+
+Expand About page with:
+
+Company Story
+
+Founder Vision
+
+Why Gbolix Exists
+
+Mission
+
+Process
+
+Values
+
+Team Section Placeholder
+
+Supporting imagery throughout page
+
+Professional layout similar to modern SaaS companies.
+
+========================
+9. FINAL QUALITY PASS
+=====================
+
+Review all pages and ensure:
+
+No broken links
+
+No loading loops
+
+No onboarding dead ends
+
+Onboarding redirects correctly to dashboard
+
+Responsive on desktop, tablet, mobile
+
+Consistent spacing
+
+Consistent typography
+
+Consistent animations
+
+Premium SaaS quality throughout the platform.
