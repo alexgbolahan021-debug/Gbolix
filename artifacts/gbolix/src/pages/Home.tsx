@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PublicNav } from "@/components/PublicNav";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useScroll } from "framer-motion";
 import { ArrowRight, Check, Zap, Bot, Activity, Star, Layers, Eye, Headphones, ArrowDown, Timer, ShieldCheck } from "lucide-react";
 
 // ─── Gradient text helper ────────────────────────────────────────────────────
@@ -125,22 +125,221 @@ function StatCard({ value, unit, label, desc, color }: { value: number; unit: st
 }
 
 // ─── Testimonials data ────────────────────────────────────────────────────────
-const testimonials = [
+const testimonialsRow1 = [
   { name: "Sarah Chen", role: "Founder, TaskFlow", rating: 5, text: "Gbolix automated our entire client onboarding. What took 3 hours now takes 5 minutes. Absolutely game-changing for our agency." },
-  { name: "Marcus Williams", role: "CEO, BuildLaunch", rating: 5, text: "The FlutterFlow MVP they built was production-ready in 2 weeks. Clean code, great design, seamless delivery." },
-  { name: "Aisha Okafor", role: "Marketing Dir., NovaBrands", rating: 5, text: "Our pitch deck completely transformed after working with Gbolix. Investors noticed immediately. We closed our seed round 3 weeks later." },
+  { name: "Marcus Williams", role: "CEO, BuildLaunch", rating: 5, text: "The FlutterFlow MVP they built was production-ready in 2 weeks. Clean code, great design, and seamless delivery." },
+  { name: "Aisha Okafor", role: "Marketing Dir., NovaBrands", rating: 5, text: "Our pitch deck completely transformed. Investors noticed immediately. We closed our seed round 3 weeks later." },
   { name: "James Adeyemi", role: "Indie Developer", rating: 5, text: "Google Play closed testing handled perfectly. The QA report was detailed and their turnaround was incredibly fast." },
-  { name: "Elena Marcou", role: "Ops Lead, Scalepath", rating: 5, text: "The Make.com workflows they set up saved our team 15 hours per week. Professional, fast, and exactly what we needed." },
-  { name: "Kofi Mensah", role: "Founder, GreenStack", rating: 5, text: "Three different services — automation, testing, and a landing page — all delivered on time. Gbolix is now our go-to operations partner." },
+  { name: "Elena Marcou", role: "Ops Lead, Scalepath", rating: 5, text: "The Make.com workflows saved our team 15 hours per week. Professional, fast, and exactly what we needed." },
+  { name: "Kofi Mensah", role: "Founder, GreenStack", rating: 5, text: "Three services delivered on time: automation, testing, and a landing page. Gbolix is our go-to operations partner." },
 ];
 
-// ─── How It Works steps ────────────────────────────────────────────────────────
-const steps = [
-  { num: "01", title: "Request Your Project", desc: "Submit your request through our portal. Describe your needs in detail — we read everything.", icon: ArrowRight },
-  { num: "02", title: "Receive A Quote", desc: "We review your project within 24 hours and send a clear, transparent pricing breakdown.", icon: Timer },
-  { num: "03", title: "Build & Execute", desc: "Our team executes with regular updates. You track progress directly in your dashboard.", icon: Zap },
-  { num: "04", title: "Deliver & Support", desc: "Your work is delivered with documentation. We stay available for follow-up support.", icon: ShieldCheck },
+const testimonialsRow2 = [
+  { name: "Priya Singh", role: "CEO, FlowBridge", rating: 5, text: "Switched from three different freelancers to Gbolix and never looked back. One platform, one team, zero chaos." },
+  { name: "David Okonkwo", role: "CTO, Nexhub", rating: 5, text: "The Supabase integration was flawless. Backend setup in days, not weeks. Our launch came in ahead of schedule." },
+  { name: "Yuki Tanaka", role: "Design Lead, PixelMint", rating: 5, text: "Company profile redesign was stunning. Better than agencies charging three times the price." },
+  { name: "Andre Beaumont", role: "Founder, LaunchBase", rating: 5, text: "API integration work was clean, well-documented, and delivered early. Zero bugs in production." },
+  { name: "Fatima Hassan", role: "Ops Manager, ClearPath", rating: 5, text: "The portal makes tracking projects effortless. Real-time status updates are a genuine game changer." },
+  { name: "Carlos Rivera", role: "CMO, VentureMark", rating: 5, text: "WhatsApp automation for our sales team was transformative. Lead response time dropped from hours to seconds." },
 ];
+
+// ─── Testimonial card ─────────────────────────────────────────────────────────
+function TestimonialCard({ t }: { t: { name: string; role: string; rating: number; text: string } }) {
+  return (
+    <div className="w-72 shrink-0 bg-background/80 backdrop-blur-sm border border-border rounded-2xl p-5 hover:border-primary/25 transition-colors">
+      <div className="flex gap-0.5 mb-3">
+        {Array.from({ length: t.rating }).map((_, s) => (
+          <Star key={s} size={11} className="fill-[#FFB800] text-[#FFB800]" />
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed mb-4">"{t.text}"</p>
+      <div>
+        <p className="text-xs font-semibold">{t.name}</p>
+        <p className="text-[10px] text-muted-foreground">{t.role}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── How It Works steps (interactive) ────────────────────────────────────────
+const howSteps = [
+  {
+    num: "01", title: "Submit Your Request", icon: ArrowRight, color: "#00FF66",
+    desc: "Tell us exactly what you need through our structured portal.",
+    subSteps: ["Choose a service from the catalog", "Describe your goals in detail", "Upload any reference files", "Submit — we take it from there"],
+  },
+  {
+    num: "02", title: "Receive a Quote", icon: Timer, color: "#22D3EE",
+    desc: "Within 24 hours, you get a clear scope, timeline, and pricing.",
+    subSteps: ["Full project review by our team", "Scope and deliverables confirmed", "Clear timeline estimate", "Approve to begin execution"],
+  },
+  {
+    num: "03", title: "Build & Execute", icon: Zap, color: "#A855F7",
+    desc: "We execute your project with real-time updates in your dashboard.",
+    subSteps: ["Development and execution begins", "Live status in your dashboard", "Direct messaging with our team", "Collaborative file sharing"],
+  },
+  {
+    num: "04", title: "Deliver & Support", icon: ShieldCheck, color: "#00FF66",
+    desc: "Final delivery with documentation. We stay on for follow-up support.",
+    subSteps: ["Deliverable lands in your portal", "Review and feedback round", "Revisions as per agreement", "Ongoing support available"],
+  },
+];
+
+// ─── How It Works interactive section ────────────────────────────────────────
+function HowItWorksSection() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start 70%", "end 30%"],
+  });
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    return scrollYProgress.on("change", v => {
+      setActiveStep(Math.min(3, Math.floor(v * 4)));
+    });
+  }, [scrollYProgress]);
+
+  const progressWidth = `${(activeStep / 3) * 75}%`;
+
+  return (
+    <section ref={sectionRef} className="py-28 px-4 relative">
+      <div className="max-w-6xl mx-auto">
+        <FadeUp className="text-center mb-16">
+          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">How It Works</Badge>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
+            How <GradientText>Gbolix</GradientText> Works
+          </h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            A structured, transparent workflow from first request to final delivery.
+          </p>
+        </FadeUp>
+
+        {/* ── Desktop: horizontal 4-col layout ── */}
+        <div className="hidden md:block">
+          <div className="relative mb-2">
+            <div className="absolute top-[26px] left-[12.5%] right-[12.5%] h-px bg-border/50" />
+            <motion.div
+              className="absolute top-[26px] left-[12.5%] h-px"
+              style={{ background: "linear-gradient(90deg, #00FF66, #22D3EE, #A855F7)" }}
+              animate={{ width: progressWidth }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+            />
+          </div>
+          <div className="grid grid-cols-4 gap-5 mt-6">
+            {howSteps.map((step, i) => {
+              const Icon = step.icon;
+              const isActive = i === activeStep;
+              const isPast = i < activeStep;
+              return (
+                <motion.div
+                  key={step.num}
+                  animate={{ opacity: isActive ? 1 : isPast ? 0.55 : 0.28, y: isActive ? -5 : 0 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
+                  className={`rounded-2xl p-6 border ${
+                    isActive
+                      ? "bg-card border-primary/40 shadow-[0_0_40px_rgba(0,255,102,0.1)]"
+                      : "bg-card/40 border-border/50"
+                  }`}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 mx-auto"
+                    style={{
+                      background: isActive ? `${step.color}18` : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${isActive ? step.color + "35" : "rgba(255,255,255,0.07)"}`,
+                    }}
+                  >
+                    <Icon size={20} style={{ color: isActive ? step.color : "#444" }} />
+                  </div>
+                  <p
+                    className="text-2xl font-bold text-center mb-2"
+                    style={{
+                      fontFamily: "Space Grotesk, sans-serif",
+                      ...(isActive
+                        ? { background: `linear-gradient(135deg, ${step.color}, #22D3EE)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }
+                        : { color: "#3a3a3a" }),
+                    }}
+                  >
+                    {step.num}
+                  </p>
+                  <h3 className="font-semibold text-center text-sm mb-2" style={{ fontFamily: "Space Grotesk, sans-serif", color: isActive ? "#fff" : "#555" }}>
+                    {step.title}
+                  </h3>
+                  <p className="text-[11px] text-center leading-relaxed mb-4" style={{ color: isActive ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.2)" }}>
+                    {step.desc}
+                  </p>
+                  <motion.ul
+                    animate={{ opacity: isActive ? 1 : 0, maxHeight: isActive ? 160 : 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="overflow-hidden space-y-1.5"
+                  >
+                    {step.subSteps.map(sub => (
+                      <li key={sub} className="flex items-start gap-1.5 text-[10px]">
+                        <span className="shrink-0 mt-px" style={{ color: step.color }}>✓</span>
+                        <span style={{ color: "rgba(255,255,255,0.45)" }}>{sub}</span>
+                      </li>
+                    ))}
+                  </motion.ul>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Mobile: vertical timeline ── */}
+        <div className="md:hidden space-y-0">
+          {howSteps.map((step, i) => {
+            const Icon = step.icon;
+            const isActive = i === activeStep;
+            const isPast = i < activeStep;
+            return (
+              <motion.div
+                key={step.num}
+                className="flex gap-4"
+                animate={{ opacity: isActive ? 1 : isPast ? 0.55 : 0.28 }}
+                transition={{ duration: 0.4 }}
+              >
+                <div className="flex flex-col items-center">
+                  <div
+                    className="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0 z-10"
+                    style={{
+                      borderColor: isActive ? step.color : "#333",
+                      background: isActive ? `${step.color}18` : "#111",
+                    }}
+                  >
+                    <Icon size={14} style={{ color: isActive ? step.color : "#555" }} />
+                  </div>
+                  {i < howSteps.length - 1 && (
+                    <div className="w-px flex-1 mt-1 mb-1" style={{ background: isPast ? `${step.color}50` : "#2a2a2a" }} />
+                  )}
+                </div>
+                <div className={`flex-1 pb-5 rounded-xl p-4 border mb-0 ${isActive ? "border-primary/30 bg-card" : "border-border/30 bg-card/20"}`} style={{ marginBottom: i < howSteps.length - 1 ? "8px" : 0 }}>
+                  <p className="text-[10px] font-bold mb-0.5" style={{ color: step.color }}>{step.num}</p>
+                  <h3 className="font-semibold text-sm mb-1" style={{ fontFamily: "Space Grotesk, sans-serif", color: isActive ? "#fff" : "#777" }}>
+                    {step.title}
+                  </h3>
+                  <p className="text-[11px] leading-relaxed" style={{ color: isActive ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.2)" }}>
+                    {step.desc}
+                  </p>
+                  {isActive && (
+                    <ul className="mt-3 space-y-1.5">
+                      {step.subSteps.map(sub => (
+                        <li key={sub} className="flex items-start gap-1.5 text-[10px]">
+                          <span className="shrink-0" style={{ color: step.color }}>✓</span>
+                          <span style={{ color: "rgba(255,255,255,0.45)" }}>{sub}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 // ─── Why Gbolix features ───────────────────────────────────────────────────────
 const features = [
@@ -180,7 +379,8 @@ export default function Home() {
         {/* Content */}
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <Badge className="mb-6 bg-primary/12 text-primary border-primary/25 hover:bg-primary/12 backdrop-blur-sm px-4 py-1.5 text-xs uppercase tracking-widest">
+            <Badge className="mb-6 bg-primary/12 text-primary border-primary/25 hover:bg-primary/12 backdrop-blur-sm px-4 py-1.5 text-xs uppercase tracking-widest gap-2 inline-flex items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" style={{ animation: "live-pulse 2.5s ease-in-out infinite" }} />
               Premium B2B Operations
             </Badge>
           </motion.div>
@@ -202,7 +402,7 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.25 }}
             className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed"
           >
-            Helping founders and businesses automate operations, launch products faster, and scale efficiently — all from one platform.
+            Helping founders and businesses automate operations, launch products faster, and scale efficiently. All from one platform.
           </motion.p>
 
           <motion.div
@@ -246,41 +446,7 @@ export default function Home() {
       </section>
 
       {/* ═══ HOW GBOLIX WORKS ══════════════════════════════════════════════════ */}
-      <section className="py-28 px-4 relative">
-        <div className="max-w-6xl mx-auto">
-          <FadeUp className="text-center mb-16">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">How It Works</Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
-              How <GradientText>Gbolix</GradientText> Works
-            </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              A structured, transparent workflow from first request to final delivery.
-            </p>
-          </FadeUp>
-
-          <div className="relative grid md:grid-cols-4 gap-6">
-            {/* Connector line on desktop */}
-            <div className="hidden md:block absolute top-[52px] left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-primary/20 via-[#22D3EE]/30 to-[#A855F7]/20 z-0" />
-
-            {steps.map((step, i) => {
-              const Icon = step.icon;
-              return (
-                <FadeUp key={step.num} delay={i * 0.1}>
-                  <div className="bg-card border border-border rounded-2xl p-6 relative z-10 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_0_24px_rgba(0,255,102,0.08)] hover:-translate-y-1">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 mx-auto"
-                      style={{ background: "linear-gradient(135deg, rgba(0,255,102,0.15), rgba(34,211,238,0.1))", border: "1px solid rgba(0,255,102,0.2)" }}>
-                      <Icon size={20} className="text-primary" />
-                    </div>
-                    <p className="text-3xl font-bold mb-2 text-center" style={{ fontFamily: "Space Grotesk, sans-serif", background: "linear-gradient(135deg, #00FF66, #22D3EE)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{step.num}</p>
-                    <h3 className="font-semibold text-center mb-2 text-sm" style={{ fontFamily: "Space Grotesk, sans-serif" }}>{step.title}</h3>
-                    <p className="text-xs text-muted-foreground text-center leading-relaxed">{step.desc}</p>
-                  </div>
-                </FadeUp>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <HowItWorksSection />
 
       {/* ═══ SERVICES ══════════════════════════════════════════════════════════ */}
       <section className="py-24 px-4 bg-card border-y border-border">
@@ -369,26 +535,30 @@ export default function Home() {
           </h2>
         </FadeUp>
 
-        <div className="relative">
+        {/* Row 1: right to left */}
+        <div className="mb-5">
           <div
             className="flex gap-5"
-            style={{ animation: "marquee-scroll 38s linear infinite", width: "max-content" }}
+            style={{ animation: "marquee-scroll 35s linear infinite", width: "max-content" }}
             onMouseEnter={e => ((e.currentTarget as HTMLElement).style.animationPlayState = "paused")}
             onMouseLeave={e => ((e.currentTarget as HTMLElement).style.animationPlayState = "running")}
           >
-            {[...testimonials, ...testimonials].map((t, i) => (
-              <div key={i} className="w-72 shrink-0 bg-background/80 backdrop-blur-sm border border-border rounded-2xl p-5 hover:border-primary/25 transition-colors">
-                <div className="flex gap-0.5 mb-3">
-                  {Array.from({ length: t.rating }).map((_, s) => (
-                    <Star key={s} size={11} className="fill-[#FFB800] text-[#FFB800]" />
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed mb-4">"{t.text}"</p>
-                <div>
-                  <p className="text-xs font-semibold">{t.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.role}</p>
-                </div>
-              </div>
+            {[...testimonialsRow1, ...testimonialsRow1].map((t, i) => (
+              <TestimonialCard key={i} t={t} />
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2: left to right (reverse) */}
+        <div>
+          <div
+            className="flex gap-5"
+            style={{ animation: "marquee-scroll 50s linear infinite", animationDirection: "reverse", width: "max-content" }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.animationPlayState = "paused")}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.animationPlayState = "running")}
+          >
+            {[...testimonialsRow2, ...testimonialsRow2].map((t, i) => (
+              <TestimonialCard key={i} t={t} />
             ))}
           </div>
         </div>

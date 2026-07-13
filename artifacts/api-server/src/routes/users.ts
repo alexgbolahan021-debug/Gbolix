@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
+import { getAuth, clerkClient } from "@clerk/express";
 import { db, usersTable, projectsTable, filesTable, activityTable } from "@workspace/db";
 import { eq, count, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -21,9 +21,16 @@ router.get("/me", requireAuth, async (req, res): Promise<void> => {
   let user = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId)).limit(1);
 
   if (user.length === 0) {
-    // JIT provision from Clerk session claims
-    const email = (auth?.sessionClaims?.email as string) ?? "";
-    const name = (auth?.sessionClaims?.fullName as string) ?? (auth?.sessionClaims?.name as string) ?? email;
+    // JIT provision — use Clerk Backend API for reliable email (session claims don't include it by default)
+    let email = (auth?.sessionClaims?.email as string) ?? "";
+    let name = (auth?.sessionClaims?.fullName as string) ?? (auth?.sessionClaims?.name as string) ?? "";
+    try {
+      const clerkUser = await clerkClient.users.getUser(clerkId);
+      email = clerkUser.emailAddresses[0]?.emailAddress ?? email;
+      name = name || [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || email;
+    } catch {
+      // fallback to session claims already set above
+    }
     const [created] = await db.insert(usersTable).values({
       clerkId,
       name: name || "User",
@@ -35,7 +42,19 @@ router.get("/me", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(formatUser(user[0]));
+  const existing = user[0];
+  // Sync role: if email is in AUTO_ADMIN_EMAILS but stored role is wrong, fix it
+  const correctRole = resolveRole(existing.email);
+  if (existing.role !== correctRole) {
+    const [updated] = await db.update(usersTable)
+      .set({ role: correctRole })
+      .where(eq(usersTable.id, existing.id))
+      .returning();
+    res.json(formatUser(updated));
+    return;
+  }
+
+  res.json(formatUser(existing));
 });
 
 // PATCH /api/users/me — update profile

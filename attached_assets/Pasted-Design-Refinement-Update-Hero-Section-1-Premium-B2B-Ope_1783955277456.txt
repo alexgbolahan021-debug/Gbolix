@@ -1,0 +1,153 @@
+Design Refinement Update
+
+Hero Section
+
+1. Premium B2B Operations Badge
+
+* Add a small circular status dot before the text.
+* Dot should slowly pulse/blink like a live system indicator.
+* Green glow matching the Gbolix brand colors.
+* Very subtle animation (not fast or distracting).
+* Similar to "Live" indicators used in SaaS dashboards.
+
+2. Typography Cleanup
+
+* Remove all unnecessary em dashes and separators throughout the website.
+* Avoid using:
+  —
+  -
+
+  | as sentence separators
+* Use cleaner sentence structures instead.
+
+Client Results Section
+
+3. Testimonials Animation Upgrade
+
+Current animation feels too basic.
+
+Create two independent testimonial rows:
+
+Top Row:
+
+* Slides continuously from right to left.
+
+Bottom Row:
+
+* Slides continuously from left to right.
+
+Requirements:
+
+* Infinite loop.
+* Smooth movement.
+* No visible jump when looping.
+* Different speeds between rows.
+* Pause on hover.
+* Mobile responsive.
+
+The goal is to create a premium enterprise SaaS testimonial wall similar to Stripe, Linear, or Webflow.
+
+Increase the number of testimonials displayed.
+
+Service Pages
+
+4. Remove Pricing From Service Cards
+
+Do not display prices directly on service cards.
+
+Replace pricing buttons with:
+
+* View Pricing
+* Get Quote
+* See Plans
+
+These buttons should redirect users to the pricing page.
+
+Pricing Page Improvements
+
+5. Add Detailed Service Descriptions
+
+Every pricing card must clearly explain:
+
+What is included.
+Who it is for.
+Expected deliverables.
+Timeline.
+Support provided.
+
+Example:
+
+Presentation Design
+
+Include details such as:
+
+* Up to 15 slides.
+* Custom visual design.
+* Brand color integration.
+* Professional layout structure.
+* PDF and editable source file.
+* Two revision rounds.
+* Delivery timeframe.
+
+FlutterFlow MVP Development
+
+Include:
+
+* Landing page.
+* Authentication setup.
+* Database configuration.
+* Supabase integration.
+* Admin dashboard.
+* Client portal.
+* Deployment assistance.
+* Estimated development timeframe.
+
+Google Play Closed Testing
+
+Include:
+
+* 14-day testing support.
+* Tester management.
+* Feedback collection.
+* Testing report.
+* Submission guidance.
+
+Every pricing option should communicate clear value before the user reaches checkout.
+
+About Page
+
+6. Visual Enhancement
+
+The About page currently feels too text-heavy.
+
+Add meaningful images throughout the page.
+
+Suggested sections:
+
+* Founder / Team section.
+* Digital operations workspace.
+* Automation workflows.
+* Product development.
+* Client collaboration.
+* Dashboard and analytics visuals.
+
+Requirements:
+
+* Images must support the content.
+* Modern SaaS aesthetic.
+* Alternating image/text layout.
+* Responsive on mobile and desktop.
+* Subtle hover effects.
+* Soft green-to-purple brand glow.
+
+The About page should feel like a premium company profile, not a simple text page.
+
+Overall Design Direction
+
+* Continue using Gbolix brand colors.
+* Green → Cyan → Purple gradients.
+* More visual storytelling.
+* More motion.
+* More depth.
+* More premium SaaS feel.
+* Consistent across Home, Services, Pricing, About, Contact, Client Portal, and Admin Portal.

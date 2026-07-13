@@ -7,46 +7,50 @@ import { ArrowRight, Check } from "lucide-react";
 const serviceCategories = [
   {
     category: "Automation Setup",
+    cta: "Get Quote",
     desc: "Streamline your operations with powerful automation workflows. Connect your CRM, WhatsApp, email, and more into seamless automated systems.",
     image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=700&q=80&auto=format&fit=crop",
     items: [
-      { name: "CRM Workflow Automation", price: 79 },
-      { name: "WhatsApp Automation", price: 119 },
-      { name: "Email Automation Setup", price: 49 },
-      { name: "Make.com Workflow", price: 99 },
-      { name: "API Integration", price: 149 },
+      { name: "CRM Workflow Automation" },
+      { name: "WhatsApp Automation" },
+      { name: "Email Automation Setup" },
+      { name: "Make.com Workflow" },
+      { name: "API Integration" },
     ],
   },
   {
     category: "App Testing",
+    cta: "View Pricing",
     desc: "Ensure your mobile app is ready for launch with professional QA services, ranking audits, and closed testing management.",
     image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=700&q=80&auto=format&fit=crop",
     items: [
-      { name: "Google Play Closed Testing (14 Days)", price: 49 },
-      { name: "QA Report", price: 15 },
-      { name: "Android App Ranking Audit", price: 29 },
+      { name: "Google Play Closed Testing (14 Days)" },
+      { name: "QA Report" },
+      { name: "Android App Ranking Audit" },
     ],
   },
   {
     category: "FlutterFlow / Bubble MVP",
+    cta: "See Plans",
     desc: "Launch your no-code MVP fast with complete setup, authentication, database integration, and production-ready delivery.",
     image: "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=700&q=80&auto=format&fit=crop",
     items: [
-      { name: "Landing Page", price: 129 },
-      { name: "Authentication Setup", price: 69 },
-      { name: "Supabase Integration", price: 119 },
-      { name: "Admin Panel", price: 199 },
-      { name: "Client Portal", price: 249 },
+      { name: "Landing Page" },
+      { name: "Authentication Setup" },
+      { name: "Supabase Integration" },
+      { name: "Admin Panel" },
+      { name: "Client Portal" },
     ],
   },
   {
     category: "Presentation Design",
+    cta: "Get Quote",
     desc: "Professional pitch decks, company profiles, and slide redesigns that make your business stand out to investors and clients.",
     image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=700&q=80&auto=format&fit=crop",
     items: [
-      { name: "Pitch Deck", price: 59 },
-      { name: "Company Profile", price: 49 },
-      { name: "Existing Deck Redesign", price: 39 },
+      { name: "Pitch Deck" },
+      { name: "Company Profile" },
+      { name: "Existing Deck Redesign" },
     ],
   },
 ];
@@ -99,14 +103,11 @@ export default function Services() {
                         <Check size={13} className="text-primary shrink-0" />
                         <span className="text-sm font-medium">{item.name}</span>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0 ml-4">
-                        <span className="text-primary font-bold text-sm">${item.price}</span>
-                        <Link href="/sign-up">
-                          <Button size="sm" variant="outline" className="text-xs h-7 hover:border-primary/50 hover:text-primary transition-all" data-testid={`button-request-${item.name.toLowerCase().replace(/\s/g, "-")}`}>
-                            Request
-                          </Button>
-                        </Link>
-                      </div>
+                      <Link href="/pricing" className="shrink-0 ml-4">
+                        <Button size="sm" variant="outline" className="text-xs h-7 hover:border-primary/50 hover:text-primary transition-all" data-testid={`button-request-${item.name.toLowerCase().replace(/\s/g, "-")}`}>
+                          {cat.cta}
+                        </Button>
+                      </Link>
                     </div>
                   ))}
                 </div>

@@ -184,7 +184,9 @@ function OnboardingRoute() {
 
   if (!isLoaded || isLoading) return <LoadingScreen />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
-  if (profile?.onboardingCompleted) return <Redirect to="/dashboard" />;
+  if (profile?.onboardingCompleted) {
+    return <Redirect to={profile.role === "admin" ? "/admin/dashboard" : "/dashboard"} />;
+  }
 
   return <Onboarding />;
 }

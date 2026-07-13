@@ -1,0 +1,153 @@
+How Gbolix Works Section – Premium Interactive Scroll Experience
+
+Replace the current static "How Gbolix Works" section with a highly interactive version inspired by modern SaaS websites.
+
+Layout
+
+Keep the 4-step process:
+
+01 — Submit Your Request
+02 — Receive a Quote
+03 — Build & Execute
+04 — Deliver & Iterate
+
+Interaction Requirements
+
+As the user scrolls through the section:
+
+* Step 1 activates first.
+* Step 2 activates when the user scrolls further.
+* Step 3 activates next.
+* Step 4 activates last.
+
+Only one step should be the primary active step at a time.
+
+Visual Effects
+
+Active Step:
+
+* Full brightness.
+* Slight scale increase.
+* Strong border glow.
+* Green → Cyan → Purple gradient accent.
+* Animated icon.
+* Progress line connected to the next step.
+
+Inactive Steps:
+
+* Lower opacity.
+* Smaller scale.
+* Minimal glow.
+* Subtle blur reduction.
+
+Progress Animation
+
+Create a horizontal progress line connecting all steps.
+
+As the user scrolls:
+
+* The line gradually fills from left to right.
+* Fill color should use Gbolix gradient:
+  Green → Cyan → Purple.
+* Smooth animation.
+* No abrupt transitions.
+
+Card Effects
+
+When a step becomes active:
+
+* Fade in.
+* Slight upward movement.
+* Soft glow pulse.
+* Smooth transition.
+
+Content Expansion
+
+Each step should reveal additional details when active.
+
+Example:
+
+Step 1 — Submit Your Request
+
+Show:
+
+* Choose a service.
+* Describe your goals.
+* Upload files if needed.
+* Submit the request.
+
+Step 2 — Receive a Quote
+
+Show:
+
+* Project review.
+* Scope confirmation.
+* Timeline estimate.
+* Pricing proposal.
+
+Step 3 — Build & Execute
+
+Show:
+
+* Development begins.
+* Progress tracking.
+* Direct communication.
+* File sharing.
+
+Step 4 — Deliver & Iterate
+
+Show:
+
+* Final delivery.
+* Testing and review.
+* Revisions if included.
+* Ongoing support options.
+
+Motion Design
+
+Add subtle motion throughout:
+
+* Floating glow effects.
+* Slow pulse on active icons.
+* Progress line animation.
+* Smooth card transitions.
+
+No excessive movement.
+
+Everything should feel premium and professional.
+
+Desktop Experience
+
+Display all four steps horizontally.
+
+Mobile Experience
+
+Convert into:
+
+* Vertical timeline.
+* Scroll-triggered activation.
+* Progress line fills top-to-bottom.
+
+Branding
+
+Use Gbolix brand colors:
+
+* Green
+* Cyan
+* Purple
+
+Match the glow style used throughout the site.
+
+Goal
+
+The section should feel like a guided journey that visually walks visitors through the Gbolix process.
+
+Think:
+
+* Linear
+* Stripe
+* Framer
+* Webflow
+* Modern SaaS landing pages
+
+This section should become one of the most visually impressive and interactive sections on the website.

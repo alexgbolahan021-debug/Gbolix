@@ -11,38 +11,42 @@ type ServiceItem = { key: string; name: string; price: number; category: string 
 const serviceCategories = [
   {
     category: "Automation Setup",
+    desc: "Connect your business tools into seamless automated workflows. Save hours every week by eliminating manual repetitive tasks.",
     items: [
-      { name: "CRM Workflow Automation", price: 79 },
-      { name: "WhatsApp Automation", price: 119 },
-      { name: "Email Automation Setup", price: 49 },
-      { name: "Make.com Workflow", price: 99 },
-      { name: "API Integration", price: 149 },
+      { name: "CRM Workflow Automation", price: 79, desc: "Trigger-based automations for leads, deals, and follow-ups. Works with HubSpot, Pipedrive, Notion, and more. Delivered in 2–3 business days." },
+      { name: "WhatsApp Automation", price: 119, desc: "Auto-reply flows, lead capture, and broadcast sequences via WhatsApp Business API. Ideal for sales teams and customer support." },
+      { name: "Email Automation Setup", price: 49, desc: "Welcome sequences, drip campaigns, and transactional emails configured in your platform. Includes flow documentation." },
+      { name: "Make.com Workflow", price: 99, desc: "Custom multi-step Make.com scenarios connecting any apps in your stack. Includes error handling, filters, and scenario documentation." },
+      { name: "API Integration", price: 149, desc: "Connect two or more systems via REST API. Covers authentication, payload mapping, error handling, and a handover doc." },
     ],
   },
   {
     category: "App Testing",
+    desc: "Get your mobile app launch-ready with professional QA, ranking analysis, and managed closed testing on Google Play.",
     items: [
-      { name: "Google Play Closed Testing (14 Days)", price: 49 },
-      { name: "QA Report", price: 15 },
-      { name: "Android App Ranking Audit", price: 29 },
+      { name: "Google Play Closed Testing (14 Days)", price: 49, desc: "14-day managed closed testing on Google Play with real testers. We coordinate the process so your app meets store requirements." },
+      { name: "QA Report", price: 15, desc: "Detailed bug report covering UI, UX, crashes, and performance issues. Delivered within 48 hours with severity ratings and screenshots." },
+      { name: "Android App Ranking Audit", price: 29, desc: "Full ASO audit: keyword analysis, title, description, screenshots, and ratings review. Actionable improvement checklist included." },
     ],
   },
   {
     category: "FlutterFlow / Bubble MVP",
+    desc: "Launch a production-ready no-code MVP fast. Full setup from scratch with auth, database, and custom logic included.",
     items: [
-      { name: "Landing Page", price: 129 },
-      { name: "Authentication Setup", price: 69 },
-      { name: "Supabase Integration", price: 119 },
-      { name: "Admin Panel", price: 199 },
-      { name: "Client Portal", price: 249 },
+      { name: "Landing Page", price: 129, desc: "Fully designed, responsive landing page in FlutterFlow or Bubble. Includes hero, features, pricing, and CTA sections. Delivered in 5–7 days." },
+      { name: "Authentication Setup", price: 69, desc: "Email/password and social login configured with role-based access. Works with Supabase Auth, Firebase, or Bubble's native auth." },
+      { name: "Supabase Integration", price: 119, desc: "Supabase database and storage connected to your FlutterFlow or Bubble app. Includes schema setup, RLS policies, and real-time data." },
+      { name: "Admin Panel", price: 199, desc: "Custom back-office admin panel for managing users, data, and settings. Built directly in FlutterFlow or Bubble with your data model." },
+      { name: "Client Portal", price: 249, desc: "Full client-facing portal with authentication, dashboard, file uploads, and project tracking. Production-ready, delivered in 7–10 days." },
     ],
   },
   {
     category: "Presentation Design",
+    desc: "Investor-grade decks and company presentations built from scratch or redesigned to communicate your vision with impact.",
     items: [
-      { name: "Pitch Deck", price: 59 },
-      { name: "Company Profile", price: 49 },
-      { name: "Existing Deck Redesign", price: 39 },
+      { name: "Pitch Deck", price: 59, desc: "10–15 slide investor pitch deck covering problem, solution, market, traction, team, and ask. Delivered in Canva, PowerPoint, or PDF." },
+      { name: "Company Profile", price: 49, desc: "Professional company profile for client proposals, partnerships, and outreach. Includes brand-aligned design and copywriting." },
+      { name: "Existing Deck Redesign", price: 39, desc: "Visual redesign of your existing slides with a consistent layout, improved hierarchy, and brand-aligned color palette." },
     ],
   },
 ];
@@ -122,19 +126,24 @@ export default function Pricing() {
                         <div
                           key={item.name}
                           onClick={() => toggle(key)}
-                          className={`flex items-center justify-between px-5 py-4 cursor-pointer transition-all
+                          className={`flex items-start justify-between px-5 py-4 cursor-pointer transition-all
                             ${idx < cat.items.length - 1 ? "border-b border-border" : ""}
                             ${isSelected ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-accent/30"}`}
                           data-testid={`row-pricing-${item.name.toLowerCase().replace(/\s/g, "-")}`}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all shrink-0
+                          <div className="flex items-start gap-3 flex-1 min-w-0 pr-4">
+                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all shrink-0 mt-0.5
                               ${isSelected ? "bg-primary border-primary" : "border-border"}`}>
                               {isSelected && <Check size={12} className="text-black" />}
                             </div>
-                            <span className={`text-sm font-medium ${isSelected ? "text-foreground" : "text-foreground/80"}`}>{item.name}</span>
+                            <div>
+                              <span className={`text-sm font-medium ${isSelected ? "text-foreground" : "text-foreground/80"}`}>{item.name}</span>
+                              {item.desc && (
+                                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.desc}</p>
+                              )}
+                            </div>
                           </div>
-                          <span className={`font-bold text-sm shrink-0 ml-4 ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+                          <span className={`font-bold text-sm shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
                             ${item.price}
                           </span>
                         </div>
