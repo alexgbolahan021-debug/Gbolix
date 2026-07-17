@@ -91,7 +91,7 @@ router.get("/download/:filename", async (req, res): Promise<void> => {
 
 // DELETE /api/files/:id
 router.delete("/:id", requireAuth, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   const userId = req.userId;
 
   const [file] = await db.select().from(filesTable).where(eq(filesTable.id, id));

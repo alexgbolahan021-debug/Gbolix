@@ -18,11 +18,15 @@ import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 const statusColor: Record<string, string> = {
-  backlog: "bg-muted text-muted-foreground",
+  submitted: "bg-muted text-muted-foreground",
   queued: "bg-blue-500/10 text-blue-400",
-  processing: "bg-secondary/10 text-secondary",
-  testing: "bg-yellow-500/10 text-yellow-400",
+  in_progress: "bg-secondary/10 text-secondary",
+  review: "bg-yellow-500/10 text-yellow-400",
   completed: "bg-primary/10 text-primary",
+};
+
+const statusLabel: Record<string, string> = {
+  submitted: "Submitted", queued: "Queued", in_progress: "In Progress", review: "Review", completed: "Completed",
 };
 
 const priorityColor: Record<string, string> = {
@@ -119,10 +123,10 @@ export default function AdminProjects() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="backlog">Backlog</SelectItem>
+              <SelectItem value="submitted">Submitted</SelectItem>
               <SelectItem value="queued">Queued</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="testing">Testing</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="review">Review</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>
           </Select>
@@ -162,7 +166,7 @@ export default function AdminProjects() {
                         <p className="text-[11px] text-muted-foreground">{p.serviceType}</p>
                       </td>
                       <td className="px-5 py-3">
-                        <Badge className={`text-[10px] ${statusColor[p.status]}`}>{p.status}</Badge>
+                        <Badge className={`text-[10px] ${statusColor[p.status]}`}>{statusLabel[p.status] ?? p.status}</Badge>
                       </td>
                       <td className="px-5 py-3">
                         <span className={`text-xs font-medium uppercase ${priorityColor[p.priority]}`}>{p.priority}</span>
@@ -221,10 +225,10 @@ export default function AdminProjects() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="backlog">Backlog</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
                   <SelectItem value="queued">Queued</SelectItem>
-                  <SelectItem value="processing">Processing</SelectItem>
-                  <SelectItem value="testing">Testing</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>

@@ -10,10 +10,10 @@ import { Plus, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 const statusColor: Record<string, string> = {
-  backlog: "bg-muted text-muted-foreground",
+  submitted: "bg-muted text-muted-foreground",
   queued: "bg-blue-500/10 text-blue-400",
-  processing: "bg-secondary/10 text-secondary",
-  testing: "bg-yellow-500/10 text-yellow-400",
+  in_progress: "bg-secondary/10 text-secondary",
+  review: "bg-yellow-500/10 text-yellow-400",
   completed: "bg-primary/10 text-primary",
 };
 
@@ -28,10 +28,10 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
 
-  const params = statusFilter !== "all" ? { status: statusFilter as any } : {};
-  const { data: projects, isLoading } = useListProjects(params, {
-    query: { queryKey: getListProjectsQueryKey(params) },
+  const { data: allProjects, isLoading } = useListProjects({
+    query: { queryKey: getListProjectsQueryKey() },
   });
+  const projects = allProjects;
 
   const filtered = projects?.filter(p => {
     if (serviceFilter !== "all" && !p.serviceType.toLowerCase().includes(serviceFilter.toLowerCase())) return false;
@@ -63,10 +63,10 @@ export default function Tasks() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="backlog">Backlog</SelectItem>
+              <SelectItem value="submitted">Submitted</SelectItem>
               <SelectItem value="queued">Queued</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="testing">Testing</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="review">In Review</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>
           </Select>

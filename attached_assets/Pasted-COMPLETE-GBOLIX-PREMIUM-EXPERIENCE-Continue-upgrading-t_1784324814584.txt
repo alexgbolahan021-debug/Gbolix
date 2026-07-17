@@ -1,0 +1,119 @@
+COMPLETE GBOLIX PREMIUM EXPERIENCE
+
+Continue upgrading the Gbolix platform and implement the following features while maintaining the existing dark premium SaaS design, responsive layout, and green-to-purple brand identity.
+
+========================
+
+ADMIN-INITIATED PROJECT MESSAGING
+========================
+
+Create a Project Messaging System for SERVICES ONLY.
+
+Rules:
+
+Messaging must NOT be available for Products.
+Messaging must NOT be connected to Credits.
+Messaging must only be linked to Service Requests / Projects.
+
+Workflow:
+
+Client submits a service request.
+Project is created normally.
+Client sees NO chat initially.
+In Admin Dashboard, every project has a:
+"Start Conversation" button.
+Only after admin clicks Start Conversation:
+Create conversation thread.
+Admin sends first message.
+Conversation then becomes visible to client.
+
+Client Experience:
+
+Once conversation exists:
+
+Show floating chat bubble in bottom-right.
+Show unread message badge.
+Display conversations in:
+Dashboard
+My Tasks
+Project Details
+
+Features:
+
+Permanent message history
+Chronological order
+Text messages
+Image uploads
+File uploads
+PDF support
+DOCX support
+ZIP support
+JPG support
+PNG support
+
+Display:
+
+Sender name
+Sender role
+Timestamp
+Read status
+
+Project Linking:
+
+One conversation per project.
+Clients with multiple projects see separate threads.
+Admin can switch between project conversations.
+
+Notifications:
+
+Client notified when admin replies.
+Admin notified when client replies.
+No real-time sockets required.
+Refresh loads latest data.
+
+UI:
+
+Modern SaaS messaging UI
+Match Gbolix theme
+Mobile responsive
+Green accent chat bubble
+
+Create a dedicated Admin Analytics page.
+
+Store and display onboarding answers.
+
+Show onboarding information inside each user profile.
+
+Analytics Dashboard:
+
+Total Users
+
+Users by Country
+
+Users by Business Type
+
+Users by Team Size
+
+Users by Lead Source
+
+Users by Service Interest
+
+Users by Product Interest
+
+Most Requested Services
+
+Conversion Funnel
+
+Registration → Onboarding → Request Submitted
+
+Visual Charts:
+
+Bar Charts
+
+Pie Charts
+
+Growth Charts
+
+Recent User Activity
+
+Export CSV functionality

@@ -46,7 +46,7 @@ router.post("/", requireAuth, async (req, res): Promise<void> => {
     description,
     priority: priority ?? "medium",
     price: price ? String(price) : null,
-    status: "backlog",
+    status: "submitted",
     hasConversation: false,
   }).returning();
 
@@ -63,7 +63,7 @@ router.post("/", requireAuth, async (req, res): Promise<void> => {
 
 // GET /api/projects/:id
 router.get("/:id", requireAuth, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   const userId = req.userId;
 
   const [project] = await db.select().from(projectsTable)
@@ -85,7 +85,7 @@ router.get("/:id", requireAuth, async (req, res): Promise<void> => {
 
 // PATCH /api/projects/:id
 router.patch("/:id", requireAuth, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   const userId = req.userId;
   const { title, description, priority } = req.body;
 

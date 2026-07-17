@@ -4,28 +4,33 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "wouter";
 import {
-  useGetDashboardSummary,
-  useGetRecentActivity,
-  useListProjects,
-  useGetMe,
+  useGetDashboardSummary, useGetRecentActivity, useListProjects, useGetMe,
 } from "@workspace/api-client-react";
 import { getGetDashboardSummaryQueryKey, getGetRecentActivityQueryKey, getListProjectsQueryKey } from "@workspace/api-client-react";
-import { FileUp, HelpCircle, Plus, Activity, Layers, CheckSquare, Clock, Files, ArrowRight } from "lucide-react";
+import { FileUp, HelpCircle, Plus, Activity, Layers, CheckSquare, Clock, Files, ArrowRight, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 const statusColor: Record<string, string> = {
-  backlog: "bg-muted text-muted-foreground",
+  submitted: "bg-muted text-muted-foreground",
   queued: "bg-blue-500/10 text-blue-400",
-  processing: "bg-secondary/10 text-secondary",
-  testing: "bg-yellow-500/10 text-yellow-400",
+  in_progress: "bg-secondary/10 text-secondary",
+  review: "bg-yellow-500/10 text-yellow-400",
   completed: "bg-primary/10 text-primary",
 };
 
+const statusLabel: Record<string, string> = {
+  submitted: "Submitted",
+  queued: "Queued",
+  in_progress: "In Progress",
+  review: "Review",
+  completed: "Completed",
+};
+
 const statusProgress: Record<string, number> = {
-  backlog: 10,
+  submitted: 10,
   queued: 30,
-  processing: 60,
-  testing: 80,
+  in_progress: 60,
+  review: 80,
   completed: 100,
 };
 
@@ -46,19 +51,19 @@ const activityTypeColor: Record<string, string> = {
 export default function Dashboard() {
   const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
   const { data: activity, isLoading: activityLoading } = useGetRecentActivity({ query: { queryKey: getGetRecentActivityQueryKey() } });
-  const { data: projects, isLoading: projectsLoading } = useListProjects(
-    { status: "processing" },
-    { query: { queryKey: getListProjectsQueryKey({ status: "processing" }) } }
-  );
+  const { data: allProjects, isLoading: projectsLoading } = useListProjects({
+    query: { queryKey: getListProjectsQueryKey() }
+  });
+  const projects = allProjects?.filter(p => p.status === "in_progress" || p.status === "review");
   const { data: profile } = useGetMe();
 
   const summaryCards = [
-    { label: "Active Tasks", value: summary?.activeTasks ?? 0, icon: Activity, color: "text-secondary", bg: "bg-secondary/10" },
-    { label: "Queued Tasks", value: summary?.queuedTasks ?? 0, icon: Clock, color: "text-blue-400", bg: "bg-blue-400/10" },
-    { label: "Completed Tasks", value: summary?.completedTasks ?? 0, icon: CheckSquare, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Open Tickets", value: summary?.openTickets ?? 0, icon: HelpCircle, color: "text-yellow-400", bg: "bg-yellow-400/10" },
-    { label: "Files Uploaded", value: summary?.filesUploaded ?? 0, icon: Files, color: "text-pink-400", bg: "bg-pink-400/10" },
-    { label: "Services Ordered", value: summary?.servicesOrdered ?? 0, icon: Layers, color: "text-purple-400", bg: "bg-purple-400/10" },
+    { label: "Active Tasks",     value: summary?.activeTasks ?? 0,     icon: Activity,      color: "text-secondary",   bg: "bg-secondary/10" },
+    { label: "Queued Tasks",     value: summary?.queuedTasks ?? 0,     icon: Clock,         color: "text-blue-400",    bg: "bg-blue-400/10" },
+    { label: "Completed",        value: summary?.completedTasks ?? 0,  icon: CheckSquare,   color: "text-primary",     bg: "bg-primary/10" },
+    { label: "Unread Messages",  value: summary?.unreadMessages ?? 0,  icon: MessageSquare, color: "text-red-400",     bg: "bg-red-400/10" },
+    { label: "Files Uploaded",   value: summary?.filesUploaded ?? 0,   icon: Files,         color: "text-pink-400",    bg: "bg-pink-400/10" },
+    { label: "Services Ordered", value: summary?.servicesOrdered ?? 0, icon: Layers,        color: "text-purple-400",  bg: "bg-purple-400/10" },
   ];
 
   const firstName = profile?.name?.split(" ")[0];
@@ -67,7 +72,7 @@ export default function Dashboard() {
     <ClientLayout>
       <div className="p-6 lg:p-8 max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex items-start justify-between mb-8 pt-2">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: "Sora, sans-serif" }} data-testid="text-dashboard-heading">
               {firstName ? `Welcome back, ${firstName} 👋` : "Welcome back 👋"}
@@ -77,11 +82,7 @@ export default function Dashboard() {
           <Link href="/new-request">
             <Button
               className="gap-2 text-sm font-semibold hidden sm:flex"
-              style={{
-                background: "linear-gradient(135deg, #00FF66, #00cc52)",
-                color: "#0B0F14",
-                boxShadow: "0 0 16px rgba(0,255,102,0.25)",
-              }}
+              style={{ background: "linear-gradient(135deg, #00FF66, #00cc52)", color: "#0B0F14", boxShadow: "0 0 16px rgba(0,255,102,0.25)" }}
               data-testid="button-new-request"
             >
               <Plus size={14} /> New Request
@@ -94,11 +95,7 @@ export default function Dashboard() {
           {summaryCards.map(card => {
             const Icon = card.icon;
             return (
-              <div
-                key={card.label}
-                className="bg-card border border-border rounded-xl p-4 hover:border-border/80 transition-all shadow-sm hover:shadow-md"
-                data-testid={`card-summary-${card.label.toLowerCase().replace(/\s/g, "-")}`}
-              >
+              <div key={card.label} className="bg-card border border-border rounded-xl p-4 hover:border-border/80 transition-all shadow-sm hover:shadow-md" data-testid={`card-summary-${card.label.toLowerCase().replace(/\s/g, "-")}`}>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{card.label}</span>
                   <div className={`w-7 h-7 ${card.bg} rounded-lg flex items-center justify-center`}>
@@ -152,9 +149,9 @@ export default function Dashboard() {
                         <p className="text-sm font-semibold truncate">{p.title}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{p.serviceType}</p>
                       </div>
-                      <Badge className={`text-[10px] shrink-0 ml-2 ${statusColor[p.status]}`}>{p.status}</Badge>
+                      <Badge className={`text-[10px] shrink-0 ml-2 ${statusColor[p.status] ?? ""}`}>{statusLabel[p.status] ?? p.status}</Badge>
                     </div>
-                    <Progress value={statusProgress[p.status]} className="h-1" />
+                    <Progress value={statusProgress[p.status] ?? 0} className="h-1" />
                   </div>
                 ))}
               </div>
@@ -202,15 +199,7 @@ export default function Dashboard() {
           <h2 className="font-bold text-sm mb-4" style={{ fontFamily: "Sora, sans-serif" }}>Quick Actions</h2>
           <div className="flex flex-wrap gap-3">
             <Link href="/new-request">
-              <Button
-                size="sm"
-                className="gap-2 text-xs font-semibold"
-                style={{
-                  background: "linear-gradient(135deg, #00FF66, #00cc52)",
-                  color: "#0B0F14",
-                }}
-                data-testid="button-quick-new-request"
-              >
+              <Button size="sm" className="gap-2 text-xs font-semibold" style={{ background: "linear-gradient(135deg, #00FF66, #00cc52)", color: "#0B0F14" }} data-testid="button-quick-new-request">
                 <Plus size={12} /> New Request
               </Button>
             </Link>

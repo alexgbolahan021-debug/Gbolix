@@ -9,7 +9,7 @@ export const projectsTable = pgTable("projects", {
   serviceType: text("service_type").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  status: text("status", { enum: ["backlog", "queued", "processing", "testing", "completed"] }).notNull().default("backlog"),
+  status: text("status", { enum: ["submitted", "queued", "in_progress", "review", "completed"] }).notNull().default("submitted"),
   priority: text("priority", { enum: ["low", "medium", "high", "urgent"] }).notNull().default("medium"),
   price: numeric("price", { precision: 10, scale: 2 }),
   internalNotes: text("internal_notes"),

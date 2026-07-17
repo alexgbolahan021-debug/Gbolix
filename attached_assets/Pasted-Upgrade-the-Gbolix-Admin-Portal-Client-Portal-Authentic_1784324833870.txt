@@ -1,0 +1,511 @@
+Upgrade the Gbolix Admin Portal, Client Portal, Authentication, and User Management into a scalable role-based system suitable for a growing SaaS business.
+
+## IMPORTANT
+
+Do NOT redesign the existing UI or remove any current functionality.
+
+Maintain the existing Gbolix branding, dark theme, animations, colors, responsiveness, routing, and component structure.
+
+Only improve and extend the current system.
+
+---
+
+# 1. IMPLEMENT ROLE-BASED ACCESS CONTROL (RBAC)
+
+Replace the simple Admin/Client logic with four roles:
+
+* Owner
+* Admin
+* Freelancer
+* Client
+
+## OWNER
+
+There should only be one Owner account.
+
+The Owner has unrestricted access to the entire platform.
+
+Owner permissions:
+
+* View every user
+* View every project
+* View every conversation
+* View analytics
+* Manage products
+* Manage pricing
+* Manage services
+* Manage wallets
+* Manage staff
+* Invite staff
+* Change user roles
+* Promote or demote Admins
+* Assign Freelancers
+* Delete users
+* Platform settings
+
+The Owner can access everything.
+
+---
+
+## ADMIN
+
+Admins manage daily operations.
+
+Admins can:
+
+* Manage clients
+* Manage projects
+* Reply to conversations
+* Upload files
+* Change project status
+* Create conversations
+* Assign freelancers
+
+Admins CANNOT:
+
+* Change Owner role
+* Delete Owner
+* Change platform settings
+* Change billing settings
+
+---
+
+## FREELANCER
+
+Freelancers are internal team members.
+
+They must have their own dashboard.
+
+Freelancers ONLY see:
+
+Dashboard
+
+Assigned Projects
+
+Messages
+
+Files
+
+Profile
+
+Availability
+
+Freelancers CANNOT access:
+
+Users
+
+Analytics
+
+Revenue
+
+Wallet
+
+Products
+
+Platform Settings
+
+Other freelancer projects
+
+Other client conversations
+
+They only work on projects assigned to them.
+
+---
+
+## CLIENT
+
+The Client Portal remains mostly the same.
+
+Clients only access:
+
+Dashboard
+
+My Tasks
+
+Messages
+
+Files
+
+Profile
+
+Products
+
+Wallet (future)
+
+---
+
+# 2. IMPROVE USER MANAGEMENT
+
+The Users page should become a mini CRM.
+
+Instead of showing only a table, every user row/card should be clickable.
+
+When clicked, open a beautiful modal or side drawer.
+
+Display:
+
+Profile Picture
+
+Full Name
+
+Email
+
+Phone Number
+
+Country
+
+Company Name
+
+Website
+
+Business Type
+
+User Role
+
+Registration Source
+
+Date Joined
+
+Last Login
+
+Current Status
+
+Projects Count
+
+Completed Projects
+
+Uploaded Files
+
+Messages Count
+
+Support Tickets
+
+Lifetime Spending
+
+Recent Activity Timeline
+
+Everything should look modern and match the Gbolix design.
+
+---
+
+# 3. ROLE MANAGEMENT
+
+The Owner should be able to change any user's role.
+
+Example:
+
+Client
+
+↓
+
+Freelancer
+
+↓
+
+Admin
+
+The Owner can also deactivate users.
+
+Admins cannot change roles.
+
+---
+
+# 4. STAFF MANAGEMENT
+
+Create a new section called:
+
+Team Management
+
+Visible ONLY to the Owner.
+
+Display:
+
+Owner
+
+Admins
+
+Freelancers
+
+Each staff member should display:
+
+Avatar
+
+Role
+
+Email
+
+Status
+
+Assigned Projects
+
+Workload
+
+Joined Date
+
+Buttons:
+
+Assign Projects
+
+Deactivate
+
+Change Role
+
+Reset Password
+
+---
+
+# 5. CLIENT PROFILE COMPLETION
+
+Do NOT make users complete a long form before creating an account.
+
+Keep signup simple:
+
+Full Name
+
+Email
+
+Password
+
+After first login, automatically redirect to a Profile Completion page.
+
+Display:
+
+"Complete your profile"
+
+Collect:
+
+Company Name (Required)
+
+Business Type (Required)
+
+Website (Optional)
+
+Phone Number (Optional)
+
+Profile Picture (Optional)
+
+Profile completion should only happen once.
+
+---
+
+# 6. AUTO DETECT LOCATION
+
+Automatically detect:
+
+Country
+
+City (approximate)
+
+Timezone
+
+Language
+
+Browser
+
+Device Type
+
+Operating System
+
+IP Region
+
+Registration Date
+
+Referral Source
+
+Save this automatically.
+
+Do NOT ask users for Country.
+
+Fill it automatically.
+
+Users cannot edit Country directly.
+
+If they need it changed they must contact support.
+
+---
+
+# 7. IMPROVE ACTIVE TASKS
+
+The Active Tasks cards currently stay static.
+
+Fix them.
+
+When project status changes, automatically update dashboard statistics.
+
+Statuses:
+
+Submitted
+
+Queued
+
+In Progress
+
+Review
+
+Completed
+
+Dashboard counters must always remain accurate.
+
+---
+
+# 8. PROJECT STATUS PIPELINE
+
+Every project should have one status.
+
+Submitted
+
+↓
+
+Queued
+
+↓
+
+In Progress
+
+↓
+
+Review
+
+↓
+
+Completed
+
+Admin changes status.
+
+Client immediately sees updated status.
+
+---
+
+# 9. IMPROVE USER TABLE
+
+Replace the current simple table with richer information.
+
+Show:
+
+Avatar
+
+Full Name
+
+Role Badge
+
+Company
+
+Country
+
+Projects
+
+Status
+
+Joined
+
+Last Active
+
+Each row should be clickable.
+
+---
+
+# 10. PROFILE PAGE
+
+Upgrade Profile.
+
+Include:
+
+Profile Picture
+
+Full Name
+
+Email
+
+Phone
+
+Company
+
+Website
+
+Business Type
+
+Country
+
+Timezone
+
+Language
+
+Change Password
+
+Save Changes
+
+Use premium cards and animations.
+
+---
+
+# 11. NOTIFICATIONS
+
+Create notifications for:
+
+New Project
+
+New Message
+
+Project Status Changed
+
+File Uploaded
+
+Unread Messages
+
+Display notification badges throughout the dashboard.
+
+---
+
+# 12. FREELANCER ASSIGNMENT
+
+Admins should be able to assign one or more Freelancers to projects.
+
+Freelancers only see assigned projects.
+
+Clients never see internal staff assignments.
+
+---
+
+# 13. PERMISSIONS
+
+Protect every route.
+
+Owner routes
+
+Admin routes
+
+Freelancer routes
+
+Client routes
+
+Users should never access pages outside their role.
+
+---
+
+# 14. UI
+
+Keep the existing Gbolix design.
+
+Use:
+
+Smooth transitions
+
+Hover effects
+
+Loading skeletons
+
+Animated counters
+
+Premium SaaS cards
+
+Framer Motion animations
+
+Dark theme
+
+Green-to-purple gradients
+
+Glassmorphism where appropriate
+
+Everything should feel like a premium SaaS platform similar to Linear, Stripe, Vercel, Notion, and HubSpot.
+
+Do not remove existing functionality. Extend and improve the current implementation while keeping the project production-ready and fully responsive.

@@ -2,22 +2,26 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { useGetInsights, useAdminListProjects } from "@workspace/api-client-react";
-import { getGetInsightsQueryKey, getAdminListProjectsQueryKey } from "@workspace/api-client-react";
+import { useAdminGetInsights, useAdminListProjects } from "@workspace/api-client-react";
+import { getAdminGetInsightsQueryKey, getAdminListProjectsQueryKey } from "@workspace/api-client-react";
 import { Users, Layers, CheckSquare, Activity, ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 const statusColor: Record<string, string> = {
-  backlog: "bg-muted text-muted-foreground",
+  submitted: "bg-muted text-muted-foreground",
   queued: "bg-blue-500/10 text-blue-400",
-  processing: "bg-secondary/10 text-secondary",
-  testing: "bg-yellow-500/10 text-yellow-400",
+  in_progress: "bg-secondary/10 text-secondary",
+  review: "bg-yellow-500/10 text-yellow-400",
   completed: "bg-primary/10 text-primary",
 };
 
+const statusLabel: Record<string, string> = {
+  submitted: "Submitted", queued: "Queued", in_progress: "In Progress", review: "Review", completed: "Completed",
+};
+
 export default function AdminDashboard() {
-  const { data: insights, isLoading: insightsLoading } = useGetInsights({
-    query: { queryKey: getGetInsightsQueryKey() },
+  const { data: insights, isLoading: insightsLoading } = useAdminGetInsights({
+    query: { queryKey: getAdminGetInsightsQueryKey() },
   });
   const { data: projects, isLoading: projectsLoading } = useAdminListProjects(
     {},
@@ -120,7 +124,7 @@ export default function AdminDashboard() {
                         <p className="text-[11px] text-muted-foreground">{p.serviceType}</p>
                       </td>
                       <td className="px-5 py-3">
-                        <Badge className={`text-[10px] ${statusColor[p.status]}`}>{p.status}</Badge>
+                        <Badge className={`text-[10px] ${statusColor[p.status]}`}>{statusLabel[p.status] ?? p.status}</Badge>
                       </td>
                       <td className="px-5 py-3 text-muted-foreground text-xs whitespace-nowrap">
                         {formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}

@@ -1,2 +1,5 @@
 - [Gbolix Orval hook naming](gbolix-orval-hooks.md) — generated admin hooks use camelCase Orval naming, not custom names; always grep generated api.ts before writing imports
 - [Gbolix admin role setup](gbolix-admin-role.md) — admin role set in DB via SQL; no UI for promotion; `requireAdmin` middleware checks `req.userRole === 'admin'`
+- [Orval hook signatures](orval-hook-signatures.md) — generated hooks take a single options object; query params are NOT passed as a separate first arg; queryKey helpers take 0 args for param-less endpoints.
+- [Express 5 req.params typing](express5-params-typing.md) — req.params values typed as string | string[] in Express 5; always cast `req.params.id as string` before parseInt.
+- [Clerk shared subpath](clerk-shared-subpath.md) — @clerk/shared must be a direct dep of api-server for @clerk/shared/keys subpath types to resolve; transitive install isn't enough.

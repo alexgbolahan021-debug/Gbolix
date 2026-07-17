@@ -22,13 +22,13 @@ function FileIcon({ mimeType }: { mimeType: string }) {
 export default function AdminFiles() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: files, isLoading } = useListFiles({}, { query: { queryKey: getListFilesQueryKey({}) } });
+  const { data: files, isLoading } = useListFiles({ query: { queryKey: getListFilesQueryKey() } });
   const deleteMutation = useDeleteFile();
 
   const handleDelete = (id: number, name: string) => {
     deleteMutation.mutate({ id }, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListFilesQueryKey({}) });
+        queryClient.invalidateQueries({ queryKey: getListFilesQueryKey() });
         toast({ title: "File deleted", description: name });
       },
     });

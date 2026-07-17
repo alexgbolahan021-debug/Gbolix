@@ -26,7 +26,7 @@ export default function Files() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: files, isLoading } = useListFiles({}, { query: { queryKey: getListFilesQueryKey({}) } });
+  const { data: files, isLoading } = useListFiles({ query: { queryKey: getListFilesQueryKey() } });
   const deleteMutation = useDeleteFile();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,7 +50,7 @@ export default function Files() {
 
       if (!res.ok) throw new Error("Upload failed");
 
-      queryClient.invalidateQueries({ queryKey: getListFilesQueryKey({}) });
+      queryClient.invalidateQueries({ queryKey: getListFilesQueryKey() });
       toast({ title: "File uploaded", description: file.name });
     } catch {
       toast({ title: "Upload failed", variant: "destructive" });
@@ -63,7 +63,7 @@ export default function Files() {
   const handleDelete = (id: number, name: string) => {
     deleteMutation.mutate({ id }, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListFilesQueryKey({}) });
+        queryClient.invalidateQueries({ queryKey: getListFilesQueryKey() });
         toast({ title: "File deleted", description: name });
       },
     });

@@ -7,14 +7,17 @@
  */
 export interface HealthStatus {
   status: string;
+  timestamp: string;
 }
 
 export type UserProfileRole = typeof UserProfileRole[keyof typeof UserProfileRole];
 
 
 export const UserProfileRole = {
-  client: 'client',
+  owner: 'owner',
   admin: 'admin',
+  freelancer: 'freelancer',
+  client: 'client',
 } as const;
 
 export interface UserProfile {
@@ -27,17 +30,28 @@ export interface UserProfile {
   /** @nullable */
   phone?: string | null;
   /** @nullable */
+  website?: string | null;
+  /** @nullable */
   country?: string | null;
+  /** @nullable */
+  city?: string | null;
   /** @nullable */
   userType?: string | null;
   /** @nullable */
   companySize?: string | null;
   /** @nullable */
   acquisitionSource?: string | null;
+  /** @nullable */
+  timezone?: string | null;
+  /** @nullable */
+  language?: string | null;
   onboardingCompleted: boolean;
   role: UserProfileRole;
+  isActive: boolean;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  lastLoginAt?: string | null;
   createdAt: string;
 }
 
@@ -45,7 +59,12 @@ export interface UserProfileUpdate {
   name?: string;
   companyName?: string;
   phone?: string;
+  website?: string;
   country?: string;
+  city?: string;
+  timezone?: string;
+  language?: string;
+  avatarUrl?: string;
 }
 
 export interface OnboardingInput {
@@ -62,6 +81,11 @@ export interface DashboardSummary {
   openTickets: number;
   filesUploaded: number;
   servicesOrdered: number;
+  unreadMessages: number;
+}
+
+export interface UnreadCount {
+  unread: number;
 }
 
 export type ActivityItemType = typeof ActivityItemType[keyof typeof ActivityItemType];
@@ -89,10 +113,10 @@ export type ProjectStatus = typeof ProjectStatus[keyof typeof ProjectStatus];
 
 
 export const ProjectStatus = {
-  backlog: 'backlog',
+  submitted: 'submitted',
   queued: 'queued',
-  processing: 'processing',
-  testing: 'testing',
+  in_progress: 'in_progress',
+  review: 'review',
   completed: 'completed',
 } as const;
 
@@ -158,12 +182,21 @@ export interface FileRecord {
   createdAt: string;
 }
 
+export interface FileUploadInput {
+  filename: string;
+  mimeType: string;
+  data: string;
+  projectId?: number;
+}
+
 export type MessageSenderRole = typeof MessageSenderRole[keyof typeof MessageSenderRole];
 
 
 export const MessageSenderRole = {
-  client: 'client',
+  owner: 'owner',
   admin: 'admin',
+  freelancer: 'freelancer',
+  client: 'client',
 } as const;
 
 export interface Message {
@@ -177,15 +210,51 @@ export interface Message {
   fileUrl?: string | null;
   /** @nullable */
   fileName?: string | null;
+  /** @nullable */
+  fileMimeType?: string | null;
   isRead: boolean;
   createdAt: string;
 }
 
 export interface MessageInput {
-  content: string;
-  fileUrl?: string;
+  content?: string;
+  fileData?: string;
   fileName?: string;
+  fileMimeType?: string;
 }
+
+export type NotificationItemType = typeof NotificationItemType[keyof typeof NotificationItemType];
+
+
+export const NotificationItemType = {
+  new_message: 'new_message',
+  status_change: 'status_change',
+  file_uploaded: 'file_uploaded',
+  new_project: 'new_project',
+  admin_reply: 'admin_reply',
+} as const;
+
+export interface NotificationItem {
+  id: number;
+  userId: number;
+  /** @nullable */
+  projectId?: number | null;
+  title: string;
+  message: string;
+  type: NotificationItemType;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export type AdminUserRole = typeof AdminUserRole[keyof typeof AdminUserRole];
+
+
+export const AdminUserRole = {
+  owner: 'owner',
+  admin: 'admin',
+  freelancer: 'freelancer',
+  client: 'client',
+} as const;
 
 export interface AdminUser {
   id: number;
@@ -201,17 +270,115 @@ export interface AdminUser {
   acquisitionSource?: string | null;
   registrationDate: string;
   totalRequests: number;
-  role: string;
+  role: AdminUserRole;
+  isActive: boolean;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  lastLoginAt?: string | null;
+}
+
+export type AdminUserDetailRole = typeof AdminUserDetailRole[keyof typeof AdminUserDetailRole];
+
+
+export const AdminUserDetailRole = {
+  owner: 'owner',
+  admin: 'admin',
+  freelancer: 'freelancer',
+  client: 'client',
+} as const;
+
+export interface AdminUserDetail {
+  id: number;
+  name: string;
+  email: string;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  userType?: string | null;
+  /** @nullable */
+  companySize?: string | null;
+  /** @nullable */
+  acquisitionSource?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  timezone?: string | null;
+  /** @nullable */
+  language?: string | null;
+  role: AdminUserDetailRole;
+  isActive: boolean;
+  /** @nullable */
+  avatarUrl?: string | null;
+  createdAt: string;
+  /** @nullable */
+  lastLoginAt?: string | null;
+  totalProjects: number;
+  completedProjects: number;
+  totalFiles: number;
+  totalMessages: number;
+  recentActivity: ActivityItem[];
+}
+
+export type RoleChangeInputRole = typeof RoleChangeInputRole[keyof typeof RoleChangeInputRole];
+
+
+export const RoleChangeInputRole = {
+  owner: 'owner',
+  admin: 'admin',
+  freelancer: 'freelancer',
+  client: 'client',
+} as const;
+
+export interface RoleChangeInput {
+  role: RoleChangeInputRole;
+}
+
+export type TeamMemberRole = typeof TeamMemberRole[keyof typeof TeamMemberRole];
+
+
+export const TeamMemberRole = {
+  owner: 'owner',
+  admin: 'admin',
+  freelancer: 'freelancer',
+} as const;
+
+export interface TeamMember {
+  id: number;
+  name: string;
+  email: string;
+  role: TeamMemberRole;
+  isActive: boolean;
+  /** @nullable */
+  avatarUrl?: string | null;
+  assignedProjects: number;
+  createdAt: string;
+  /** @nullable */
+  lastLoginAt?: string | null;
+}
+
+export interface AssignFreelancerInput {
+  freelancerIds: number[];
 }
 
 export type AdminProjectStatus = typeof AdminProjectStatus[keyof typeof AdminProjectStatus];
 
 
 export const AdminProjectStatus = {
-  backlog: 'backlog',
+  submitted: 'submitted',
   queued: 'queued',
-  processing: 'processing',
-  testing: 'testing',
+  in_progress: 'in_progress',
+  review: 'review',
   completed: 'completed',
 } as const;
 
@@ -224,6 +391,11 @@ export const AdminProjectPriority = {
   high: 'high',
   urgent: 'urgent',
 } as const;
+
+export type AdminProjectAssignedFreelancersItem = {
+  id: number;
+  name: string;
+};
 
 export interface AdminProject {
   id: number;
@@ -239,6 +411,7 @@ export interface AdminProject {
   hasConversation: boolean;
   clientName: string;
   clientEmail: string;
+  assignedFreelancers: AdminProjectAssignedFreelancersItem[];
   createdAt: string;
   updatedAt: string;
 }
@@ -247,10 +420,10 @@ export type AdminProjectUpdateStatus = typeof AdminProjectUpdateStatus[keyof typ
 
 
 export const AdminProjectUpdateStatus = {
-  backlog: 'backlog',
+  submitted: 'submitted',
   queued: 'queued',
-  processing: 'processing',
-  testing: 'testing',
+  in_progress: 'in_progress',
+  review: 'review',
   completed: 'completed',
 } as const;
 
@@ -268,6 +441,7 @@ export interface AdminProjectUpdate {
   status?: AdminProjectUpdateStatus;
   priority?: AdminProjectUpdatePriority;
   internalNotes?: string;
+  price?: number;
 }
 
 export interface PieSlice {
@@ -282,40 +456,42 @@ export interface Insights {
   completedProjects: number;
   activeProjects: number;
   openTickets: number;
+  newUsersThisWeek: number;
+  conversionRate: number;
   userTypeBreakdown: PieSlice[];
   locationBreakdown: PieSlice[];
   companySizeBreakdown: PieSlice[];
   acquisitionSourceBreakdown: PieSlice[];
+  serviceRequestBreakdown: PieSlice[];
+  statusBreakdown: PieSlice[];
   insightsSummary: string[];
 }
 
-export type ListProjectsParams = {
-status?: ListProjectsStatus;
-serviceType?: string;
+export type MarkMessagesRead200 = {
+  updated: number;
 };
 
-export type ListProjectsStatus = typeof ListProjectsStatus[keyof typeof ListProjectsStatus];
-
-
-export const ListProjectsStatus = {
-  backlog: 'backlog',
-  queued: 'queued',
-  processing: 'processing',
-  testing: 'testing',
-  completed: 'completed',
-} as const;
-
-export type ListFilesParams = {
-projectId?: number;
+export type MarkAllNotificationsRead200 = {
+  updated: number;
 };
 
 export type AdminListUsersParams = {
 userType?: string;
 location?: string;
+role?: string;
+};
+
+export type AdminDeactivateUserBody = {
+  isActive: boolean;
 };
 
 export type AdminListProjectsParams = {
 status?: string;
 priority?: string;
+};
+
+export type AdminAssignFreelancer200 = {
+  projectId: number;
+  freelancerIds: number[];
 };
 

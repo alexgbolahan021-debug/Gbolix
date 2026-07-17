@@ -111,6 +111,8 @@ import AdminProjects from "@/pages/admin/AdminProjects";
 import AdminMessages from "@/pages/admin/AdminMessages";
 import AdminFiles from "@/pages/admin/AdminFiles";
 import AdminInsights from "@/pages/admin/AdminInsights";
+import AdminTeam from "@/pages/admin/AdminTeam";
+import FreelancerDashboard from "@/pages/FreelancerDashboard";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import DevRoutes from "@/pages/dev/DevRoutes";
@@ -141,7 +143,8 @@ function HomeRedirect() {
   if (!isSignedIn) return <Home />;
   if (isLoading) return <LoadingScreen />;
 
-  if (profile?.role === "admin") return <Redirect to="/admin/dashboard" />;
+  if (profile?.role === "owner" || profile?.role === "admin") return <Redirect to="/admin/dashboard" />;
+  if (profile?.role === "freelancer") return <Redirect to="/freelancer/dashboard" />;
   return <Redirect to="/dashboard" />;
 }
 
@@ -159,7 +162,7 @@ function AccessDeniedRedirect() {
   return <Redirect to="/dashboard" />;
 }
 
-function ProtectedRoute({ component: Component, adminOnly = false }: { component: any, adminOnly?: boolean }) {
+function ProtectedRoute({ component: Component, adminOnly = false, freelancerOk = false }: { component: any, adminOnly?: boolean, freelancerOk?: boolean }) {
   const { data: profile, isLoading } = useGetMe();
   const { isLoaded, isSignedIn } = useUser();
 
@@ -171,7 +174,10 @@ function ProtectedRoute({ component: Component, adminOnly = false }: { component
     return <Redirect to="/onboarding" />;
   }
 
-  if (adminOnly && profile?.role !== "admin") {
+  const isStaff = profile?.role === "owner" || profile?.role === "admin";
+  const isFreelancer = profile?.role === "freelancer";
+
+  if (adminOnly && !isStaff && !(freelancerOk && isFreelancer)) {
     return <AccessDeniedRedirect />;
   }
 
@@ -185,7 +191,9 @@ function OnboardingRoute() {
   if (!isLoaded || isLoading) return <LoadingScreen />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
   if (profile?.onboardingCompleted) {
-    return <Redirect to={profile.role === "admin" ? "/admin/dashboard" : "/dashboard"} />;
+    if (profile.role === "owner" || profile.role === "admin") return <Redirect to="/admin/dashboard" />;
+    if (profile.role === "freelancer") return <Redirect to="/freelancer/dashboard" />;
+    return <Redirect to="/dashboard" />;
   }
 
   return <Onboarding />;
@@ -219,6 +227,9 @@ function AppRouter() {
       <Route path="/profile"><ProtectedRoute component={Profile} /></Route>
       <Route path="/new-request"><ProtectedRoute component={NewRequest} /></Route>
 
+      {/* Freelancer Portal */}
+      <Route path="/freelancer/dashboard"><ProtectedRoute component={FreelancerDashboard} adminOnly freelancerOk /></Route>
+
       {/* Admin Portal */}
       <Route path="/admin">
         <ProtectedRoute component={() => <Redirect to="/admin/dashboard" />} adminOnly />
@@ -229,6 +240,7 @@ function AppRouter() {
       <Route path="/admin/messages"><ProtectedRoute component={AdminMessages} adminOnly /></Route>
       <Route path="/admin/files"><ProtectedRoute component={AdminFiles} adminOnly /></Route>
       <Route path="/admin/insights"><ProtectedRoute component={AdminInsights} adminOnly /></Route>
+      <Route path="/admin/team"><ProtectedRoute component={AdminTeam} adminOnly /></Route>
 
       <Route>404 Not Found</Route>
     </Switch>

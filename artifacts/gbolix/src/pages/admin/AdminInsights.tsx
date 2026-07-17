@@ -1,6 +1,6 @@
 import { ClientLayout } from "@/components/ClientLayout";
-import { useGetInsights } from "@workspace/api-client-react";
-import { getGetInsightsQueryKey } from "@workspace/api-client-react";
+import { useAdminGetInsights } from "@workspace/api-client-react";
+import { getAdminGetInsightsQueryKey } from "@workspace/api-client-react";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis,
 } from "recharts";
@@ -56,8 +56,8 @@ function BarCard({ title, data }: { title: string; data: { name: string; value: 
 }
 
 export default function AdminInsights() {
-  const { data: insights, isLoading } = useGetInsights({
-    query: { queryKey: getGetInsightsQueryKey() },
+  const { data: insights, isLoading } = useAdminGetInsights({
+    query: { queryKey: getAdminGetInsightsQueryKey() },
   });
 
   const statCards = [

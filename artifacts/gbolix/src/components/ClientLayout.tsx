@@ -1,13 +1,13 @@
 import { Link, useLocation } from "wouter";
-import { useClerk, useUser } from "@clerk/react";
+import { useClerk } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { useGetMe } from "@workspace/api-client-react";
+import { useGetMe, useListNotifications } from "@workspace/api-client-react";
 import { useTheme } from "@/hooks/use-theme";
 import {
   LayoutDashboard, ListTodo, Files, Zap, Wallet, HelpCircle,
-  User, LogOut, ChevronLeft, ChevronRight, Moon, Sun, Shield, MessageSquare
+  User, LogOut, ChevronLeft, ChevronRight, Moon, Sun, Shield, MessageSquare,
+  Bell, Users, BarChart3, FolderOpen, Star,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -16,10 +16,10 @@ type NavGroup = { section: string; items: NavItem[] };
 
 const clientNav: NavGroup[] = [
   { section: "WORKSPACE", items: [
-    { href: "/dashboard",   label: "Dashboard",  icon: LayoutDashboard },
-    { href: "/tasks",       label: "My Tasks",   icon: ListTodo },
-    { href: "/files",       label: "Files",      icon: Files },
-    { href: "/messages",    label: "Messages",   icon: MessageSquare },
+    { href: "/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
+    { href: "/tasks",       label: "My Tasks",    icon: ListTodo },
+    { href: "/files",       label: "Files",       icon: Files },
+    { href: "/messages",    label: "Messages",    icon: MessageSquare },
     { href: "/new-request", label: "New Request", icon: Zap },
   ]},
   { section: "PRODUCTS", items: [
@@ -34,13 +34,32 @@ const clientNav: NavGroup[] = [
 const adminNav: NavGroup[] = [
   { section: "ADMIN", items: [
     { href: "/admin/dashboard", label: "Dashboard",  icon: LayoutDashboard },
-    { href: "/admin/users",     label: "Users",      icon: User },
+    { href: "/admin/users",     label: "Users",      icon: Users },
     { href: "/admin/projects",  label: "Projects",   icon: ListTodo },
     { href: "/admin/messages",  label: "Messages",   icon: MessageSquare },
-    { href: "/admin/files",     label: "Files",      icon: Files },
-    { href: "/admin/insights",  label: "Insights",   icon: Zap },
+    { href: "/admin/files",     label: "Files",      icon: FolderOpen },
+    { href: "/admin/insights",  label: "Insights",   icon: BarChart3 },
+    { href: "/admin/team",      label: "Team",       icon: Star },
   ]},
 ];
+
+const freelancerNav: NavGroup[] = [
+  { section: "WORKSPACE", items: [
+    { href: "/freelancer/dashboard", label: "Dashboard",  icon: LayoutDashboard },
+    { href: "/messages",              label: "Messages",   icon: MessageSquare },
+    { href: "/files",                 label: "Files",      icon: Files },
+    { href: "/profile",               label: "Profile",    icon: User },
+  ]},
+];
+
+function NotificationDot({ count }: { count: number }) {
+  if (!count) return null;
+  return (
+    <span className="absolute -top-1 -right-1 min-w-4 h-4 bg-destructive text-[9px] text-white font-bold rounded-full flex items-center justify-center px-0.5">
+      {count > 9 ? "9+" : count}
+    </span>
+  );
+}
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -48,43 +67,60 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { signOut } = useClerk();
   const { data: profile } = useGetMe();
   const { theme, setTheme } = useTheme();
-  const isAdmin = profile?.role === "admin";
-  const nav = isAdmin ? adminNav : clientNav;
+  const { data: notifications } = useListNotifications();
+
+  const isOwner = profile?.role === "owner";
+  const isAdmin = profile?.role === "admin" || isOwner;
+  const isFreelancer = profile?.role === "freelancer";
+  const unreadNotifications = notifications?.filter(n => !n.isRead).length ?? 0;
+
+  let nav: NavGroup[];
+  let roleBadge: string | null = null;
+  let roleBadgeColor = "text-secondary";
+
+  if (isOwner) {
+    nav = adminNav;
+    roleBadge = "Owner Portal";
+    roleBadgeColor = "text-yellow-400";
+  } else if (isAdmin) {
+    nav = adminNav;
+    roleBadge = "Admin Portal";
+    roleBadgeColor = "text-secondary";
+  } else if (isFreelancer) {
+    nav = freelancerNav;
+    roleBadge = "Freelancer";
+    roleBadgeColor = "text-blue-400";
+  } else {
+    nav = clientNav;
+    roleBadge = null;
+  }
+
+  const profileHref = isFreelancer ? "/profile" : "/profile";
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
-      <aside
-        className={`relative flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${collapsed ? "w-16" : "w-64"}`}
-      >
+      <aside className={`relative flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${collapsed ? "w-16" : "w-64"}`}>
         {/* Logo */}
         <div className="flex items-center h-16 px-3 border-b border-border shrink-0">
           {collapsed ? (
-            <img
-              src="/logo-g-icon.png"
-              alt="G"
-              className="h-9 w-9 object-contain rounded-lg"
-            />
+            <img src="/logo-g-icon.png" alt="G" className="h-9 w-9 object-contain rounded-lg" />
           ) : (
-            <img
-              src={theme === "dark" ? "/logo-dark.png" : "/logo-light.png"}
-              alt="Gbolix"
-              className="h-9 w-auto object-contain"
-            />
+            <img src={theme === "dark" ? "/logo-dark.png" : "/logo-light.png"} alt="Gbolix" className="h-9 w-auto object-contain" />
           )}
         </div>
 
-        {/* Admin badge (expanded only) */}
-        {isAdmin && !collapsed && (
-          <div className="mx-3 mt-3 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/10 border border-secondary/20">
-            <Shield size={11} className="text-secondary" />
-            <span className="text-[10px] text-secondary font-bold uppercase tracking-widest">Admin Portal</span>
+        {/* Role badge */}
+        {roleBadge && !collapsed && (
+          <div className={`mx-3 mt-3 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/10 border border-secondary/20`}>
+            <Shield size={11} className={roleBadgeColor} />
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${roleBadgeColor}`}>{roleBadge}</span>
           </div>
         )}
-        {isAdmin && collapsed && (
+        {roleBadge && collapsed && (
           <div className="flex justify-center mt-3">
             <div className="w-8 h-8 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-center">
-              <Shield size={12} className="text-secondary" />
+              <Shield size={12} className={roleBadgeColor} />
             </div>
           </div>
         )}
@@ -93,30 +129,37 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           {nav.map(group => (
             <div key={group.section} className="mb-4">
               {!collapsed && (
-                <p className="px-2 mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-                  {group.section}
-                </p>
+                <p className="px-2 mb-2 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">{group.section}</p>
               )}
               {group.items.map(item => {
                 const Icon = item.icon;
                 const active = location === item.href;
+                const isMessages = item.href === "/messages" || item.href === "/admin/messages";
                 return (
                   <Link key={item.label} href={item.href}>
                     <div
                       data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, "-")}`}
                       title={collapsed ? item.label : undefined}
-                      className={`flex items-center gap-3 px-2 py-2 rounded-md mb-1 transition-colors cursor-pointer
+                      className={`relative flex items-center gap-3 px-2 py-2 rounded-md mb-1 transition-colors cursor-pointer
                         ${active ? "bg-primary/10 text-primary" : "text-sidebar-foreground hover:bg-sidebar-accent"}
                         ${item.soon ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}
                         ${collapsed ? "justify-center" : ""}
                       `}
                     >
-                      <Icon size={16} className="shrink-0" />
+                      <div className="relative shrink-0">
+                        <Icon size={16} />
+                        {isMessages && unreadNotifications > 0 && <NotificationDot count={unreadNotifications} />}
+                      </div>
                       {!collapsed && (
                         <>
                           <span className="text-sm font-medium truncate">{item.label}</span>
                           {item.soon && (
                             <span className="ml-auto text-[9px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">Soon</span>
+                          )}
+                          {isMessages && unreadNotifications > 0 && (
+                            <span className="ml-auto bg-destructive text-[9px] text-white font-bold rounded-full px-1.5 py-0.5">
+                              {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                            </span>
                           )}
                         </>
                       )}
@@ -130,7 +173,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
         {/* Account section */}
         <div className="border-t border-border p-2 space-y-1 shrink-0">
-          <Link href="/profile">
+          <Link href={profileHref}>
             <div
               className={`flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent transition-colors ${collapsed ? "justify-center" : ""}`}
               data-testid="nav-profile"
@@ -171,7 +214,20 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto relative">
+        {/* Notification bell (top right) */}
+        <div className="absolute top-4 right-4 z-20">
+          <Link href="/messages">
+            <button className="relative p-2 rounded-full bg-card border border-border hover:bg-accent transition-colors">
+              <Bell size={16} />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 bg-destructive text-[9px] text-white font-bold rounded-full flex items-center justify-center px-0.5">
+                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                </span>
+              )}
+            </button>
+          </Link>
+        </div>
         {children}
       </main>
     </div>

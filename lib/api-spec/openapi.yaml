@@ -18,6 +18,8 @@ tags:
     description: File operations
   - name: messages
     description: Project messaging
+  - name: notifications
+    description: Notification operations
   - name: admin
     description: Admin portal operations
 paths:
@@ -114,25 +116,28 @@ paths:
                 items:
                   $ref: "#/components/schemas/ActivityItem"
 
+  /users/me/unread-count:
+    get:
+      operationId: getUnreadCount
+      tags: [users]
+      summary: Get unread message count across all projects
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadCount"
+
   # ── Projects (service requests) ──────────────────────────────────────────────
   /projects:
     get:
       operationId: listProjects
       tags: [projects]
       summary: List current user's projects
-      parameters:
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [backlog, queued, processing, testing, completed]
-        - name: serviceType
-          in: query
-          schema:
-            type: string
       responses:
         "200":
-          description: Projects list
+          description: Project list
           content:
             application/json:
               schema:
@@ -142,7 +147,7 @@ paths:
     post:
       operationId: createProject
       tags: [projects]
-      summary: Create a new service request
+      summary: Create a new project (service request)
       requestBody:
         required: true
         content:
@@ -151,7 +156,7 @@ paths:
               $ref: "#/components/schemas/ProjectInput"
       responses:
         "201":
-          description: Created
+          description: Created project
           content:
             application/json:
               schema:
@@ -161,7 +166,7 @@ paths:
     get:
       operationId: getProject
       tags: [projects]
-      summary: Get a project by ID
+      summary: Get a single project
       parameters:
         - name: id
           in: path
@@ -175,12 +180,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Project"
-        "404":
-          description: Not found
     patch:
       operationId: updateProject
       tags: [projects]
-      summary: Update a project
+      summary: Update a project (client)
       parameters:
         - name: id
           in: path
@@ -201,26 +204,55 @@ paths:
               schema:
                 $ref: "#/components/schemas/Project"
 
-  # ── Files ────────────────────────────────────────────────────────────────────
+  # ── Files ─────────────────────────────────────────────────────────────────────
   /files:
     get:
       operationId: listFiles
       tags: [files]
-      summary: List files for the current user
-      parameters:
-        - name: projectId
-          in: query
-          schema:
-            type: integer
+      summary: List current user's files
       responses:
         "200":
-          description: Files list
+          description: File list
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/FileRecord"
+
+  /files/upload:
+    post:
+      operationId: uploadFile
+      tags: [files]
+      summary: Upload a file (base64 JSON body)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileUploadInput"
+      responses:
+        "201":
+          description: Uploaded file record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileRecord"
+
+  /files/download/{filename}:
+    get:
+      operationId: downloadFile
+      tags: [files]
+      summary: Download a file by stored filename
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File binary
 
   /files/{id}:
     delete:
@@ -237,7 +269,7 @@ paths:
         "204":
           description: Deleted
 
-  # ── Messages ─────────────────────────────────────────────────────────────────
+  # ── Messages ──────────────────────────────────────────────────────────────────
   /projects/{projectId}/messages:
     get:
       operationId: listMessages
@@ -251,7 +283,7 @@ paths:
             type: integer
       responses:
         "200":
-          description: Messages list
+          description: Message list
           content:
             application/json:
               schema:
@@ -261,7 +293,7 @@ paths:
     post:
       operationId: sendMessage
       tags: [messages]
-      summary: Send a message in a project conversation
+      summary: Send a message in a project
       parameters:
         - name: projectId
           in: path
@@ -276,18 +308,91 @@ paths:
               $ref: "#/components/schemas/MessageInput"
       responses:
         "201":
-          description: Sent message
+          description: Created message
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message"
 
-  # ── Admin ────────────────────────────────────────────────────────────────────
+  /projects/{projectId}/messages/read:
+    post:
+      operationId: markMessagesRead
+      tags: [messages]
+      summary: Mark all messages in a project as read
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: integer
+                required:
+                  - updated
+
+  # ── Notifications ─────────────────────────────────────────────────────────────
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for current user
+      responses:
+        "200":
+          description: Notification list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NotificationItem"
+
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: integer
+                required:
+                  - updated
+
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a single notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+
+  # ── Admin ─────────────────────────────────────────────────────────────────────
   /admin/users:
     get:
       operationId: adminListUsers
       tags: [admin]
-      summary: Admin — list all users
+      summary: List all users
       parameters:
         - name: userType
           in: query
@@ -297,9 +402,13 @@ paths:
           in: query
           schema:
             type: string
+        - name: role
+          in: query
+          schema:
+            type: string
       responses:
         "200":
-          description: Users list
+          description: User list
           content:
             application/json:
               schema:
@@ -307,11 +416,96 @@ paths:
                 items:
                   $ref: "#/components/schemas/AdminUser"
 
+  /admin/users/{id}:
+    get:
+      operationId: adminGetUser
+      tags: [admin]
+      summary: Get detailed user profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserDetail"
+
+  /admin/users/{id}/role:
+    patch:
+      operationId: adminChangeUserRole
+      tags: [admin]
+      summary: Change a user's role (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleChangeInput"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /admin/users/{id}/deactivate:
+    post:
+      operationId: adminDeactivateUser
+      tags: [admin]
+      summary: Deactivate or reactivate a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+              required:
+                - isActive
+      responses:
+        "200":
+          description: Updated
+
+  /admin/team:
+    get:
+      operationId: adminListTeam
+      tags: [admin]
+      summary: List all staff (owner, admin, freelancer)
+      responses:
+        "200":
+          description: Team list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeamMember"
+
   /admin/projects:
     get:
       operationId: adminListProjects
       tags: [admin]
-      summary: Admin — list all projects
+      summary: List all projects
       parameters:
         - name: status
           in: query
@@ -323,7 +517,7 @@ paths:
             type: string
       responses:
         "200":
-          description: Projects list
+          description: Project list
           content:
             application/json:
               schema:
@@ -335,7 +529,7 @@ paths:
     patch:
       operationId: adminUpdateProject
       tags: [admin]
-      summary: Admin — update project status/priority/notes
+      summary: Update a project (admin)
       parameters:
         - name: id
           in: path
@@ -350,7 +544,7 @@ paths:
               $ref: "#/components/schemas/AdminProjectUpdate"
       responses:
         "200":
-          description: Updated
+          description: Updated project
           content:
             application/json:
               schema:
@@ -360,7 +554,7 @@ paths:
     post:
       operationId: adminStartConversation
       tags: [admin]
-      summary: Admin — start a conversation for a project
+      summary: Start a conversation on a project
       parameters:
         - name: id
           in: path
@@ -369,17 +563,52 @@ paths:
             type: integer
       responses:
         "200":
-          description: Conversation started
+          description: Updated project
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminProject"
 
+  /admin/projects/{id}/assign:
+    post:
+      operationId: adminAssignFreelancer
+      tags: [admin]
+      summary: Assign or unassign freelancers to a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignFreelancerInput"
+      responses:
+        "200":
+          description: Updated assignments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projectId:
+                    type: integer
+                  freelancerIds:
+                    type: array
+                    items:
+                      type: integer
+                required:
+                  - projectId
+                  - freelancerIds
+
   /admin/insights:
     get:
-      operationId: getInsights
+      operationId: adminGetInsights
       tags: [admin]
-      summary: Admin — get platform insights and analytics
+      summary: Get aggregated analytics/insights
       responses:
         "200":
           description: Insights data
@@ -395,8 +624,11 @@ components:
       properties:
         status:
           type: string
+        timestamp:
+          type: string
       required:
         - status
+        - timestamp
 
     UserProfile:
       type: object
@@ -413,7 +645,11 @@ components:
           type: ["string", "null"]
         phone:
           type: ["string", "null"]
+        website:
+          type: ["string", "null"]
         country:
+          type: ["string", "null"]
+        city:
           type: ["string", "null"]
         userType:
           type: ["string", "null"]
@@ -421,12 +657,20 @@ components:
           type: ["string", "null"]
         acquisitionSource:
           type: ["string", "null"]
+        timezone:
+          type: ["string", "null"]
+        language:
+          type: ["string", "null"]
         onboardingCompleted:
           type: boolean
         role:
           type: string
-          enum: [client, admin]
+          enum: [owner, admin, freelancer, client]
+        isActive:
+          type: boolean
         avatarUrl:
+          type: ["string", "null"]
+        lastLoginAt:
           type: ["string", "null"]
         createdAt:
           type: string
@@ -437,6 +681,7 @@ components:
         - email
         - onboardingCompleted
         - role
+        - isActive
         - createdAt
 
     UserProfileUpdate:
@@ -448,7 +693,17 @@ components:
           type: string
         phone:
           type: string
+        website:
+          type: string
         country:
+          type: string
+        city:
+          type: string
+        timezone:
+          type: string
+        language:
+          type: string
+        avatarUrl:
           type: string
 
     OnboardingInput:
@@ -483,6 +738,8 @@ components:
           type: integer
         servicesOrdered:
           type: integer
+        unreadMessages:
+          type: integer
       required:
         - activeTasks
         - queuedTasks
@@ -490,6 +747,15 @@ components:
         - openTickets
         - filesUploaded
         - servicesOrdered
+        - unreadMessages
+
+    UnreadCount:
+      type: object
+      properties:
+        unread:
+          type: integer
+      required:
+        - unread
 
     ActivityItem:
       type: object
@@ -528,7 +794,7 @@ components:
           type: string
         status:
           type: string
-          enum: [backlog, queued, processing, testing, completed]
+          enum: [submitted, queued, in_progress, review, completed]
         priority:
           type: string
           enum: [low, medium, high, urgent]
@@ -613,6 +879,22 @@ components:
         - url
         - createdAt
 
+    FileUploadInput:
+      type: object
+      properties:
+        filename:
+          type: string
+        mimeType:
+          type: string
+        data:
+          type: string
+        projectId:
+          type: integer
+      required:
+        - filename
+        - mimeType
+        - data
+
     Message:
       type: object
       properties:
@@ -626,12 +908,14 @@ components:
           type: string
         senderRole:
           type: string
-          enum: [client, admin]
+          enum: [owner, admin, freelancer, client]
         content:
           type: string
         fileUrl:
           type: ["string", "null"]
         fileName:
+          type: ["string", "null"]
+        fileMimeType:
           type: ["string", "null"]
         isRead:
           type: boolean
@@ -652,12 +936,41 @@ components:
       properties:
         content:
           type: string
-        fileUrl:
+        fileData:
           type: string
         fileName:
           type: string
+        fileMimeType:
+          type: string
+
+    NotificationItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        projectId:
+          type: ["integer", "null"]
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [new_message, status_change, file_uploaded, new_project, admin_reply]
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
       required:
-        - content
+        - id
+        - userId
+        - title
+        - message
+        - type
+        - isRead
+        - createdAt
 
     AdminUser:
       type: object
@@ -682,6 +995,17 @@ components:
           type: integer
         role:
           type: string
+          enum: [owner, admin, freelancer, client]
+        isActive:
+          type: boolean
+        avatarUrl:
+          type: ["string", "null"]
+        companyName:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        lastLoginAt:
+          type: ["string", "null"]
       required:
         - id
         - name
@@ -689,6 +1013,122 @@ components:
         - registrationDate
         - totalRequests
         - role
+        - isActive
+
+    AdminUserDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        companyName:
+          type: ["string", "null"]
+        userType:
+          type: ["string", "null"]
+        companySize:
+          type: ["string", "null"]
+        acquisitionSource:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        timezone:
+          type: ["string", "null"]
+        language:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [owner, admin, freelancer, client]
+        isActive:
+          type: boolean
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        lastLoginAt:
+          type: ["string", "null"]
+        totalProjects:
+          type: integer
+        completedProjects:
+          type: integer
+        totalFiles:
+          type: integer
+        totalMessages:
+          type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+      required:
+        - id
+        - name
+        - email
+        - role
+        - isActive
+        - createdAt
+        - totalProjects
+        - completedProjects
+        - totalFiles
+        - totalMessages
+        - recentActivity
+
+    RoleChangeInput:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [owner, admin, freelancer, client]
+      required:
+        - role
+
+    TeamMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, freelancer]
+        isActive:
+          type: boolean
+        avatarUrl:
+          type: ["string", "null"]
+        assignedProjects:
+          type: integer
+        createdAt:
+          type: string
+        lastLoginAt:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - email
+        - role
+        - isActive
+        - assignedProjects
+        - createdAt
+
+    AssignFreelancerInput:
+      type: object
+      properties:
+        freelancerIds:
+          type: array
+          items:
+            type: integer
+      required:
+        - freelancerIds
 
     AdminProject:
       type: object
@@ -703,7 +1143,7 @@ components:
           type: string
         status:
           type: string
-          enum: [backlog, queued, processing, testing, completed]
+          enum: [submitted, queued, in_progress, review, completed]
         priority:
           type: string
           enum: [low, medium, high, urgent]
@@ -717,6 +1157,18 @@ components:
           type: string
         clientEmail:
           type: string
+        assignedFreelancers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+            required:
+              - id
+              - name
         createdAt:
           type: string
         updatedAt:
@@ -731,6 +1183,7 @@ components:
         - hasConversation
         - clientName
         - clientEmail
+        - assignedFreelancers
         - createdAt
         - updatedAt
 
@@ -739,12 +1192,14 @@ components:
       properties:
         status:
           type: string
-          enum: [backlog, queued, processing, testing, completed]
+          enum: [submitted, queued, in_progress, review, completed]
         priority:
           type: string
           enum: [low, medium, high, urgent]
         internalNotes:
           type: string
+        price:
+          type: number
 
     Insights:
       type: object
@@ -761,6 +1216,10 @@ components:
           type: integer
         openTickets:
           type: integer
+        newUsersThisWeek:
+          type: integer
+        conversionRate:
+          type: number
         userTypeBreakdown:
           type: array
           items:
@@ -777,6 +1236,14 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PieSlice"
+        serviceRequestBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/PieSlice"
+        statusBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/PieSlice"
         insightsSummary:
           type: array
           items:
@@ -788,10 +1255,14 @@ components:
         - completedProjects
         - activeProjects
         - openTickets
+        - newUsersThisWeek
+        - conversionRate
         - userTypeBreakdown
         - locationBreakdown
         - companySizeBreakdown
         - acquisitionSourceBreakdown
+        - serviceRequestBreakdown
+        - statusBreakdown
         - insightsSummary
 
     PieSlice:

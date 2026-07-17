@@ -22,10 +22,8 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
   }
   req.clerkId = clerkUserId;
 
-  // JIT provision user in DB
   const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkUserId)).limit(1);
   if (existing.length === 0) {
-    // User not yet in DB — they'll complete this in the /users/me GET
     req.userId = undefined;
     req.userRole = "client";
   } else {
@@ -37,7 +35,27 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
 export const requireAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   await requireAuth(req, res, () => {
-    if (req.userRole !== "admin") {
+    if (req.userRole !== "admin" && req.userRole !== "owner") {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    next();
+  });
+};
+
+export const requireOwner = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  await requireAuth(req, res, () => {
+    if (req.userRole !== "owner") {
+      res.status(403).json({ error: "Forbidden — Owner only" });
+      return;
+    }
+    next();
+  });
+};
+
+export const requireStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  await requireAuth(req, res, () => {
+    if (!["owner", "admin", "freelancer"].includes(req.userRole ?? "")) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
