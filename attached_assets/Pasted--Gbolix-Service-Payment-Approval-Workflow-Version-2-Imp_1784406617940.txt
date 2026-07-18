@@ -1,0 +1,868 @@
+# Gbolix Service Payment & Approval Workflow (Version 2)
+
+Implement a complete Service Payment, Approval, Project Kickoff, Invoice, and Notification Workflow for Gbolix.
+
+This workflow applies ONLY to Services.
+
+Do NOT connect this workflow to Gbolix Tools, Products, Wallet, Credits, or future SaaS products.
+
+Products will have their own instant checkout system in the future.
+
+Maintain the existing Gbolix branding, animations, dark theme, routing, responsiveness, premium UI, and overall design language.
+
+---
+
+# OBJECTIVE
+
+Replace the current:
+
+Submit Request → Project Starts
+
+with a complete premium digital agency workflow.
+
+The new client journey should be:
+
+Choose Service
+
+↓
+
+Complete Service Request Wizard
+
+↓
+
+Submit Request
+
+↓
+
+Admin Review
+
+↓
+
+Approve / Request More Information / Decline
+
+↓
+
+Project Agreement
+
+↓
+
+Payment
+
+↓
+
+Payment Verification
+
+↓
+
+Project Kickoff
+
+↓
+
+Planning
+
+↓
+
+In Progress
+
+↓
+
+Testing
+
+↓
+
+Completed
+
+---
+
+# STEP 1
+
+REQUEST SUBMISSION
+
+After the client completes the service-specific request wizard:
+
+• Create the project.
+• Save every answer.
+• Save uploaded files.
+• Generate a unique Project ID.
+
+Example:
+
+GBX-2026-000123
+
+Display a professional success page.
+
+Example:
+
+Request Submitted Successfully
+
+Thank you for choosing Gbolix.
+
+Your request has been received and is now under review.
+
+Estimated Review Time:
+
+Within 24 Hours
+
+Buttons:
+
+• View Project
+• Return to Dashboard
+
+Project Status:
+
+Pending Review
+
+Payment Status:
+
+Pending Review
+
+---
+
+# STEP 2
+
+ADMIN REVIEW
+
+Inside the Admin Portal create a dedicated Review interface.
+
+The admin should see:
+
+• Client Profile
+• Client Business Information
+• Project Summary
+• Submitted Requirements
+• Uploaded Files
+• Previous Projects
+• Previous Conversations
+• Activity Timeline
+
+Admin Actions:
+
+Approve Request
+
+Request More Information
+
+Decline Request
+
+---
+
+# STEP 3
+
+REQUEST MORE INFORMATION
+
+If additional information is required:
+
+Do NOT approve the project.
+
+Instead:
+
+• Start the Project Conversation.
+• Notify the client.
+• Project Status becomes:
+
+Needs More Information
+
+The client should receive:
+
+"We need additional information before approving your project."
+
+The client can respond directly inside the Project Conversation.
+
+---
+
+# STEP 4
+
+APPROVE REQUEST
+
+When the admin approves the request:
+
+Do NOT start the project.
+
+Generate a Project Agreement.
+
+Project Status becomes:
+
+Approved
+
+Payment Status becomes:
+
+Waiting for Payment
+
+---
+
+# STEP 5
+
+PROJECT AGREEMENT
+
+Display a professional agreement page.
+
+Include:
+
+Project ID
+
+Client Name
+
+Service
+
+Final Scope of Work
+
+Deliverables
+
+Estimated Delivery
+
+Included Revisions
+
+Final Price
+
+Project Notes
+
+Terms & Conditions
+
+Display:
+
+"I have reviewed and agree with the project scope."
+
+Button:
+
+Continue to Payment
+
+---
+
+# STEP 6
+
+PAYMENT
+
+Use Paystack as the ONLY payment gateway for Version 1.
+
+Display a premium checkout page.
+
+Include:
+
+Order Summary
+
+Service
+
+Project ID
+
+Estimated Delivery
+
+Final Price
+
+Payment Status
+
+Button:
+
+Pay Securely with Paystack
+
+Below the button display:
+
+Payments are securely processed by Paystack.
+
+We never store your card details.
+
+Structure the payment architecture so future gateways can be added without redesigning the workflow.
+
+Future gateways:
+
+Stripe
+
+Flutterwave
+
+Wise
+
+Bank Transfer
+
+Crypto
+
+---
+
+# STEP 7
+
+PAYSTACK INTEGRATION
+
+Implement proper Paystack integration.
+
+Client clicks:
+
+Pay Securely
+
+↓
+
+Redirect to Paystack Checkout
+
+↓
+
+Client completes payment
+
+↓
+
+Paystack sends a webhook
+
+↓
+
+Backend verifies transaction with Paystack
+
+↓
+
+Only after successful verification:
+
+Payment Status:
+
+Paid
+
+Automatically:
+
+Generate Invoice
+
+Generate Receipt
+
+Create Payment Record
+
+Notify Client
+
+Notify Admin
+
+Move Project Status to:
+
+Planning
+
+Never trust only the browser redirect.
+
+Always verify payment using Paystack's backend verification API.
+
+---
+
+# STEP 8
+
+OWNER MANUAL PAYMENT OVERRIDE
+
+The payment workflow must NOT depend entirely on Paystack.
+
+Users with the Owner role must have exclusive permission to override payment status.
+
+Owner Actions:
+
+Mark as Paid
+
+Mark as Complimentary (Free)
+
+Mark as Offline Payment
+
+Mark as Discounted Payment
+
+Cancel Payment
+
+Every manual action must require an optional note.
+
+Automatically store an audit log.
+
+Example:
+
+Payment manually approved by Owner.
+
+Reason:
+
+Offline Bank Transfer
+
+If manually approved:
+
+Payment Status:
+
+Paid
+
+Generate Invoice
+
+Generate Receipt
+
+Generate Payment Record
+
+Move Project Status:
+
+Planning
+
+---
+
+# STEP 9
+
+PROJECT KICKOFF
+
+Immediately after payment is confirmed:
+
+Create a Project Kickoff section.
+
+Admin enters:
+
+Assigned Team Member
+
+Estimated Completion Date
+
+Scope Confirmation
+
+Deliverables
+
+Dependencies
+
+Kickoff Notes
+
+Clients should see:
+
+Assigned Team Member
+
+Current Stage
+
+Estimated Delivery
+
+Scope
+
+Deliverables
+
+Waiting On
+
+Kickoff Date
+
+---
+
+# STEP 10
+
+PAYMENT STATUS
+
+Maintain a separate payment workflow.
+
+Pending Review
+
+↓
+
+Waiting for Payment
+
+↓
+
+Paid
+
+↓
+
+Refunded
+
+↓
+
+Cancelled
+
+↓
+
+Complimentary
+
+↓
+
+Offline Payment
+
+↓
+
+Discounted Payment
+
+Project work MUST NEVER begin unless Payment Status is Paid, Complimentary, Discounted, or Offline Payment approved by the Owner.
+
+---
+
+# STEP 11
+
+PROJECT STATUS
+
+Project Status must remain independent.
+
+Pending Review
+
+Needs More Information
+
+Approved
+
+Planning
+
+In Progress
+
+Internal Testing
+
+Revision
+
+Completed
+
+Archived
+
+---
+
+# STEP 12
+
+ADMIN PAYMENTS DASHBOARD
+
+Create a dedicated Payments page.
+
+Display:
+
+Today's Revenue
+
+Weekly Revenue
+
+Monthly Revenue
+
+Yearly Revenue
+
+Lifetime Revenue
+
+Pending Payments
+
+Successful Payments
+
+Cancelled Payments
+
+Refunded Payments
+
+Average Project Value
+
+Most Purchased Services
+
+Top Clients
+
+Recent Transactions
+
+Each transaction should display:
+
+Transaction ID
+
+Project ID
+
+Client
+
+Service
+
+Gateway
+
+Amount
+
+Currency
+
+Payment Status
+
+Invoice
+
+Receipt
+
+Reference
+
+Payment Date
+
+---
+
+# STEP 13
+
+CLIENT PROFILE ANALYTICS
+
+When clicking any client in:
+
+Admin → Users
+
+Display a complete customer profile.
+
+Include:
+
+Profile Picture
+
+Full Name
+
+Company
+
+Email
+
+Phone
+
+Country
+
+Join Date
+
+Projects Submitted
+
+Projects Completed
+
+Projects Active
+
+Total Amount Spent
+
+Average Order Value
+
+Preferred Services
+
+Last Order Date
+
+Lifetime Value
+
+Recent Payments
+
+Recent Conversations
+
+Recent Files
+
+Recent Activity
+
+---
+
+# STEP 14
+
+CLIENT PROJECT PAGE
+
+Each project should contain:
+
+Overview
+
+Project Agreement
+
+Payment Information
+
+Project Status
+
+Payment Status
+
+Kickoff
+
+Conversation
+
+Files
+
+Deliverables
+
+Invoices
+
+Activity Timeline
+
+Everything should use premium dashboard cards.
+
+---
+
+# STEP 15
+
+NOTIFICATION CENTER
+
+Implement a complete notification system.
+
+Support:
+
+In-App Notifications
+
+Email Notifications
+
+Browser Notifications
+
+Desktop Notifications
+
+Notification Sounds
+
+Notification Badges
+
+Notify Admin:
+
+New Request
+
+Client Reply
+
+Payment Successful
+
+New Conversation
+
+New File Uploaded
+
+Project Completed
+
+Notify Client:
+
+Request Received
+
+More Information Required
+
+Conversation Started
+
+Agreement Ready
+
+Payment Required
+
+Payment Successful
+
+Project Started
+
+New Message
+
+Deliverables Uploaded
+
+Project Completed
+
+Store all notifications until read.
+
+---
+
+# STEP 16
+
+EMAIL NOTIFICATIONS
+
+Implement branded email notifications.
+
+Support SMTP or providers like:
+
+Resend
+
+SendGrid
+
+Amazon SES
+
+Every email should use Gbolix branding.
+
+Examples:
+
+Request Submitted
+
+Payment Required
+
+Payment Successful
+
+Invoice Ready
+
+Project Started
+
+Project Completed
+
+Deliverables Uploaded
+
+Conversation Started
+
+---
+
+# STEP 17
+
+BROWSER NOTIFICATIONS
+
+After permission is granted:
+
+Display browser notifications.
+
+Play subtle notification sounds.
+
+Support:
+
+New Messages
+
+Payments
+
+Project Updates
+
+Admin Announcements
+
+Unread Conversations
+
+Support Replies
+
+---
+
+# STEP 18
+
+ACTIVITY TIMELINE
+
+Every project should automatically generate an activity log.
+
+Example:
+
+Request Submitted
+
+↓
+
+Admin Reviewed
+
+↓
+
+Agreement Generated
+
+↓
+
+Payment Successful
+
+↓
+
+Project Started
+
+↓
+
+Deliverables Uploaded
+
+↓
+
+Revision Requested
+
+↓
+
+Completed
+
+Display timestamps.
+
+---
+
+# STEP 19
+
+ROLE PERMISSIONS
+
+Create four permission levels.
+
+Owner
+
+Full Platform Access
+
+Admin
+
+Manage Projects
+
+Manage Clients
+
+Manage Conversations
+
+Freelancer
+
+Assigned Projects Only
+
+Can communicate with assigned clients
+
+Cannot access Payments, Insights, Users, or Platform Settings
+
+Client
+
+Own Projects Only
+
+The Owner must always have more permissions than every other role.
+
+---
+
+# STEP 20
+
+DESIGN
+
+Everything must match the premium Gbolix experience.
+
+Inspired by:
+
+Stripe
+
+Linear
+
+Notion
+
+Framer
+
+Vercel
+
+ClickUp
+
+Use:
+
+• Glassmorphism
+• Green-to-purple gradients
+• Premium cards
+• Animated progress trackers
+• Timeline animations
+• Skeleton loaders
+• Counter animations
+• Smooth transitions
+• Fully responsive layouts
+
+The platform should feel like a premium digital operations company rather than a freelancer marketplace.
+
+The architecture must remain modular so Products, Wallet, Credits, SaaS subscriptions, and additional payment gateways can be added later without restructuring the application.

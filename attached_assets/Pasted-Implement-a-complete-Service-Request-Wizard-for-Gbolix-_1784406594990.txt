@@ -1,0 +1,743 @@
+Implement a complete Service Request Wizard for Gbolix. This should replace the current generic "Project Name + Description" request form.
+
+## Goal
+
+Gbolix is a premium Digital Operations Studio, not a freelance marketplace. Clients should never see a generic project request form.
+
+Instead, after selecting a service, they should complete a short, guided questionnaire specific to that service. The experience should feel simple, modern, and premium.
+
+Keep the existing dark Gbolix design system, animations, and responsiveness.
+
+---
+
+# Overall Flow
+
+New Request
+
+↓
+
+Select Service Category
+
+• Automation Setup
+• App Testing
+• FlutterFlow / Bubble MVP
+• Presentation Design
+
+↓
+
+Select Specific Service
+
+↓
+
+Load the corresponding request wizard.
+
+↓
+
+Client answers only the questions related to that service.
+
+↓
+
+Review Request
+
+↓
+
+Submit
+
+↓
+
+Create Project
+
+↓
+
+Notify Admin
+
+---
+
+# Multi-Step Wizard
+
+Every service request should follow the same structure.
+
+## Step 1
+
+Project Overview
+
+Display a summary card containing:
+
+• Service Name
+• Price
+• Delivery Time
+• What is included
+• Estimated completion time for the form (for example: "2 minutes")
+• Progress bar
+
+Example
+
+CRM Workflow Automation
+
+Delivery
+2–3 Business Days
+
+Price
+$79
+
+You'll receive
+
+✓ Fully working automation
+✓ Testing completed
+✓ Documentation
+✓ Revision support
+
+Estimated form time
+2 minutes
+
+Do not let the client edit this information.
+
+---
+
+## Step 2
+
+Show service-specific questions.
+
+Only display the questions needed for that service.
+
+Do NOT ask unnecessary questions.
+
+---
+
+## Step 3
+
+Files & References
+
+Allow optional uploads.
+
+Supported:
+
+PDF
+
+DOCX
+
+ZIP
+
+PNG
+
+JPG
+
+JPEG
+
+CSV
+
+TXT
+
+Links
+
+Reference websites
+
+Google Drive links
+
+Loom videos
+
+GitHub repositories
+
+Play Store links
+
+---
+
+## Step 4
+
+Review
+
+Display a clean summary.
+
+Allow editing previous steps.
+
+Then Submit Request.
+
+---
+
+# SERVICE FORMS
+
+==================================================
+AUTOMATION SETUP
+================
+
+---
+
+## CRM Workflow Automation
+
+Fields
+
+CRM Platform
+
+Dropdown
+
+HubSpot
+
+Pipedrive
+
+Zoho
+
+Salesforce
+
+Notion
+
+Airtable
+
+Other
+
+What do you want to automate?
+
+Large textarea
+
+Apps involved
+
+Multi-select
+
+Slack
+
+Gmail
+
+Google Sheets
+
+WhatsApp
+
+Stripe
+
+Calendly
+
+Zapier
+
+Make
+
+Other
+
+Already have these accounts connected?
+
+Yes
+
+No
+
+Need help connecting everything?
+
+Checkbox
+
+Optional Uploads
+
+Screenshots
+
+Flow Diagram
+
+CSV
+
+PDF
+
+---
+
+## WhatsApp Automation
+
+Do you already have WhatsApp Business?
+
+Yes
+
+No
+
+Do you have WhatsApp Business API?
+
+Yes
+
+No
+
+Not Sure
+
+Primary Goal
+
+Lead Capture
+
+Customer Support
+
+Sales
+
+Marketing
+
+Appointment Booking
+
+Describe the workflow.
+
+Large textarea.
+
+Optional Uploads
+
+---
+
+## Email Automation
+
+Platform
+
+Brevo
+
+MailerLite
+
+Mailchimp
+
+Klaviyo
+
+GetResponse
+
+ConvertKit
+
+Other
+
+Automation Needed
+
+Welcome Series
+
+Drip Campaign
+
+Newsletter
+
+Abandoned Cart
+
+Transactional Emails
+
+Other
+
+Need email design?
+
+Yes
+
+No
+
+Upload Email List (optional)
+
+CSV
+
+---
+
+## Make.com Workflow
+
+Apps to connect
+
+Multi-select
+
+Describe workflow
+
+Textarea
+
+Already have Make.com account?
+
+Yes
+
+No
+
+Upload existing scenario (optional)
+
+---
+
+## API Integration
+
+System A
+
+System B
+
+API Documentation URL
+
+Authentication Type
+
+API Key
+
+OAuth
+
+Bearer Token
+
+REST
+
+Not Sure
+
+Describe integration.
+
+Upload API documentation.
+
+==================================================
+APP TESTING
+===========
+
+---
+
+## Google Play Closed Testing
+
+App Name
+
+Package Name
+
+Google Play Console Email
+
+Testing Link
+
+Default Testers
+
+20
+
+Special Instructions
+
+Textarea
+
+Upload APK or AAB (optional)
+
+---
+
+## QA Report
+
+App Name
+
+Platform
+
+Android
+
+iOS
+
+Web
+
+APK Upload
+
+or
+
+Play Store Link
+
+Areas to Test
+
+UI
+
+UX
+
+Performance
+
+Crashes
+
+Login
+
+Payments
+
+Other
+
+Additional Notes
+
+---
+
+## Android App Ranking Audit
+
+Play Store URL
+
+Target Country
+
+Target Audience
+
+Competitors (optional)
+
+Keywords (optional)
+
+==================================================
+FLUTTERFLOW / BUBBLE MVP
+========================
+
+---
+
+## Landing Page
+
+Platform
+
+FlutterFlow
+
+Bubble
+
+Business Name
+
+Describe Business
+
+Target Audience
+
+Required Sections
+
+Hero
+
+Features
+
+Pricing
+
+Testimonials
+
+FAQ
+
+Contact
+
+Other
+
+Brand Colors
+
+Reference Websites
+
+Upload Logo
+
+---
+
+## Authentication Setup
+
+Platform
+
+FlutterFlow
+
+Bubble
+
+Backend
+
+Supabase
+
+Firebase
+
+Bubble
+
+Authentication Methods
+
+Email
+
+Google
+
+Apple
+
+Facebook
+
+Phone
+
+Need Role System?
+
+Yes
+
+No
+
+---
+
+## Supabase Integration
+
+Already have Supabase?
+
+Yes
+
+No
+
+Need Database Design?
+
+Yes
+
+No
+
+Need Authentication?
+
+Yes
+
+No
+
+Need Storage?
+
+Yes
+
+No
+
+Describe required tables.
+
+---
+
+## Admin Panel
+
+Platform
+
+FlutterFlow
+
+Bubble
+
+Features Needed
+
+User Management
+
+Orders
+
+Reports
+
+Messaging
+
+Products
+
+Payments
+
+Analytics
+
+Other
+
+Reference Dashboard
+
+Optional
+
+---
+
+## Client Portal
+
+Describe your business.
+
+What should clients be able to do?
+
+Checkboxes
+
+Dashboard
+
+File Upload
+
+Messaging
+
+Payments
+
+Bookings
+
+Invoices
+
+Notifications
+
+Other
+
+Need Admin Dashboard too?
+
+Yes
+
+No
+
+Reference websites.
+
+==================================================
+PRESENTATION DESIGN
+===================
+
+---
+
+## Pitch Deck
+
+Company Name
+
+Industry
+
+Purpose
+
+Investment
+
+Sales
+
+Accelerator
+
+Competition
+
+Other
+
+Need Copywriting?
+
+Yes
+
+No
+
+Slides
+
+10–15
+
+Upload Logo
+
+Upload Existing Content
+
+---
+
+## Company Profile
+
+Company Name
+
+Industry
+
+Purpose
+
+Proposal
+
+Corporate
+
+Marketing
+
+Partnership
+
+Need Copywriting?
+
+Yes
+
+No
+
+Number of Pages
+
+Optional
+
+Upload Logo
+
+Upload Brand Guide
+
+---
+
+## Existing Deck Redesign
+
+Upload Existing Deck
+
+PowerPoint
+
+PDF
+
+Canva
+
+Google Slides
+
+Number of Slides
+
+Brand Colors
+
+Specific Improvements
+
+Textarea
+
+==================================================
+
+# Submission
+
+After submission:
+
+• Create Project automatically.
+
+• Assign correct service.
+
+• Store every answer in the database.
+
+• Store uploaded files.
+
+• Display all submitted answers inside the Admin Portal.
+
+• The Admin should never need to ask basic questions already answered in the form.
+
+• Clients should be able to view their submitted answers from the Project Details page.
+
+==================================================
+
+# UI Requirements
+
+Use a premium SaaS experience inspired by Linear, Stripe, Notion, Vercel, and Framer.
+
+Include:
+
+• Smooth page transitions
+• Progress bar between steps
+• Auto-save draft while filling
+• Validation before moving to next step
+• Animated step transitions
+• Success animation after submission
+• Mobile responsive
+• Accessible form controls
+• Green-to-purple Gbolix accent gradients
+• Glassmorphism cards where appropriate
+• Skeleton loaders while loading forms
+
+The experience should feel effortless. Although different services ask different questions, every request should take only a few minutes to complete and should clearly communicate professionalism and quality.
