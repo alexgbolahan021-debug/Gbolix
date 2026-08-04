@@ -2,10 +2,6 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Search, Globe, Lock, Shield, ArrowUpRight, Terminal, X } from "lucide-react";
 
-if (!import.meta.env.DEV) {
-  throw new Error("DevRoutes is only available in development mode.");
-}
-
 // ─── Route registry ──────────────────────────────────────────────────────────
 type Access = "public" | "auth" | "admin";
 
