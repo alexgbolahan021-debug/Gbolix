@@ -7,7 +7,7 @@ import { useTheme } from "@/hooks/use-theme";
 import {
   LayoutDashboard, ListTodo, Files, Zap, Wallet, HelpCircle,
   User, LogOut, ChevronLeft, ChevronRight, Moon, Sun, Shield, MessageSquare,
-  Bell, Users, BarChart3, FolderOpen, Star,
+  Bell, Users, BarChart3, FolderOpen, Star, Menu, X,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -63,6 +63,7 @@ function NotificationDot({ count }: { count: number }) {
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [location] = useLocation();
   const { signOut } = useClerk();
   const { data: profile } = useGetMe();
@@ -99,18 +100,35 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Sidebar */}
-      <aside className={`relative flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${collapsed ? "w-16" : "w-64"}`}>
-        {/* Logo */}
-        <div className="flex items-center h-16 px-3 border-b border-border shrink-0">
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setMobileOpen(false)}
+          data-testid="sidebar-backdrop"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border bg-sidebar transition-all duration-300 w-64
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+          md:relative md:translate-x-0 ${collapsed ? "md:w-16" : "md:w-64"}
+        `}
+      >
+        <div className="flex items-center justify-between h-16 px-3 border-b border-border shrink-0">
           {collapsed ? (
-            <img src="/logo-g-icon.png" alt="G" className="h-9 w-9 object-contain rounded-lg" />
+            <img src="/logo-g-icon.png" alt="G" className="h-9 w-9 object-contain rounded-lg hidden md:block" />
           ) : (
-            <img src={theme === "dark" ? "/logo-dark.png" : "/logo-light.png"} alt="Gbolix" className="h-9 w-auto object-contain" />
+            <img src={theme === "dark" ? "/logo-dark.png" : "/logo-light.png"} alt="Gbolix" className="h-9 w-auto object-contain md:block" />
           )}
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden p-1.5 rounded-md hover:bg-sidebar-accent"
+            data-testid="button-sidebar-close"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {/* Role badge */}
         {roleBadge && !collapsed && (
           <div className={`mx-3 mt-3 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/10 border border-secondary/20`}>
             <Shield size={11} className={roleBadgeColor} />
@@ -118,7 +136,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
         {roleBadge && collapsed && (
-          <div className="flex justify-center mt-3">
+          <div className="hidden md:flex justify-center mt-3">
             <div className="w-8 h-8 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-center">
               <Shield size={12} className={roleBadgeColor} />
             </div>
@@ -140,10 +158,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                     <div
                       data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, "-")}`}
                       title={collapsed ? item.label : undefined}
+                      onClick={() => setMobileOpen(false)}
                       className={`relative flex items-center gap-3 px-2 py-2 rounded-md mb-1 transition-colors cursor-pointer
                         ${active ? "bg-primary/10 text-primary" : "text-sidebar-foreground hover:bg-sidebar-accent"}
                         ${item.soon ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}
-                        ${collapsed ? "justify-center" : ""}
+                        ${collapsed ? "md:justify-center" : ""}
                       `}
                     >
                       <div className="relative shrink-0">
@@ -171,11 +190,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           ))}
         </ScrollArea>
 
-        {/* Account section */}
         <div className="border-t border-border p-2 space-y-1 shrink-0">
           <Link href={profileHref}>
             <div
-              className={`flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent transition-colors ${collapsed ? "justify-center" : ""}`}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 px-2 py-2 rounded-md cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent transition-colors ${collapsed ? "md:justify-center" : ""}`}
               data-testid="nav-profile"
               title={collapsed ? "Profile" : undefined}
             >
@@ -185,7 +204,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           </Link>
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className={`w-full flex items-center gap-3 px-2 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors ${collapsed ? "justify-center" : ""}`}
+            className={`w-full flex items-center gap-3 px-2 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors ${collapsed ? "md:justify-center" : ""}`}
             data-testid="button-theme-toggle"
             title={collapsed ? (theme === "dark" ? "Light Mode" : "Dark Mode") : undefined}
           >
@@ -194,7 +213,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           </button>
           <button
             onClick={() => signOut({ redirectUrl: "/" })}
-            className={`w-full flex items-center gap-3 px-2 py-2 rounded-md text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive transition-colors ${collapsed ? "justify-center" : ""}`}
+            className={`w-full flex items-center gap-3 px-2 py-2 rounded-md text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive transition-colors ${collapsed ? "md:justify-center" : ""}`}
             data-testid="button-sign-out"
             title={collapsed ? "Sign Out" : undefined}
           >
@@ -203,20 +222,38 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute bottom-32 -right-3 bg-background border border-border rounded-full p-1 shadow-sm hover:bg-accent transition-colors z-10"
+          className="hidden md:flex absolute bottom-32 -right-3 bg-background border border-border rounded-full p-1 shadow-sm hover:bg-accent transition-colors z-10"
           data-testid="button-sidebar-toggle"
         >
           {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 overflow-auto relative">
-        {/* Notification bell (top right) */}
-        <div className="absolute top-4 right-4 z-20">
+        <div className="md:hidden flex items-center justify-between h-14 px-3 border-b border-border bg-background sticky top-0 z-20">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-2 rounded-md hover:bg-accent"
+            data-testid="button-mobile-menu"
+          >
+            <Menu size={20} />
+          </button>
+          <img src={theme === "dark" ? "/logo-dark.png" : "/logo-light.png"} alt="Gbolix" className="h-7 w-auto object-contain" />
+          <Link href="/messages">
+            <button className="relative p-2 rounded-full hover:bg-accent transition-colors">
+              <Bell size={16} />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 bg-destructive text-[9px] text-white font-bold rounded-full flex items-center justify-center px-0.5">
+                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                </span>
+              )}
+            </button>
+          </Link>
+        </div>
+
+        <div className="hidden md:block absolute top-4 right-4 z-20">
           <Link href="/messages">
             <button className="relative p-2 rounded-full bg-card border border-border hover:bg-accent transition-colors">
               <Bell size={16} />
