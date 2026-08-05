@@ -114,7 +114,7 @@ import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import DevRoutes from "@/pages/dev/DevRoutes";
 
-import { useGetMe } from "@workspace/api-client-react";
+import { useGetMe, setAuthTokenGetter } from "@workspace/api-client-react";
 
 function SignInPage() {
   return (
