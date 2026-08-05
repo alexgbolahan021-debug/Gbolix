@@ -280,7 +280,8 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
-        <ClerkQueryClientCacheInvalidator />
+       <ClerkQueryClientCacheInvalidator />
+<ClerkAuthTokenBridge />
         <AppRouter />
       </QueryClientProvider>
     </ClerkProvider>
