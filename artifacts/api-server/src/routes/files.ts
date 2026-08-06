@@ -1,20 +1,20 @@
 import { Router } from "express";
-import path from "path";
-import fs from "fs";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { db, filesTable, activityTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
 
-const workspaceRoot = process.cwd().endsWith(path.join("artifacts", "api-server"))
-  ? path.resolve(process.cwd(), "../..")
-  : process.cwd();
-
-const uploadsDir = path.resolve(workspaceRoot, "artifacts/api-server/uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const s3 = new S3Client({
+  region: process.env.B2_REGION!,
+  endpoint: process.env.B2_ENDPOINT!,
+  credentials: {
+    accessKeyId: process.env.B2_KEY_ID!,
+    secretAccessKey: process.env.B2_APPLICATION_KEY!,
+  },
+});
+const BUCKET = process.env.B2_BUCKET_NAME!;
 
 // GET /api/files
 router.get("/", requireAuth, async (req, res): Promise<void> => {
@@ -34,7 +34,7 @@ router.get("/", requireAuth, async (req, res): Promise<void> => {
   res.json(files.map(formatFile));
 });
 
-// POST /api/files/upload — multipart form upload
+// POST /api/files/upload
 router.post("/upload", requireAuth, async (req, res): Promise<void> => {
   const userId = req.userId;
   if (!userId) {
@@ -42,8 +42,6 @@ router.post("/upload", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // Simple raw body approach — use busboy or multer for real file parsing
-  // For now, accept JSON with base64 encoded file content
   const { filename, content, mimeType, projectId } = req.body;
   if (!filename || !content) {
     res.status(400).json({ error: "filename and content required" });
@@ -51,9 +49,14 @@ router.post("/upload", requireAuth, async (req, res): Promise<void> => {
   }
 
   const uniqueName = `${Date.now()}-${filename}`;
-  const filePath = path.join(uploadsDir, uniqueName);
   const buffer = Buffer.from(content, "base64");
-  fs.writeFileSync(filePath, buffer);
+
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: uniqueName,
+    Body: buffer,
+    ContentType: mimeType || "application/octet-stream",
+  }));
 
   const url = `/api/files/download/${uniqueName}`;
 
@@ -67,7 +70,6 @@ router.post("/upload", requireAuth, async (req, res): Promise<void> => {
     url,
   }).returning();
 
-  // Log activity
   await db.insert(activityTable).values({
     userId,
     projectId: projectId ? parseInt(projectId) : null,
@@ -78,15 +80,17 @@ router.post("/upload", requireAuth, async (req, res): Promise<void> => {
   res.status(201).json(formatFile(file));
 });
 
-// GET /api/files/download/:filename — serve file
+// GET /api/files/download/:filename
 router.get("/download/:filename", async (req, res): Promise<void> => {
   const { filename } = req.params;
-  const filePath = path.join(uploadsDir, filename);
-  if (!fs.existsSync(filePath)) {
+  try {
+    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: filename }));
+    if (obj.ContentType) res.setHeader("Content-Type", obj.ContentType);
+    const stream = obj.Body as any;
+    stream.pipe(res);
+  } catch (err) {
     res.status(404).json({ error: "File not found" });
-    return;
   }
-  res.download(filePath);
 });
 
 // DELETE /api/files/:id
@@ -105,11 +109,7 @@ router.delete("/:id", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // Delete physical file
-  const filePath = path.join(uploadsDir, file.filename);
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-  }
+  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: file.filename }));
 
   await db.delete(filesTable).where(eq(filesTable.id, id));
   res.status(204).send();
