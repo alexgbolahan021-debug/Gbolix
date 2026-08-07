@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ClerkProvider, SignIn, SignUp, useClerk, useUser, useAuth } from '@clerk/react';
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +27,7 @@ import Files from "@/pages/Files";
 import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
 import NewRequest from "@/pages/NewRequest";
+import AutomationRequest from "@/pages/AutomationRequest";
 import AppTestingRequest from "@/pages/AppTestingRequest";
 import Onboarding from "@/pages/Onboarding";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -45,7 +45,7 @@ import { useGetMe, setAuthTokenGetter } from "@workspace/api-client-react";
 function SignInPage() { return <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div>; }
 function SignUpPage() { return <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div>; }
 function HomeRedirect() { const { isLoaded, isSignedIn } = useUser(); const { data: profile, isLoading } = useGetMe(); if (!isLoaded) return <LoadingScreen />; if (!isSignedIn) return <Home />; if (isLoading) return <LoadingScreen />; if (profile?.role === "owner" || profile?.role === "admin") return <Redirect to="/admin/dashboard" />; if (profile?.role === "freelancer") return <Redirect to="/freelancer/dashboard" />; return <Redirect to="/dashboard" />; }
-function AccessDeniedRedirect() { useEffect(() => { const t = setTimeout(() => { const toastEl = document.getElementById("gbolix-toast-container"); if (toastEl) toastEl.dispatchEvent(new CustomEvent("gbolix:toast", { detail: { title: "Access Denied", description: "You don't have permission to view that page.", variant: "destructive" } })); }, 200); return () => clearTimeout(t); }, []); return <Redirect to="/dashboard" />; }
+function AccessDeniedRedirect() { return <Redirect to="/dashboard" />; }
 function ProtectedRoute({ component: Component, adminOnly = false, freelancerOk = false }: { component: any, adminOnly?: boolean, freelancerOk?: boolean }) { const { data: profile, isLoading } = useGetMe(); const { isLoaded, isSignedIn } = useUser(); if (!isLoaded || isLoading) return <LoadingScreen />; if (!isSignedIn) return <Redirect to="/sign-in" />; if (profile && !profile.onboardingCompleted) return <Redirect to="/onboarding" />; const isStaff = profile?.role === "owner" || profile?.role === "admin"; const isFreelancer = profile?.role === "freelancer"; if (adminOnly && !isStaff && !(freelancerOk && isFreelancer)) return <AccessDeniedRedirect />; return <Component />; }
 function OnboardingRoute() { const { data: profile, isLoading } = useGetMe(); const { isLoaded, isSignedIn } = useUser(); if (!isLoaded || isLoading) return <LoadingScreen />; if (!isSignedIn) return <Redirect to="/sign-in" />; if (profile?.onboardingCompleted) { if (profile.role === "owner" || profile.role === "admin") return <Redirect to="/admin/dashboard" />; if (profile.role === "freelancer") return <Redirect to="/freelancer/dashboard" />; return <Redirect to="/dashboard" />; } return <Onboarding />; }
 function AppRouter() { return <Switch>
@@ -53,7 +53,8 @@ function AppRouter() { return <Switch>
 <Route path="/services" component={Services} /><Route path="/products" component={Products} /><Route path="/pricing" component={Pricing} /><Route path="/about" component={About} /><Route path="/contact" component={Contact} />
 {import.meta.env.DEV && <Route path="/dev/routes" component={DevRoutes} />}
 <Route path="/onboarding" component={OnboardingRoute} />
-<Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route><Route path="/tasks"><ProtectedRoute component={Tasks} /></Route><Route path="/files"><ProtectedRoute component={Files} /></Route><Route path="/messages"><ProtectedRoute component={Messages} /></Route><Route path="/profile"><ProtectedRoute component={Profile} /></Route><Route path="/new-request"><ProtectedRoute component={NewRequest} /></Route><Route path="/new-request/app-testing"><ProtectedRoute component={AppTestingRequest} /></Route>
+<Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route><Route path="/tasks"><ProtectedRoute component={Tasks} /></Route><Route path="/files"><ProtectedRoute component={Files} /></Route><Route path="/messages"><ProtectedRoute component={Messages} /></Route><Route path="/profile"><ProtectedRoute component={Profile} /></Route>
+<Route path="/new-request"><ProtectedRoute component={NewRequest} /></Route><Route path="/new-request/automation"><ProtectedRoute component={AutomationRequest} /></Route><Route path="/new-request/app-testing"><ProtectedRoute component={AppTestingRequest} /></Route>
 <Route path="/freelancer/dashboard"><ProtectedRoute component={FreelancerDashboard} adminOnly freelancerOk /></Route>
 <Route path="/admin"><ProtectedRoute component={() => <Redirect to="/admin/dashboard" />} adminOnly /></Route><Route path="/admin/dashboard"><ProtectedRoute component={AdminDashboard} adminOnly /></Route><Route path="/admin/users"><ProtectedRoute component={AdminUsers} adminOnly /></Route><Route path="/admin/projects"><ProtectedRoute component={AdminProjects} adminOnly /></Route><Route path="/admin/messages"><ProtectedRoute component={AdminMessages} adminOnly /></Route><Route path="/admin/files"><ProtectedRoute component={AdminFiles} adminOnly /></Route><Route path="/admin/insights"><ProtectedRoute component={AdminInsights} adminOnly /></Route><Route path="/admin/team"><ProtectedRoute component={AdminTeam} adminOnly /></Route>
 <Route>404 Not Found</Route></Switch>; }
