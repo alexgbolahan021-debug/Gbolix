@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, projectsTable, activityTable, usersTable, notificationsTable } from "@workspace/db";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { randomBytes } from "crypto";
 
@@ -97,3 +97,5 @@ function formatProject(p: typeof projectsTable.$inferSelect) {
     createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString(),
   };
 }
+
+export default router;
