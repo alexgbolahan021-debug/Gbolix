@@ -36,12 +36,7 @@ export default function Files() {
 
     try {
       const buffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-let binary = "";
-for (let i = 0; i < bytes.length; i += 32768) {
-  binary += String.fromCharCode(...bytes.subarray(i, i + 32768));
-}
-const base64 = btoa(binary);
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
 
       const res = await fetch("/api/files/upload", {
         method: "POST",
