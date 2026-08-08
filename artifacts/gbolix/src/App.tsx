@@ -3,7 +3,7 @@ import { ClerkProvider, SignIn, SignUp, useClerk, useUser, useAuth } from '@cler
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { shadcn } from '@clerk/themes';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
-import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,6 +29,7 @@ import Profile from "@/pages/Profile";
 import NewRequest from "@/pages/NewRequest";
 import AutomationRequest from "@/pages/AutomationRequest";
 import AppTestingRequest from "@/pages/AppTestingRequest";
+import FlutterFlowRequest from "@/pages/FlutterFlowRequest";
 import Onboarding from "@/pages/Onboarding";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
@@ -54,7 +55,7 @@ function AppRouter() { return <Switch>
 {import.meta.env.DEV && <Route path="/dev/routes" component={DevRoutes} />}
 <Route path="/onboarding" component={OnboardingRoute} />
 <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route><Route path="/tasks"><ProtectedRoute component={Tasks} /></Route><Route path="/files"><ProtectedRoute component={Files} /></Route><Route path="/messages"><ProtectedRoute component={Messages} /></Route><Route path="/profile"><ProtectedRoute component={Profile} /></Route>
-<Route path="/new-request"><ProtectedRoute component={NewRequest} /></Route><Route path="/new-request/automation"><ProtectedRoute component={AutomationRequest} /></Route><Route path="/new-request/app-testing"><ProtectedRoute component={AppTestingRequest} /></Route>
+<Route path="/new-request"><ProtectedRoute component={NewRequest} /></Route><Route path="/new-request/automation"><ProtectedRoute component={AutomationRequest} /></Route><Route path="/new-request/app-testing"><ProtectedRoute component={AppTestingRequest} /></Route><Route path="/new-request/flutterflow"><ProtectedRoute component={FlutterFlowRequest} /></Route>
 <Route path="/freelancer/dashboard"><ProtectedRoute component={FreelancerDashboard} adminOnly freelancerOk /></Route>
 <Route path="/admin"><ProtectedRoute component={() => <Redirect to="/admin/dashboard" />} adminOnly /></Route><Route path="/admin/dashboard"><ProtectedRoute component={AdminDashboard} adminOnly /></Route><Route path="/admin/users"><ProtectedRoute component={AdminUsers} adminOnly /></Route><Route path="/admin/projects"><ProtectedRoute component={AdminProjects} adminOnly /></Route><Route path="/admin/messages"><ProtectedRoute component={AdminMessages} adminOnly /></Route><Route path="/admin/files"><ProtectedRoute component={AdminFiles} adminOnly /></Route><Route path="/admin/insights"><ProtectedRoute component={AdminInsights} adminOnly /></Route><Route path="/admin/team"><ProtectedRoute component={AdminTeam} adminOnly /></Route>
 <Route>404 Not Found</Route></Switch>; }
