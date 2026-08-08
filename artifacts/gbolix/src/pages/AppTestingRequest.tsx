@@ -83,7 +83,7 @@ export default function AppTestingRequest() {
       if (step === 4) return draft.qaAreas.length > 0;
     } else {
       if (step === 3) return Boolean(draft.rankingGoal);
-      if (step === 4) return Boolean(draft.targetCountry.trim() && draft.targetAudience.trim());
+      if (step === 4) return Boolean(draft.specialInstructions.trim());
     }
     return true;
   };
