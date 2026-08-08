@@ -10,17 +10,15 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const services=[
   {name:"Pitch Deck (Up to 10 Slides)",price:59},
-  {name:"Company Profile",price:49},
+  {name:"Company Profile",price:49,href:"/new-request/presentation/company-profile"},
   {name:"Existing Deck Redesign",price:39},
 ];
 const purposes=["Investor pitch / fundraising","Sales presentation","Product or service presentation","Partnership proposal","Company introduction","Other"];
 const audiences=["Investors","Potential customers","Business partners","Management / team","General audience","Other"];
 const contentOptions=["Company overview","Problem / opportunity","Solution / product","Market opportunity","Business model","Competition","Traction / achievements","Team","Financial information","Contact / call to action"];
 const styles=["Clean & corporate","Modern & minimal","Bold & creative","Premium / executive","Technology / startup","I have a reference style"];
-
 type Draft={service:string;project:string;purpose:string[];audience:string[];content:string[];style:string;brand:string;references:string;files:string[];notes:string};
 const empty:Draft={service:"",project:"",purpose:[],audience:[],content:[],style:"",brand:"",references:"",files:[],notes:""};
-
 export default function PresentationDesignRequest(){
  const[,setLocation]=useLocation(); const queryClient=useQueryClient(); const createMutation=useCreateProject(); const[step,setStep]=useState(1); const[draft,setDraft]=useState<Draft>(empty); const[submitted,setSubmitted]=useState<string|null>(null);
  const selected=services.find(s=>s.name===draft.service)??null;
@@ -32,7 +30,7 @@ export default function PresentationDesignRequest(){
  const labels=["Service","Project","Purpose","Audience","Content","Style","Files","Review"];
  return <ClientLayout><div className="p-4 md:p-6 max-w-3xl mx-auto w-full">
   <div className="mb-7"><div className="flex items-center justify-between mb-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-primary">Presentation Design</p><h1 className="text-2xl font-bold mt-1">Let's plan your presentation</h1></div><span className="text-sm text-muted-foreground">Step {step} of 8</span></div><div className="flex gap-1.5">{labels.map((x,i)=><div key={x} className="flex-1"><div className={`h-1.5 rounded-full ${i+1<=step?"bg-primary":"bg-muted"}`}/><p className="text-[10px] text-muted-foreground mt-1 hidden sm:block">{x}</p></div>)}</div></div>
-  {step===1&&<Question title="Choose your presentation service" description="Select the type of presentation work you need."><div className="space-y-2">{services.map(s=><Choice key={s.name} selected={draft.service===s.name} onClick={()=>update("service",s.name)} label={s.name} price={s.price}/>)}</div></Question>}
+  {step===1&&<Question title="Choose your presentation service" description="Select the type of presentation work you need."><div className="space-y-2">{services.map(s=><Choice key={s.name} selected={draft.service===s.name} onClick={()=>s.href?setLocation(s.href):update("service",s.name)} label={s.name} price={s.price}/>)}</div></Question>}
   {step===2&&<Question title="Tell us about the project" description="What company, product, service, or idea is this presentation about?"><Textarea value={draft.project} onChange={e=>update("project",e.target.value)} placeholder="Example: We are a SaaS startup helping small businesses automate customer bookings." rows={7} autoFocus/></Question>}
   {step===3&&<Question title="What is the purpose?" description="Select everything that applies."><div className="grid gap-2 sm:grid-cols-2">{purposes.map(x=><Choice key={x} selected={draft.purpose.includes(x)} onClick={()=>toggle("purpose",x)} label={x}/>)}</div></Question>}
   {step===4&&<Question title="Who will see it?" description="Select the audience you want the presentation to speak to."><div className="grid gap-2 sm:grid-cols-2">{audiences.map(x=><Choice key={x} selected={draft.audience.includes(x)} onClick={()=>toggle("audience",x)} label={x}/>)}</div></Question>}
