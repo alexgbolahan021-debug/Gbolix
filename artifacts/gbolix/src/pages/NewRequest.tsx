@@ -6,7 +6,7 @@ import { ArrowRight, Bot, FlaskConical, LayoutDashboard, Presentation } from "lu
 const categories = [
   { key: "automation", title: "Automation Setup", description: "Automate repetitive business workflows, CRM processes, WhatsApp, email, Make.com, and integrations.", icon: Bot, available: true, href: "/new-request/automation" },
   { key: "app-testing", title: "App Testing", description: "Professional Google Play closed testing, QA reviews, and Android app ranking audits.", icon: FlaskConical, available: true, href: "/new-request/app-testing" },
-  { key: "flutterflow", title: "FlutterFlow / Bubble MVP", description: "Build and launch your next app or MVP with FlutterFlow or Bubble.", icon: LayoutDashboard, available: false, href: "#" },
+  { key: "flutterflow", title: "FlutterFlow / Bubble MVP", description: "Build and launch your next app or MVP with FlutterFlow or Bubble.", icon: LayoutDashboard, available: true, href: "/new-request/flutterflow" },
   { key: "presentation", title: "Presentation Design", description: "Professional pitch decks, company profiles, and presentation redesigns.", icon: Presentation, available: false, href: "#" },
 ];
 
