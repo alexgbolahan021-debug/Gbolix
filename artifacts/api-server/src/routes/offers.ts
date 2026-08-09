@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, offersTable, projectsTable, messagesTable, notificationsTable, activityTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { requireAdmin } from "../middlewares/requireAuth";
+import { requireAuth, requireAdmin } from "../middlewares/requireAuth";
 
 const router = Router();
 
@@ -23,6 +23,16 @@ router.post("/projects/:projectId/offers", requireAdmin, async (req, res): Promi
   res.status(201).json(offer);
 });
 
+router.get("/projects/:projectId/offers", requireAuth, async (req, res): Promise<void> => {
+  const projectId = parseInt(req.params.projectId as string, 10);
+  if (!Number.isInteger(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+  if (req.userRole === "client" && project.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
+  const offers = await db.select().from(offersTable).where(eq(offersTable.projectId, projectId));
+  res.json(offers);
+});
+
 router.post("/offers/:offerId/send", requireAdmin, async (req, res): Promise<void> => {
   const offerId = parseInt(req.params.offerId as string, 10);
   if (!Number.isInteger(offerId)) { res.status(400).json({ error: "Invalid offer id" }); return; }
@@ -41,11 +51,27 @@ router.post("/offers/:offerId/send", requireAdmin, async (req, res): Promise<voi
   res.status(200).json({ offer: updatedOffer, message: offerMessage });
 });
 
-router.get("/projects/:projectId/offers", requireAdmin, async (req, res): Promise<void> => {
-  const projectId = parseInt(req.params.projectId as string, 10);
-  if (!Number.isInteger(projectId)) { res.status(400).json({ error: "Invalid project id" }); return; }
-  const offers = await db.select().from(offersTable).where(eq(offersTable.projectId, projectId));
-  res.json(offers);
+router.post("/offers/:offerId/accept", requireAuth, async (req, res): Promise<void> => {
+  const offerId = parseInt(req.params.offerId as string, 10);
+  const [offer] = await db.select().from(offersTable).where(eq(offersTable.id, offerId));
+  if (!offer) { res.status(404).json({ error: "Offer not found" }); return; }
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, offer.projectId));
+  if (!project || project.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (offer.status !== "sent") { res.status(400).json({ error: "Only sent offers can be accepted" }); return; }
+  const [updatedOffer] = await db.update(offersTable).set({ status: "accepted", acceptedAt: new Date() }).where(and(eq(offersTable.id, offerId), eq(offersTable.status, "sent"))).returning();
+  await db.update(projectsTable).set({ status: "payment_pending" }).where(eq(projectsTable.id, offer.projectId));
+  res.json({ offer: updatedOffer, nextStep: "payment" });
+});
+
+router.post("/offers/:offerId/decline", requireAuth, async (req, res): Promise<void> => {
+  const offerId = parseInt(req.params.offerId as string, 10);
+  const [offer] = await db.select().from(offersTable).where(eq(offersTable.id, offerId));
+  if (!offer) { res.status(404).json({ error: "Offer not found" }); return; }
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, offer.projectId));
+  if (!project || project.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (offer.status !== "sent") { res.status(400).json({ error: "Only sent offers can be declined" }); return; }
+  const [updatedOffer] = await db.update(offersTable).set({ status: "declined", declinedAt: new Date() }).where(and(eq(offersTable.id, offerId), eq(offersTable.status, "sent"))).returning();
+  res.json({ offer: updatedOffer });
 });
 
 export default router;
