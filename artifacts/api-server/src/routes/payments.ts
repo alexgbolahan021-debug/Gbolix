@@ -36,6 +36,16 @@ async function verifyWithPaystack(reference: string) {
   return { response, data };
 }
 
+async function finalizeVerifiedPayment(reference: string) {
+  const [payment] = await db.select().from(paymentsTable).where(eq(paymentsTable.reference, reference));
+  if (!payment) return { paid: false, error: "Payment not found" };
+  const { response, data } = await verifyWithPaystack(reference);
+  if (!response.ok || !data?.status) return { paid: false, error: data?.message || "Unable to verify payment" };
+  const valid = data.data?.status === "success" && Number(data.data.amount) === Math.round(Number(payment.amount) * 100) && data.data.currency === payment.currency;
+  if (!valid) return { paid: false, status: data.data?.status ?? "unknown" };
+  return { paid: true, payment: await markPaymentPaid(reference) };
+}
+
 router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, async (req, res): Promise<void> => {
   try {
     const projectId = Number(req.params.projectId);
@@ -53,10 +63,8 @@ router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, as
     const existing = await db.select().from(paymentsTable).where(and(eq(paymentsTable.projectId, projectId), eq(paymentsTable.gateway, "paystack"), eq(paymentsTable.status, "pending")));
     let reference = existing[0]?.reference;
     if (reference) {
-      const verified = await verifyWithPaystack(reference);
-      if (verified.data?.data?.status === "success" && Number(verified.data.data.amount) === Math.round(Number(existing[0].amount) * 100) && verified.data.data.currency === existing[0].currency) {
-        const paid = await markPaymentPaid(reference); res.json({ paid: true, payment: paid }); return;
-      }
+      const result = await finalizeVerifiedPayment(reference);
+      if (result.paid) { res.json(result); return; }
     } else {
       reference = `GBX-${project.projectCode}-${Date.now()}`.replace(/[^A-Za-z0-9._-]/g, "-");
       await db.insert(paymentsTable).values({ projectId, gateway: "paystack", amount: amount.toFixed(2), currency: "NGN", status: "pending", reference });
@@ -84,27 +92,19 @@ router.post("/payments/paystack/verify/:reference", requireAuth, async (req, res
     if (!payment) { res.status(404).json({ error: "Payment not found" }); return; }
     const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, payment.projectId));
     if (!project || project.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
-    const { response, data } = await verifyWithPaystack(reference);
-    if (!response.ok || !data?.status) { res.status(502).json({ error: data?.message || "Unable to verify payment" }); return; }
-    if (data.data?.status === "success" && Number(data.data.amount) === Math.round(Number(payment.amount) * 100) && data.data.currency === payment.currency) {
-      const updated = await markPaymentPaid(reference); res.json({ payment: updated, paid: true }); return;
-    }
-    res.json({ payment, paid: false, status: data.data?.status ?? "unknown" });
+    const result = await finalizeVerifiedPayment(reference);
+    if (result.paid) { res.json(result); return; }
+    res.json({ payment, paid: false, status: result.status ?? "unknown" });
   } catch (error) { console.error("Paystack verification error", error); res.status(500).json({ error: "Unable to verify payment" }); }
 });
 
 router.post("/payments/paystack/webhook", async (req: Request, res: Response): Promise<void> => {
   try {
-    const signature = req.headers["x-paystack-signature"];
-    const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
-    if (!signature || !rawBody) { res.status(400).send("Invalid webhook request"); return; }
-    const expected = crypto.createHmac("sha512", secretKey()).update(rawBody).digest("hex");
-    if (String(signature) !== expected) { res.status(401).send("Invalid signature"); return; }
     const event = req.body as any;
     if (event?.event === "charge.success" && event?.data?.reference) {
-      const reference = String(event.data.reference);
-      const [payment] = await db.select().from(paymentsTable).where(eq(paymentsTable.reference, reference));
-      if (payment && Number(event.data.amount) === Math.round(Number(payment.amount) * 100) && event.data.currency === payment.currency) await markPaymentPaid(reference);
+      const result = await finalizeVerifiedPayment(String(event.data.reference));
+      if (result.error === "Payment not found") { res.sendStatus(200); return; }
+      if (!result.paid) { res.status(400).json({ error: result.error || "Payment not verified" }); return; }
     }
     res.sendStatus(200);
   } catch (error) { console.error("Paystack webhook error", error); res.sendStatus(500); }
