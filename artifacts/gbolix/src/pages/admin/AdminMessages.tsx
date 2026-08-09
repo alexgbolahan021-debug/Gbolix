@@ -11,7 +11,10 @@ import { Send, MessageSquare, ArrowLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function AdminMessages() {
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(() => {
+    const id = Number(new URLSearchParams(window.location.search).get("project"));
+    return Number.isFinite(id) && id > 0 ? id : null;
+  });
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -23,7 +26,6 @@ export default function AdminMessages() {
   const { data: messages, isLoading: messagesLoading } = useListMessages(selectedProjectId ?? 0, { query: { enabled: !!selectedProjectId, queryKey: getListMessagesQueryKey(selectedProjectId ?? 0) } });
   const sendMutation = useSendMessage();
 
-  // Opening the admin messaging area means message notifications have been seen.
   useEffect(() => {
     const unreadMessageNotifications = notifications?.filter(n => !n.isRead && n.type === "message") ?? [];
     if (!unreadMessageNotifications.length) return;
