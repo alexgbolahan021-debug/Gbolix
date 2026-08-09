@@ -7,6 +7,7 @@ import messagesRouter from "./messages";
 import adminRouter from "./admin";
 import notificationsRouter from "./notifications";
 import offersRouter from "./offers";
+import paymentsRouter from "./payments";
 
 const router: IRouter = Router();
 
@@ -17,6 +18,7 @@ router.use("/files", filesRouter);
 router.use("/projects/:projectId/messages", messagesRouter);
 router.use("/admin", adminRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/", paymentsRouter);
 router.use("/", offersRouter);
 
 export default router;
