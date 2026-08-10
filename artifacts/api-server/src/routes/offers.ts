@@ -26,12 +26,41 @@ router.get("/projects/:projectId/offers", requireAuth, async (req, res): Promise
 });
 
 router.post("/offers/:offerId/send", requireAdmin, async (req, res): Promise<void> => {
-  const offerId = parseInt(req.params.offerId as string, 10); if (!Number.isInteger(offerId)) { res.status(400).json({ error: "Invalid offer id" }); return; }
-  const [offer] = await db.select().from(offersTable).where(eq(offersTable.id, offerId)); if (!offer) { res.status(404).json({ error: "Offer not found" }); return; } if (offer.status !== "draft") { res.status(400).json({ error: "Only draft offers can be sent" }); return; }
-  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, offer.projectId)); if (!project) { res.status(404).json({ error: "Project not found" }); return; } const userId = req.userId; if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const [updatedOffer] = await db.update(offersTable).set({ status: "sent", sentAt: new Date() }).where(and(eq(offersTable.id, offerId), eq(offersTable.status, "draft"))).returning(); if (!updatedOffer) { res.status(409).json({ error: "Offer was already sent" }); return; }
-  const [offerMessage] = await db.insert(messagesTable).values({ projectId: offer.projectId, senderId: userId, content: `Great news! We have reviewed your request and prepared an offer for your project. Please review the offer below.`, isRead: false }).returning();
-  await db.insert(notificationsTable).values({ userId: project.userId, projectId: offer.projectId, title: "New Project Offer", message: `A project offer is ready for "${project.title}"`, type: "admin_reply" }); await db.insert(activityTable).values({ userId: project.userId, projectId: offer.projectId, type: "admin_response", description: `Offer sent for project: ${project.title}` }); res.status(200).json({ offer: updatedOffer, message: offerMessage });
+  const offerId = parseInt(req.params.offerId as string, 10);
+  try {
+    if (!Number.isInteger(offerId)) { res.status(400).json({ error: "Invalid offer id" }); return; }
+    console.log(`[offers/send] step=load_offer offerId=${offerId}`);
+    const [offer] = await db.select().from(offersTable).where(eq(offersTable.id, offerId));
+    if (!offer) { res.status(404).json({ error: "Offer not found" }); return; }
+    if (offer.status !== "draft") { res.status(400).json({ error: "Only draft offers can be sent" }); return; }
+
+    console.log(`[offers/send] step=load_project offerId=${offerId} projectId=${offer.projectId}`);
+    const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, offer.projectId));
+    if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+    const userId = req.userId;
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    console.log(`[offers/send] step=update_offer offerId=${offerId}`);
+    const [updatedOffer] = await db.update(offersTable).set({ status: "sent", sentAt: new Date() }).where(and(eq(offersTable.id, offerId), eq(offersTable.status, "draft"))).returning();
+    if (!updatedOffer) { res.status(409).json({ error: "Offer was already sent" }); return; }
+
+    console.log(`[offers/send] step=insert_message offerId=${offerId} projectId=${offer.projectId} senderId=${userId}`);
+    const [offerMessage] = await db.insert(messagesTable).values({ projectId: offer.projectId, senderId: userId, content: `Great news! We have reviewed your request and prepared an offer for your project. Please review the offer below.`, isRead: false }).returning();
+
+    console.log(`[offers/send] step=insert_notification offerId=${offerId} projectId=${offer.projectId} userId=${project.userId}`);
+    await db.insert(notificationsTable).values({ userId: project.userId, projectId: offer.projectId, title: "New Project Offer", message: `A project offer is ready for "${project.title}"`, type: "admin_reply" });
+
+    console.log(`[offers/send] step=insert_activity offerId=${offerId} projectId=${offer.projectId} userId=${project.userId}`);
+    await db.insert(activityTable).values({ userId: project.userId, projectId: offer.projectId, type: "admin_response", description: `Offer sent for project: ${project.title}` });
+
+    console.log(`[offers/send] step=success offerId=${offerId}`);
+    res.status(200).json({ offer: updatedOffer, message: offerMessage });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error(`[offers/send] FAILED offerId=${offerId}`, { message, stack, error });
+    res.status(500).json({ error: "Offer send failed", detail: message });
+  }
 });
 
 router.post("/offers/:offerId/accept", requireAuth, async (req, res): Promise<void> => {
