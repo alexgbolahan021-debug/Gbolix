@@ -54,34 +54,29 @@ router.get("/projects", requireAdmin, async (req, res): Promise<void> => {
   res.json(filtered.map(p => ({ id: p.id, projectCode: p.projectCode, title: p.title, serviceType: p.serviceType, description: p.description, requirements: p.requirements, status: p.status, priority: p.priority, price: p.price !== null ? parseFloat(p.price) : null, internalNotes: p.internalNotes, hasConversation: p.hasConversation, clientName: p.clientName, clientEmail: p.clientEmail, assignedFreelancers: assignmentMap.get(p.id) ?? [], createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString() })));
 });
 
-router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id as string); const { status, priority, internalNotes, price } = req.body;
+router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => { const id = parseInt(req.params.id as string); const { status, priority, internalNotes, price } = req.body;
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id)); if (!project) { res.status(404).json({ error: "Not found" }); return; }
   const updates: Record<string, unknown> = {}; if (status !== undefined) updates.status = status; if (priority !== undefined) updates.priority = priority; if (internalNotes !== undefined) updates.internalNotes = internalNotes; if (price !== undefined) updates.price = price;
   const [updated] = await db.update(projectsTable).set(updates).where(eq(projectsTable.id, id)).returning();
-  if (status && status !== project.status) {
-    await db.insert(activityTable).values({ userId: project.userId, projectId: id, type: "status_change", description: `Project status changed to ${status}: ${project.title}` });
-    await db.insert(notificationsTable).values({ userId: project.userId, projectId: id, title: "Project Update", message: `Your project \"${project.title}\" status changed to ${status.replace("_", " ")}`, type: "status_change" });
-  }
+  if (status && status !== project.status) { await db.insert(activityTable).values({ userId: project.userId, projectId: id, type: "status_change", description: `Project status changed to ${status}: ${project.title}` }); await db.insert(notificationsTable).values({ userId: project.userId, projectId: id, title: "Project Update", message: `Your project \"${project.title}\" status changed to ${status.replace("_", " ")}`, type: "status_change" }); }
   res.json(updated);
 });
 
 router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id as string); const { action, infoMessage } = req.body;
+  const id = parseInt(req.params.id as string); const { action } = req.body;
   if (!["approve", "request_info", "decline"].includes(action)) { res.status(400).json({ error: "Invalid review action" }); return; }
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
   if (!project) { res.status(404).json({ error: "Not found" }); return; }
-  if (action === "request_info" && !String(infoMessage ?? "").trim()) { res.status(400).json({ error: "Information request message is required" }); return; }
   const status = action === "approve" ? "approved" : action === "request_info" ? "needs_info" : "declined";
   const message = action === "approve"
     ? "Great news! We have reviewed your request and we are ready to proceed with your project."
     : action === "request_info"
-      ? `Great news! We have reviewed your request, but we need some additional information before we can proceed.\n\n${String(infoMessage).trim()}`
+      ? "We have reviewed your request. We need some additional information before we can proceed. Please check your request conversation; our team will send the required details there shortly."
       : "We have reviewed your request and are unable to proceed with it at this time. You can submit a new request if you would like us to review a revised project request.";
   const alreadyHandled = project.status !== "pending_review";
   if (alreadyHandled) { res.status(400).json({ error: `This request is already ${project.status.replace("_", " ")}` }); return; }
   const shouldOpenConversation = action !== "decline";
-  await db.update(projectsTable).set({ status, hasConversation: shouldOpenConversation, ...(action === "request_info" ? { internalNotes: String(infoMessage).trim() } : {}) }).where(eq(projectsTable.id, id));
+  await db.update(projectsTable).set({ status, hasConversation: shouldOpenConversation }).where(eq(projectsTable.id, id));
   const senderId = req.userId;
   if (!senderId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [msg] = await db.insert(messagesTable).values({ projectId: id, senderId, content: message, isRead: false }).returning();
