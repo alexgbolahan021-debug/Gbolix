@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useAdminListProjects, useAdminUpdateProject, useAdminStartConversation, customFetch } from "@workspace/api-client-react";
+import { useAdminListProjects, useAdminUpdateProject, customFetch } from "@workspace/api-client-react";
 import { getAdminListProjectsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Edit, Search, ChevronRight, Check, X, FileText, Info, FileSignature } from "lucide-react";
+import { Edit, Search, ChevronRight, Check, X, FileText, Info, FileSignature, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,11 +47,20 @@ export default function AdminProjects() {
   const params = statusFilter !== "all" ? { status: statusFilter as any } : {};
   const { data: projects, isLoading } = useAdminListProjects(params, { query: { queryKey: getAdminListProjectsQueryKey(params) } });
   const updateMutation = useAdminUpdateProject();
-  const conversationMutation = useAdminStartConversation();
   const filtered = projects?.filter(p => !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.clientName.toLowerCase().includes(search.toLowerCase()) || p.serviceType.toLowerCase().includes(search.toLowerCase())) ?? [];
   const refresh = () => queryClient.invalidateQueries({ queryKey: getAdminListProjectsQueryKey({}) });
   const openEdit = (p: any) => { setEditingProject(p); setEditStatus(p.status); setEditPriority(p.priority); setEditNotes(p.internalNotes ?? ""); };
-  const openOffer = (p: any) => { setOfferProject(p); setOfferServiceType(p.serviceType ?? ""); setOfferServiceName(p.title ?? ""); setOfferScope(p.description ?? ""); setOfferRequirements(p.requirements && typeof p.requirements === "object" ? Object.entries(p.requirements).filter(([k]) => k !== "attached_files").map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`).join("\n") : p.requirements ?? ""); setOfferPrice(p.price != null ? String(p.price) : ""); setOfferDelivery(""); setOfferTerms(""); setOfferDialog(true); };
+  const openOffer = (p: any) => {
+    setOfferProject(p);
+    setOfferServiceType(p.serviceType ?? "");
+    setOfferServiceName(p.title ?? "");
+    setOfferScope(p.description ?? "");
+    setOfferRequirements(p.requirements && typeof p.requirements === "object" ? Object.entries(p.requirements).filter(([k]) => k !== "attached_files").map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`).join("\n") : p.requirements ?? "");
+    setOfferPrice(p.price != null ? String(p.price) : "");
+    setOfferDelivery("");
+    setOfferTerms("");
+    setOfferDialog(true);
+  };
   const handleUpdate = () => { if (!editingProject) return; updateMutation.mutate({ id: editingProject.id, data: { status: editStatus as any, priority: editPriority as any, internalNotes: editNotes } }, { onSuccess: () => { refresh(); setEditingProject(null); toast({ title: "Project updated" }); } }); };
 
   const handleReview = async (action: "approve" | "request_info" | "decline") => {
@@ -59,12 +68,12 @@ export default function AdminProjects() {
     try {
       const data = await customFetch<{ status: string; hasConversation: boolean }>(apiUrl(`/admin/projects/${viewingProject.id}/review`), { method: "POST", responseType: "json", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, infoMessage: infoMessage.trim() }) });
       refresh();
-      const updated = { ...viewingProject, status: data.status, hasConversation: true };
+      const updated = { ...viewingProject, status: data.status, hasConversation: action !== "decline" };
       setViewingProject(updated);
       setInfoDialog(false);
       setInfoMessage("");
       const title = action === "approve" ? "Request approved" : action === "request_info" ? "More information requested" : "Request declined";
-      toast({ title, description: "The review message has been added to the client conversation." });
+      toast({ title, description: action === "decline" ? "The request was declined without opening a conversation." : "The review message has been sent to the client." });
       if (action === "approve") openOffer(updated);
       if (action === "request_info") setConversationDialog(true);
     } catch (error) {
@@ -72,20 +81,42 @@ export default function AdminProjects() {
     }
   };
 
-  const saveOffer = async () => {
+  const sendOffer = async () => {
     if (!offerProject) return;
-    if (!offerServiceType.trim() || !offerServiceName.trim() || !offerScope.trim() || !offerPrice.trim()) { toast({ title: "Missing offer details", description: "Service, project, scope and price are required.", variant: "destructive" }); return; }
+    if (!offerServiceType.trim() || !offerServiceName.trim() || !offerScope.trim() || !offerPrice.trim()) {
+      toast({ title: "Missing offer details", description: "Service, project, scope and price are required.", variant: "destructive" });
+      return;
+    }
     setOfferSaving(true);
     try {
-      await customFetch(apiUrl(`/projects/${offerProject.id}/offers`), { method: "POST", responseType: "json", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serviceType: offerServiceType.trim(), serviceName: offerServiceName.trim(), scope: offerScope.trim(), requirements: offerRequirements.trim() || undefined, price: offerPrice.trim(), deliveryEstimate: offerDelivery.trim() || undefined, terms: offerTerms.trim() || undefined }) });
+      const data = await customFetch<{ offer: any; message: any }>(apiUrl(`/projects/${offerProject.id}/offers`), {
+        method: "POST",
+        responseType: "json",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceType: offerServiceType.trim(),
+          serviceName: offerServiceName.trim(),
+          scope: offerScope.trim(),
+          requirements: offerRequirements.trim() || undefined,
+          price: offerPrice.trim(),
+          deliveryEstimate: offerDelivery.trim() || undefined,
+          terms: offerTerms.trim() || undefined,
+          send: true,
+        }),
+      });
       setOfferDialog(false);
-      toast({ title: "Offer created", description: "The offer has been saved as a draft. You can send it from the offer workflow." });
+      setViewingProject(null);
+      setOfferProject(null);
+      refresh();
+      toast({ title: "Offer sent", description: "The offer was saved and sent to this request's conversation." });
+      return data;
     } catch (error) {
-      toast({ title: "Offer failed", description: error instanceof Error ? error.message : "Unable to create offer", variant: "destructive" });
-    } finally { setOfferSaving(false); }
+      toast({ title: "Offer failed", description: error instanceof Error ? error.message : "Unable to send offer", variant: "destructive" });
+    } finally {
+      setOfferSaving(false);
+    }
   };
 
-  const handleStartConversation = (id: number) => conversationMutation.mutate({ id }, { onSuccess: () => { refresh(); toast({ title: "Conversation started", description: "The client can now message on this project." }); } });
   const openConversation = () => { if (!viewingProject) return; setConversationDialog(false); window.location.href = `/admin/messages?project=${viewingProject.id}`; };
 
   return <ClientLayout><div className="p-6 max-w-6xl mx-auto">
@@ -95,14 +126,14 @@ export default function AdminProjects() {
 
     <Dialog open={!!viewingProject} onOpenChange={() => setViewingProject(null)}><DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Request Details</DialogTitle></DialogHeader>{viewingProject && <div className="space-y-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-lg">{viewingProject.title}</h2><p className="text-sm text-muted-foreground">{viewingProject.clientName} · {viewingProject.clientEmail}</p><p className="text-xs text-muted-foreground mt-1">{viewingProject.projectCode ?? `Project #${viewingProject.id}`}</p></div><div className="flex items-center gap-2"><Badge className={statusColor[viewingProject.status]}>{statusLabel[viewingProject.status] ?? viewingProject.status}</Badge><span className="font-semibold text-primary">{viewingProject.price ? `$${viewingProject.price}` : "—"}</span></div></div>
       <div className="border-t border-border pt-5 space-y-4"><Detail label="Service" value={viewingProject.serviceType}/><Detail label="Request date" value={new Date(viewingProject.createdAt).toLocaleString()}/><Detail label="Complete requirements" value={formatRequirements(viewingProject.requirements, viewingProject.description)}/>{viewingProject.requirements?.attached_files?.length > 0 && <div><p className="text-xs font-medium text-muted-foreground mb-1">Files</p><div className="space-y-1">{viewingProject.requirements.attached_files.map((name: string) => <div key={name} className="flex items-center gap-2 text-sm"><FileText size={14} className="text-primary"/>{name}</div>)}</div></div>}</div>
-      {viewingProject.status === "pending_review" && <div className="border-t border-border pt-5"><p className="text-sm font-semibold mb-3">Review request</p><div className="grid grid-cols-1 sm:grid-cols-3 gap-2"><Button onClick={() => handleReview("approve")} disabled={updateMutation.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><Check size={15}/> Approve</Button><Button variant="outline" onClick={() => setInfoDialog(true)} disabled={updateMutation.isPending} className="gap-2"><Info size={15}/> Request More Info</Button><Button variant="outline" onClick={() => handleReview("decline")} disabled={updateMutation.isPending} className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-2"><X size={15}/> Decline</Button></div></div>}
+      {viewingProject.status === "pending_review" && <div className="border-t border-border pt-5"><p className="text-sm font-semibold mb-3">Review request</p><div className="grid grid-cols-1 sm:grid-cols-3 gap-2"><Button onClick={() => handleReview("approve")} disabled={updateMutation.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><Check size={15}/> Approve</Button><Button variant="outline" onClick={() => setInfoDialog(true)} disabled={updateMutation.isPending} className="gap-2"><Info size={15}/> Need More Information</Button><Button variant="outline" onClick={() => handleReview("decline")} disabled={updateMutation.isPending} className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-2"><X size={15}/> Decline</Button></div></div>}
       {viewingProject.status === "approved" && <Button onClick={() => openOffer(viewingProject)} className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><FileSignature size={15}/> Create Offer</Button>}
-      <div className="border-t border-border pt-5 flex flex-col sm:flex-row gap-2">{!viewingProject.hasConversation && <Button onClick={() => handleStartConversation(viewingProject.id)} disabled={conversationMutation.isPending} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><MessageSquare size={14}/>{conversationMutation.isPending ? "Starting..." : "Start Conversation"}</Button>}{viewingProject.hasConversation && <Button variant="outline" onClick={openConversation} className="flex-1 gap-2"><MessageSquare size={14}/> Open Conversation</Button>}<Button variant="outline" onClick={() => { openEdit(viewingProject); setViewingProject(null); }} className="flex-1">Edit Request</Button></div>
+      {viewingProject.status === "needs_info" && <div className="border-t border-border pt-5"><Button onClick={openConversation} className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><MessageSquare size={15}/> Open Chat</Button></div>}
     </div>}</DialogContent></Dialog>
 
-    <Dialog open={infoDialog} onOpenChange={setInfoDialog}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Request More Information</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">Tell the client exactly what information is missing. They will see that the request needs more information.</p><Textarea value={infoMessage} onChange={e => setInfoMessage(e.target.value)} placeholder="Example: Please provide your current CRM name and the email account you want the automation connected to." rows={6}/><div className="flex gap-2"><Button variant="outline" onClick={() => setInfoDialog(false)} className="flex-1">Cancel</Button><Button onClick={() => handleReview("request_info")} disabled={!infoMessage.trim() || updateMutation.isPending} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">Send Request</Button></div></DialogContent></Dialog>
-    <Dialog open={conversationDialog} onOpenChange={setConversationDialog}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Conversation Started</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">Your message has been sent to the client. Continue the conversation to collect the remaining requirements.</p><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setConversationDialog(false)} className="flex-1">Close</Button><Button onClick={openConversation} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><MessageSquare size={15}/> View Conversation</Button></div></DialogContent></Dialog>
-    <Dialog open={offerDialog} onOpenChange={setOfferDialog}><DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Create Project Offer</DialogTitle></DialogHeader>{offerProject && <div className="space-y-4"><div className="rounded-lg border border-border bg-muted/20 p-3 text-sm"><p className="font-medium">{offerProject.clientName}</p><p className="text-xs text-muted-foreground">{offerProject.projectCode ?? `Project #${offerProject.id}`} · {offerProject.title}</p><p className="text-xs text-muted-foreground mt-1">Original request: {offerProject.serviceType}</p></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="text-xs font-medium mb-1.5 block">Service</label><Input value={offerServiceType} onChange={e => setOfferServiceType(e.target.value)}/></div><div><label className="text-xs font-medium mb-1.5 block">Project / Service Name</label><Input value={offerServiceName} onChange={e => setOfferServiceName(e.target.value)}/></div></div><div><label className="text-xs font-medium mb-1.5 block">Scope of Work</label><Textarea value={offerScope} onChange={e => setOfferScope(e.target.value)} rows={5} placeholder="Describe exactly what will be delivered..."/></div><div><label className="text-xs font-medium mb-1.5 block">Requirements</label><Textarea value={offerRequirements} onChange={e => setOfferRequirements(e.target.value)} rows={4} placeholder="Requirements and deliverables..."/></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="text-xs font-medium mb-1.5 block">Price (USD)</label><Input type="number" min="0" step="0.01" value={offerPrice} onChange={e => setOfferPrice(e.target.value)}/></div><div><label className="text-xs font-medium mb-1.5 block">Delivery Estimate</label><Input value={offerDelivery} onChange={e => setOfferDelivery(e.target.value)} placeholder="e.g. 5 business days"/></div></div><div><label className="text-xs font-medium mb-1.5 block">Terms / Notes</label><Textarea value={offerTerms} onChange={e => setOfferTerms(e.target.value)} rows={3} placeholder="Payment or project terms..."/></div><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setOfferDialog(false)} className="flex-1">Cancel</Button><Button onClick={saveOffer} disabled={offerSaving} className="flex-1 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><FileSignature size={15}/>{offerSaving ? "Saving..." : "Save Offer"}</Button></div></div>}</DialogContent></Dialog>
+    <Dialog open={infoDialog} onOpenChange={setInfoDialog}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Request More Information</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">Tell the client exactly what information is missing. They will receive this message in the request conversation.</p><Textarea value={infoMessage} onChange={e => setInfoMessage(e.target.value)} placeholder="Example: Please provide your current CRM name and the email account you want the automation connected to." rows={6}/><div className="flex gap-2"><Button variant="outline" onClick={() => setInfoDialog(false)} className="flex-1">Cancel</Button><Button onClick={() => handleReview("request_info")} disabled={!infoMessage.trim() || updateMutation.isPending} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">Send Request</Button></div></DialogContent></Dialog>
+    <Dialog open={conversationDialog} onOpenChange={setConversationDialog}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Open Chat</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">The information request has been sent. Open the request chat to continue collecting the missing details from the client.</p><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setConversationDialog(false)} className="flex-1">Close</Button><Button onClick={openConversation} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><MessageSquare size={15}/> Open Chat</Button></div></DialogContent></Dialog>
+    <Dialog open={offerDialog} onOpenChange={setOfferDialog}><DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Create Project Offer</DialogTitle></DialogHeader>{offerProject && <div className="space-y-4"><div className="rounded-lg border border-border bg-muted/20 p-3 text-sm"><p className="font-medium">{offerProject.clientName}</p><p className="text-xs text-muted-foreground">{offerProject.projectCode ?? `Project #${offerProject.id}`} · {offerProject.title}</p><p className="text-xs text-muted-foreground mt-1">Original request: {offerProject.serviceType}</p></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="text-xs font-medium mb-1.5 block">Service</label><Input value={offerServiceType} onChange={e => setOfferServiceType(e.target.value)}/></div><div><label className="text-xs font-medium mb-1.5 block">Project / Service Name</label><Input value={offerServiceName} onChange={e => setOfferServiceName(e.target.value)}/></div></div><div><label className="text-xs font-medium mb-1.5 block">Scope of Work</label><Textarea value={offerScope} onChange={e => setOfferScope(e.target.value)} rows={5} placeholder="Describe exactly what will be delivered..."/></div><div><label className="text-xs font-medium mb-1.5 block">Requirements</label><Textarea value={offerRequirements} onChange={e => setOfferRequirements(e.target.value)} rows={4} placeholder="Requirements and deliverables..."/></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="text-xs font-medium mb-1.5 block">Price (USD)</label><Input type="number" min="0" step="0.01" value={offerPrice} onChange={e => setOfferPrice(e.target.value)}/></div><div><label className="text-xs font-medium mb-1.5 block">Delivery Estimate</label><Input value={offerDelivery} onChange={e => setOfferDelivery(e.target.value)} placeholder="e.g. 5 business days"/></div></div><div><label className="text-xs font-medium mb-1.5 block">Terms / Notes</label><Textarea value={offerTerms} onChange={e => setOfferTerms(e.target.value)} rows={3} placeholder="Payment or project terms..."/></div><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setOfferDialog(false)} className="flex-1">Cancel</Button><Button onClick={sendOffer} disabled={offerSaving} className="flex-1 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><FileSignature size={15}/>{offerSaving ? "Sending..." : "Send Offer"}</Button></div></div>}</DialogContent></Dialog>
     <Dialog open={!!editingProject} onOpenChange={() => setEditingProject(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Update Project</DialogTitle></DialogHeader><div className="space-y-4 mt-2"><div><label className="text-sm font-medium mb-1.5 block">Status</label><Select value={editStatus} onValueChange={setEditStatus}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Object.entries(statusLabel).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div><div><label className="text-sm font-medium mb-1.5 block">Priority</label><Select value={editPriority} onValueChange={setEditPriority}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem></SelectContent></Select></div><div><label className="text-sm font-medium mb-1.5 block">Internal Notes</label><Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Internal notes (not visible to client)..." rows={3}/></div><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setEditingProject(null)} className="flex-1">Cancel</Button><Button onClick={handleUpdate} disabled={updateMutation.isPending} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">{updateMutation.isPending ? "Saving..." : "Save Changes"}</Button></div></div></DialogContent></Dialog>
   </div></ClientLayout>;
 }

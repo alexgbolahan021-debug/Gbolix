@@ -13,7 +13,7 @@ export const offersTable = pgTable("offers", {
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   deliveryEstimate: text("delivery_estimate"),
   terms: text("terms"),
-  status: text("status", { enum: ["draft", "sent", "accepted", "declined", "expired"] }).notNull().default("draft"),
+  status: text("status", { enum: ["draft", "sent", "accepted", "declined", "withdrawn", "expired"] }).notNull().default("draft"),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
   declinedAt: timestamp("declined_at", { withTimezone: true }),

@@ -61,7 +61,7 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
   const [updated] = await db.update(projectsTable).set(updates).where(eq(projectsTable.id, id)).returning();
   if (status && status !== project.status) {
     await db.insert(activityTable).values({ userId: project.userId, projectId: id, type: "status_change", description: `Project status changed to ${status}: ${project.title}` });
-    await db.insert(notificationsTable).values({ userId: project.userId, projectId: id, title: "Project Update", message: `Your project "${project.title}" status changed to ${status.replace("_", " ")}`, type: "status_change" });
+    await db.insert(notificationsTable).values({ userId: project.userId, projectId: id, title: "Project Update", message: `Your project \"${project.title}\" status changed to ${status.replace("_", " ")}`, type: "status_change" });
   }
   res.json(updated);
 });
@@ -80,20 +80,20 @@ router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void
       : "We have reviewed your request and are unable to proceed with it at this time. You can submit a new request if you would like us to review a revised project request.";
   const alreadyHandled = project.status !== "pending_review";
   if (alreadyHandled) { res.status(400).json({ error: `This request is already ${project.status.replace("_", " ")}` }); return; }
-  await db.update(projectsTable).set({ status, hasConversation: true, ...(action === "request_info" ? { internalNotes: String(infoMessage).trim() } : {}) }).where(eq(projectsTable.id, id));
+  const shouldOpenConversation = action !== "decline";
+  await db.update(projectsTable).set({ status, hasConversation: shouldOpenConversation, ...(action === "request_info" ? { internalNotes: String(infoMessage).trim() } : {}) }).where(eq(projectsTable.id, id));
   const senderId = req.userId;
   if (!senderId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const [msg] = await db.insert(messagesTable).values({ projectId: id, senderId, content: message, isRead: false }).returning();
   await db.insert(activityTable).values({ userId: project.userId, projectId: id, type: "admin_response", description: `Request ${status}: ${project.title}` });
   await db.insert(notificationsTable).values({ userId: project.userId, projectId: id, title: action === "approve" ? "Request Approved" : action === "request_info" ? "More Information Needed" : "Request Declined", message: message.split("\n")[0], type: action === "request_info" ? "new_message" : "status_change" });
-  res.json({ ok: true, status, hasConversation: true, messageId: msg.id });
+  res.json({ ok: true, status, hasConversation: shouldOpenConversation, messageId: msg.id });
 });
 
-router.post("/projects/:id/start-conversation", requireAdmin, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id as string); const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
+router.post("/projects/:id/start-conversation", requireAdmin, async (req, res): Promise<void> => { const id = parseInt(req.params.id as string); const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
   if (!project) { res.status(404).json({ error: "Not found" }); return; }
   if (project.hasConversation) { res.json({ ok: true }); return; }
-  await db.update(projectsTable).set({ hasConversation: true }).where(eq(projectsTable.id, id)); await db.insert(notificationsTable).values({ userId: project.userId, projectId: id, title: "Conversation Started", message: `A conversation has been started for your project "${project.title}"`, type: "message" }); res.json({ ok: true });
+  await db.update(projectsTable).set({ hasConversation: true }).where(eq(projectsTable.id, id)); await db.insert(notificationsTable).values({ userId: project.userId, projectId: id, title: "Conversation Started", message: `A conversation has been started for your project \"${project.title}\"`, type: "message" }); res.json({ ok: true });
 });
 
 export default router;
