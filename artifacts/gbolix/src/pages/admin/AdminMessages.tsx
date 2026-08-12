@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { useAdminListProjects, useListMessages, useSendMessage, useGetMe, useListNotifications } from "@workspace/api-client-react";
+import { useAdminListProjects, useListMessages, useSendMessage, useGetMe, useListNotifications, customFetch } from "@workspace/api-client-react";
 import { getAdminListProjectsQueryKey, getListMessagesQueryKey, getListNotificationsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Send, MessageSquare, ArrowLeft } from "lucide-react";
@@ -18,6 +18,7 @@ export default function AdminMessages() {
   });
   const [message, setMessage] = useState("");
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [offerLoadError, setOfferLoadError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { data: me } = useGetMe();
@@ -32,33 +33,36 @@ export default function AdminMessages() {
     const projectId = selectedProjectId;
     if (!projectId) {
       setOffers([]);
+      setOfferLoadError(null);
       return;
     }
 
-    const controller = new AbortController();
-    fetch(`/api/projects/${projectId}/offers`, { signal: controller.signal })
-      .then(async response => {
-        if (!response.ok) throw new Error("Unable to load offers");
-        const data = await response.json() as Offer[];
-        setOffers(data.filter(offer => offer.status !== "draft"));
+    let cancelled = false;
+    setOfferLoadError(null);
+    customFetch<Offer[]>(`/projects/${projectId}/offers`, { responseType: "json" })
+      .then(data => {
+        if (cancelled) return;
+        setOffers(Array.isArray(data) ? data.filter(offer => offer.status !== "draft") : []);
       })
       .catch(error => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (cancelled) return;
+        console.error("[AdminMessages] failed to load offers", { projectId, error });
         setOffers([]);
+        setOfferLoadError(error instanceof Error ? error.message : "Unable to load offers");
       });
 
-    return () => controller.abort();
+    return () => { cancelled = true; };
   }, [selectedProjectId]);
 
   useEffect(() => {
     const unreadMessageNotifications = notifications?.filter(n => !n.isRead && n.type === "message") ?? [];
     if (!unreadMessageNotifications.length) return;
-    Promise.all(unreadMessageNotifications.map(n => fetch(`/api/notifications/${n.id}/read`, { method: "POST" })))
+    Promise.all(unreadMessageNotifications.map(n => customFetch(`/notifications/${n.id}/read`, { method: "POST", responseType: "json" })))
       .then(() => queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() }))
       .catch(() => undefined);
   }, [notifications, queryClient]);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, offers]);
 
   const handleSend = () => {
     if (!message.trim() || !selectedProjectId) return;
@@ -95,11 +99,12 @@ export default function AdminMessages() {
         </div>
 
         <div className={`${selectedProjectId ? "flex" : "hidden md:flex"} flex-1 min-w-0 flex-col`}>
-          {!selectedProjectId ? <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground"><MessageSquare size={40} className="mb-3 opacity-30" /><p className="text-sm">Select a conversation</p></div> : <>
+          {!selectedProjectId ? <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground"><MessageSquare size={40} className="mb-3 opacity-30"/><p className="text-sm">Select a conversation</p></div> : <>
             <div className="px-4 md:px-5 py-3 md:py-4 border-b border-border flex items-center gap-2 shrink-0">
               <Button variant="ghost" size="sm" className="md:hidden h-8 w-8 p-0" onClick={() => setSelectedProjectId(null)} aria-label="Back to conversations"><ArrowLeft size={16} /></Button>
               <div className="min-w-0"><p className="font-semibold text-sm truncate">{selectedProject?.title}</p><p className="text-xs text-muted-foreground truncate">{selectedProject?.clientName} · {selectedProject?.serviceType}</p></div>
             </div>
+            {offerLoadError&&<div className="mx-3 mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">Offer loading error: {offerLoadError}</div>}
              <ScrollArea className="flex-1 p-3 md:p-4">
                {messagesLoading ? <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-10 bg-muted animate-pulse rounded-lg" />)}</div> : !timeline.length ? <div className="text-center text-muted-foreground text-sm py-8">No messages yet. Start the conversation.</div> : <div className="space-y-4">{timeline.map(item => item.kind === "message" ? renderMessage(item.message) : <div key={`offer-${item.offer.id}`} className="flex justify-start"><OfferCard offer={item.offer} canRespond={!isOwner} isOwner={isOwner} onChanged={handleOfferChanged} /></div>)}<div ref={messagesEndRef} /></div>}
             </ScrollArea>
