@@ -89,7 +89,7 @@ export default function AdminProjects() {
     }
     setOfferSaving(true);
     try {
-      const data = await customFetch<{ offer: any; message: any }>(apiUrl(`/projects/${offerProject.id}/offers`), {
+      const data = await customFetch<{ offer: any }>(apiUrl(`/projects/${offerProject.id}/offers`), {
         method: "POST",
         responseType: "json",
         headers: { "Content-Type": "application/json" },
@@ -109,7 +109,6 @@ export default function AdminProjects() {
       setOfferProject(null);
       refresh();
       toast({ title: "Offer sent", description: "The offer was saved and sent to this request's conversation." });
-      return data;
     } catch (error) {
       toast({ title: "Offer failed", description: error instanceof Error ? error.message : "Unable to send offer", variant: "destructive" });
     } finally {

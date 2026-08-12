@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, offersTable, agreementsTable, projectsTable, messagesTable, notificationsTable, activityTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne, sql } from "drizzle-orm";
 import { requireAuth, requireAdmin } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -70,6 +70,17 @@ router.post("/projects/:projectId/offers", requireAdmin, async (req, res): Promi
 
   try {
     const result = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${projectId})`);
+
+      const [lockedProject] = await tx.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+      if (!lockedProject) throw Object.assign(new Error("Project not found"), { statusCode: 404 });
+      const [existingSentOffer] = await tx.select({ id: offersTable.id })
+        .from(offersTable)
+        .where(and(eq(offersTable.projectId, projectId), eq(offersTable.status, "sent")));
+      if (existingSentOffer) {
+        throw Object.assign(new Error("A sent offer already exists for this project"), { statusCode: 409 });
+      }
+
       const [offer] = await tx.insert(offersTable).values({
         projectId,
         serviceType,
@@ -85,34 +96,29 @@ router.post("/projects/:projectId/offers", requireAdmin, async (req, res): Promi
 
       if (!offer) throw new Error("Offer could not be created");
 
-      const [message] = await tx.insert(messagesTable).values({
-        projectId,
-        senderId,
-        content: "Great news! We have reviewed your request and prepared an offer for your project. Please review the offer below.",
-        isRead: false,
-      }).returning();
-
       await tx.insert(notificationsTable).values({
-        userId: project.userId,
+        userId: lockedProject.userId,
         projectId,
         title: "New Project Offer",
-        message: `A project offer is ready for \"${project.title}\"`,
+        message: `A project offer is ready for \"${lockedProject.title}\"`,
         type: "admin_reply",
       });
 
       await tx.insert(activityTable).values({
-        userId: project.userId,
+        userId: lockedProject.userId,
         projectId,
         type: "admin_response",
-        description: `Offer sent for project: ${project.title}`,
+        description: `Offer sent for project: ${lockedProject.title}`,
       });
 
-      return { offer, message };
+      return offer;
     });
 
-    res.status(201).json(result);
+    res.status(201).json({ offer: result });
   } catch (error) {
+    const statusCode = typeof error === "object" && error !== null && "statusCode" in error ? Number((error as { statusCode?: number }).statusCode) : 500;
     const message = error instanceof Error ? error.message : String(error);
+    if (statusCode >= 400 && statusCode < 500) { res.status(statusCode).json({ error: message }); return; }
     console.error("[offers/create-send] failed", { projectId, message, error });
     res.status(500).json({ error: "Offer send failed", detail: message });
   }
@@ -144,23 +150,28 @@ router.post("/offers/:offerId/send", requireAdmin, async (req, res): Promise<voi
       if (!offer) throw Object.assign(new Error("Offer not found"), { statusCode: 404 });
       if (offer.status !== "draft") throw Object.assign(new Error("Only draft offers can be sent"), { statusCode: 400 });
 
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${offer.projectId})`);
+
       const [project] = await tx.select().from(projectsTable).where(eq(projectsTable.id, offer.projectId));
       if (!project) throw Object.assign(new Error("Project not found"), { statusCode: 404 });
       const senderId = req.userId;
       if (!senderId) throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
+      const [existingSentOffer] = await tx.select({ id: offersTable.id })
+        .from(offersTable)
+        .where(and(
+          eq(offersTable.projectId, offer.projectId),
+          eq(offersTable.status, "sent"),
+          ne(offersTable.id, offerId),
+        ));
+      if (existingSentOffer) {
+        throw Object.assign(new Error("A sent offer already exists for this project"), { statusCode: 409 });
+      }
 
       const [updatedOffer] = await tx.update(offersTable)
         .set({ status: "sent", sentAt: new Date() })
         .where(and(eq(offersTable.id, offerId), eq(offersTable.status, "draft")))
         .returning();
       if (!updatedOffer) throw Object.assign(new Error("Offer was already sent"), { statusCode: 409 });
-
-      const [message] = await tx.insert(messagesTable).values({
-        projectId: offer.projectId,
-        senderId,
-        content: "Great news! We have reviewed your request and prepared an offer for your project. Please review the offer below.",
-        isRead: false,
-      }).returning();
 
       await tx.insert(notificationsTable).values({
         userId: project.userId,
@@ -177,7 +188,7 @@ router.post("/offers/:offerId/send", requireAdmin, async (req, res): Promise<voi
         description: `Offer sent for project: ${project.title}`,
       });
 
-      return { offer: updatedOffer, message };
+      return { offer: updatedOffer };
     });
 
     res.status(200).json(result);

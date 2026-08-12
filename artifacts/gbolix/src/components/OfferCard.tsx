@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { FileSignature, Check, X, Loader2, Ban } from "lucide-react";
 import { AgreementCard, type Agreement } from "@/components/AgreementCard";
 
-export type Offer = { id:number; projectId:number; serviceType:string; serviceName:string; scope:string; requirements?:string|null; price:string; deliveryEstimate?:string|null; terms?:string|null; status:string };
+export type Offer = { id:number; projectId:number; serviceType:string; serviceName:string; scope:string; requirements?:string|null; price:string; deliveryEstimate?:string|null; terms?:string|null; status:string; sentAt?:string|null; createdAt?:string|null };
 
 export function OfferCard({ offer, canRespond, isOwner=false, onChanged }: { offer:Offer; canRespond:boolean; isOwner?:boolean; onChanged?:(offer:Offer,nextStep?:string)=>void }) {
   const [loading,setLoading]=useState<"accept"|"decline"|"withdraw"|"agreement"|null>(null);

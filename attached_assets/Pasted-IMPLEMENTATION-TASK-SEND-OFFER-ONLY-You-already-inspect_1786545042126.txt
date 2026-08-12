@@ -1,0 +1,230 @@
+IMPLEMENTATION TASK — SEND OFFER ONLY
+
+You already inspected the Gbolix codebase and identified the current Send Offer problem. Now implement ONLY the Send Offer fix.
+
+DO NOT modify the Need More Information workflow.
+DO NOT modify the Decline workflow.
+DO NOT modify the agreement/payment workflow.
+DO NOT redesign unrelated UI.
+DO NOT create a new offer system.
+DO NOT create a new conversation system.
+
+Use the existing database schema, existing offers API, existing projectId relationship, existing conversation system, and existing OfferCard.tsx.
+
+CURRENT DIAGNOSIS
+
+The current active frontend sends:
+
+POST /api/projects/:projectId/offers
+{
+  send: true
+}
+
+The backend currently:
+1. validates the project
+2. creates an offers row with projectId
+3. sets status to "sent"
+4. inserts a normal chat message:
+   "Great news! We have reviewed your request and prepared an offer for your project. Please review the offer below."
+5. creates notification/activity records
+
+There is also a legacy draft/send implementation:
+POST /api/projects/:projectId/offers
+without send:true
+followed by:
+POST /api/offers/:offerId/send
+
+Both offer-send paths currently create the unwanted normal "Great news..." message.
+
+The existing OfferCard.tsx already supports:
+- Client Accept Offer
+- Client Decline Offer
+- Admin/Owner Withdraw Offer
+- Agreement creation after acceptance
+
+Offers are correctly associated with the request/project through offers.projectId.
+
+IMPORTANT:
+Do NOT solve this by hiding/filtering the "Great news..." message on the frontend.
+Remove the cause at the backend.
+
+REQUIRED BEHAVIOR
+
+When admin is viewing Request/Project A and creates an offer:
+
+Create Offer
+→ edit price/timeline/scope/etc.
+→ click Send Offer
+→ save the offer
+→ offer.status = "sent"
+→ offer.projectId = Project A
+→ DO NOT insert any normal chat message
+→ DO NOT insert the "Great news..." message
+→ keep the offer notification/activity if those are already part of the existing behavior
+→ return the saved offer
+
+The existing client conversation for Project A must then display the existing structured OfferCard for that offer.
+
+The offer must NOT appear in another project's conversation.
+
+CLIENT MUST SEE:
+Offer Card
+- project/service information
+- scope
+- requirements
+- price
+- delivery estimate
+- terms
+- Accept Offer
+- Decline Offer
+
+ADMIN MUST SEE:
+Offer Card
+- offer information
+- Withdraw Offer
+
+DO NOT create a duplicate OfferCard if the same offer is already loaded.
+
+IMPORTANT ARCHITECTURE
+
+The projectId is currently being used as the conversation key.
+
+Keep that architecture.
+
+Do not introduce a new conversation table or conversation ID.
+
+Make sure the offer is always fetched using the exact selected projectId.
+
+CURRENT CLIENT MESSAGE PAGE
+
+Messages.tsx currently loads:
+GET /api/projects/:projectId/messages
+and
+GET /api/projects/:projectId/offers
+
+It renders normal messages and OfferCard separately.
+
+Keep the existing OfferCard component.
+
+Do not replace it with a new card.
+
+ADMIN CONVERSATION
+
+AdminMessages.tsx currently loads normal messages but does not load/render offers.
+
+For this Send Offer task, update AdminMessages.tsx so that when an admin opens Project A's conversation, it also loads offers for Project A and renders the existing OfferCard.
+
+The admin conversation must use the selected projectId.
+
+Do NOT make offers global.
+
+The offer should be associated with the exact request/project whose conversation is currently open.
+
+CHRONOLOGICAL DISPLAY
+
+Do not append every offer at the bottom of the conversation regardless of when it was created.
+
+For this implementation, use the offer's sentAt timestamp so the offer is displayed in the appropriate position in the conversation timeline.
+
+If the existing message/offer architecture makes true mixed chronological rendering difficult, implement the smallest safe solution that preserves correct project scoping and does not duplicate the offer.
+
+DUPLICATE PROTECTION
+
+Before creating a sent offer, inspect the existing behavior and prevent accidental duplicate sends caused by double-clicking or repeated requests.
+
+Do not create two sent offers from one Send Offer action.
+
+If the backend already has a suitable constraint or transaction mechanism, use it.
+
+Do not introduce a large new abstraction.
+
+LEGACY OFFER SEND ROUTE
+
+There are currently two offer-send paths:
+1. POST /api/projects/:projectId/offers with send:true
+2. POST /api/offers/:offerId/send
+
+Inspect both.
+
+Both must stop creating the unwanted normal "Great news..." message.
+
+If the second legacy endpoint is still used anywhere, preserve its functionality but make it follow the same correct behavior.
+
+If it is genuinely unused, do not delete it unnecessarily during this task.
+
+ERROR HANDLING
+
+Do not hide backend errors.
+
+If Send Offer fails:
+- return an appropriate HTTP error
+- do not create a partial offer
+- do not create a notification for an offer that wasn't successfully sent
+- do not create a normal chat message
+
+Use the existing project's error-handling conventions.
+
+OWNERSHIP / SECURITY
+
+Do not weaken existing authorization.
+
+Verify that the admin is allowed to send an offer for the selected project.
+
+The offer must remain tied to the authenticated/authorized project.
+
+TESTING
+
+After implementation, test these exact cases:
+
+TEST 1 — Send Offer
+1. Open Project A.
+2. Approve it if required.
+3. Create an offer.
+4. Click Send Offer.
+5. Confirm exactly ONE offers database row is created.
+6. Confirm status = sent.
+7. Confirm projectId = Project A.
+8. Confirm NO normal "Great news..." message exists in messages.
+9. Confirm OfferCard appears in Project A conversation.
+10. Confirm client sees Accept Offer and Decline Offer.
+11. Confirm admin sees Withdraw Offer.
+
+TEST 2 — Cross-project isolation
+1. Open Project B.
+2. Open its conversation.
+3. Confirm Project A's OfferCard does NOT appear.
+4. Confirm only Project B's offers appear.
+
+TEST 3 — Double send
+1. Attempt to trigger Send Offer twice quickly.
+2. Confirm only one sent offer is created.
+
+TEST 4 — Existing client actions
+1. Accept the sent offer.
+2. Confirm the existing acceptance API still works.
+3. Confirm it still returns the agreement next step.
+4. Confirm Withdraw still invalidates the offer.
+
+IMPORTANT SCOPE RULE
+
+Only implement the Send Offer / OfferCard conversation integration.
+
+Do not touch:
+- Need More Information
+- infoDialog
+- Open Chat
+- Decline notification
+- decline behavior
+- agreement workflow
+- payment workflow
+
+Before finishing:
+1. Run the relevant tests/build/typecheck.
+2. Inspect the final diff.
+3. Tell me exactly which files you changed.
+4. Tell me exactly what changed in each file.
+5. Tell me what tests/build checks passed or failed.
+6. DO NOT commit or push to GitHub.
+7. DO NOT deploy.
+
+Stop after implementation and verification.
