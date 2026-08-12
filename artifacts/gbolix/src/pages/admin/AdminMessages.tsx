@@ -39,7 +39,7 @@ export default function AdminMessages() {
 
     let cancelled = false;
     setOfferLoadError(null);
-    customFetch<Offer[]>(`/projects/${projectId}/offers`, { responseType: "json" })
+    customFetch<Offer[]>(`/api/projects/${projectId}/offers`, { responseType: "json" })
       .then(data => {
         if (cancelled) return;
         setOffers(Array.isArray(data) ? data.filter(offer => offer.status !== "draft") : []);
@@ -57,7 +57,7 @@ export default function AdminMessages() {
   useEffect(() => {
     const unreadMessageNotifications = notifications?.filter(n => !n.isRead && n.type === "message") ?? [];
     if (!unreadMessageNotifications.length) return;
-    Promise.all(unreadMessageNotifications.map(n => customFetch(`/notifications/${n.id}/read`, { method: "POST", responseType: "json" })))
+    Promise.all(unreadMessageNotifications.map(n => customFetch(`/api/notifications/${n.id}/read`, { method: "POST", responseType: "json" })))
       .then(() => queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() }))
       .catch(() => undefined);
   }, [notifications, queryClient]);
