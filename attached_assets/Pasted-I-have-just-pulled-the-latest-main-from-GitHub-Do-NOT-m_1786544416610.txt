@@ -1,0 +1,97 @@
+I have just pulled the latest main from GitHub. Do NOT modify, create, delete, refactor, commit, or deploy anything yet. This is an inspection-only task.
+
+I need you to inspect the existing Gbolix codebase and trace the complete client request workflow from start to finish.
+
+Specifically inspect:
+
+Client submits a request.
+Admin opens/reviews the request.
+Admin actions:
+Approve
+Need More Information
+Decline
+Approval automated message.
+Create Offer.
+Send Offer.
+Offer persistence/database record.
+Offer appearing inside the specific request's conversation.
+Offer Card UI.
+Client Accept Offer / Decline Offer.
+Admin Withdraw Offer.
+Need More Information automated message.
+Open Chat after Need More Information.
+Conversation composer and Create Offer action.
+Decline notification to the client.
+Agreement/payment flow after accepting an offer.
+
+Required final behavior:
+
+APPROVE
+
+Admin clicks Approve.
+Request becomes approved.
+Send the predefined approval message ONCE.
+Show Create Offer.
+
+SEND OFFER
+
+Admin creates/edits the offer.
+Admin clicks Send Offer.
+Save the offer as sent.
+Do NOT send another normal chat message such as “Great news, we have reviewed your request...”.
+Insert/render the actual structured Offer Card directly inside the conversation belonging to that exact request.
+Client sees Accept Offer and Decline Offer.
+Admin sees Withdraw Offer.
+Withdraw must invalidate the offer so it cannot later be accepted.
+
+NEED MORE INFORMATION
+
+Admin clicks Need More Information.
+Send the predefined need-information message ONCE.
+Do NOT show an information-request form/popup.
+Show Open Chat.
+Open Chat takes the admin directly to that exact request's conversation.
+Admin manually types what information is needed.
+The conversation composer should eventually allow Create Offer for that exact request.
+
+DECLINE
+
+Keep the existing working decline behavior.
+Set the request to declined.
+Send a client notification explaining that the request cannot proceed and that the client can submit a new request if appropriate.
+Do NOT open a conversation.
+
+IMPORTANT: Trace the actual implementation rather than assuming how it works.
+
+Identify:
+
+Relevant frontend files/components.
+Relevant backend/API files/routes.
+Database tables and important columns.
+Offer-related functions.
+Conversation/message functions.
+Request review/action functions.
+Client notification functions.
+Any duplicated or legacy implementation.
+Any places where a normal message is incorrectly being used instead of a structured offer card.
+Any places where request ID/project ID/conversation ID could become mismatched.
+Any existing Offer Card component or equivalent that we should reuse.
+
+Also identify why the current behavior produces:
+
+the extra “Great news...” message after Send Offer,
+the information-request popup after Need More Information,
+and the missing decline notification.
+
+Do not fix anything yet.
+
+At the end, give me:
+
+Current workflow.
+Exact files/functions involved.
+Root causes of the three problems.
+Recommended minimal changes.
+Any database changes required.
+How you would test each workflow after implementation.
+
+Do not commit or deploy anything. Wait for further instructions after the inspection.
