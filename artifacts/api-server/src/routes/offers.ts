@@ -275,24 +275,40 @@ router.post("/offers/:offerId/accept", requireAuth, async (req, res): Promise<vo
         .returning();
       if (!updatedOffer) throw Object.assign(new Error("Offer was already changed"), { statusCode: 409 });
 
-      await tx.update(projectsTable).set({ status: "approved" }).where(eq(projectsTable.id, offer.projectId));
-      await tx.insert(messagesTable).values({
-        projectId: offer.projectId,
-        senderId: req.userId!,
-        content: "I accepted the project offer. Please prepare the agreement and next steps.",
-        isRead: false,
+      const existing = await tx.select().from(agreementsTable).where(eq(agreementsTable.projectId, project.id));
+      let agreement = existing[0] ?? null;
+      if (!agreement) {
+        const scope = String(offer.scope ?? "").trim();
+        const deliverables = String(offer.serviceName ?? "Project deliverables").trim();
+        const timeline = String(offer.deliveryEstimate ?? "As agreed in the project scope").trim();
+        const revisions = "As agreed in the project scope";
+        const price = String(offer.price ?? "").trim();
+        const terms = String(offer.terms ?? "As agreed in the project scope").trim();
+        if (!scope || !deliverables || !price) throw Object.assign(new Error("The offer is missing information required to create the agreement"), { statusCode: 400 });
+        const [createdAgreement] = await tx.insert(agreementsTable).values({ projectId: project.id, scope, deliverables, timeline, revisions, price, terms }).returning();
+        agreement = createdAgreement ?? null;
+      }
+      if (!agreement) throw new Error("Agreement could not be created");
+
+      await tx.update(projectsTable).set({ status: "agreement_sent" }).where(eq(projectsTable.id, offer.projectId));
+      await tx.insert(notificationsTable).values({
+        userId: project.userId,
+        projectId: project.id,
+        title: "Project Agreement Ready",
+        message: `Your agreement for \"${project.title}\" is ready for review.`,
+        type: "agreement",
       });
       await tx.insert(activityTable).values({
         userId: project.userId,
         projectId: project.id,
         type: "status_change",
-        description: `Offer accepted for project: ${project.title}`,
+        description: `Offer accepted and agreement prepared for project: ${project.title}`,
       });
 
-      return updatedOffer;
+      return { offer: updatedOffer, agreement };
     });
 
-    res.json({ offer: result, nextStep: "agreement" });
+    res.json({ offer: result.offer, agreement: result.agreement, nextStep: "agreement" });
   } catch (error) {
     const statusCode = typeof error === "object" && error !== null && "statusCode" in error ? Number((error as { statusCode?: number }).statusCode) : 500;
     const message = error instanceof Error ? error.message : String(error);
@@ -319,12 +335,6 @@ router.post("/offers/:offerId/decline", requireAuth, async (req, res): Promise<v
         .returning();
       if (!updatedOffer) throw Object.assign(new Error("Offer was already changed"), { statusCode: 409 });
 
-      await tx.insert(messagesTable).values({
-        projectId: offer.projectId,
-        senderId: req.userId!,
-        content: "I declined the project offer. Thank you for reviewing my request.",
-        isRead: false,
-      });
       await tx.insert(activityTable).values({
         userId: project.userId,
         projectId: project.id,
@@ -357,10 +367,10 @@ router.post("/offers/:offerId/agreement", requireAdmin, async (req, res): Promis
   const body = req.body ?? {};
   const scope = String(body.scope ?? offer.scope ?? "").trim();
   const deliverables = String(body.deliverables ?? offer.serviceName ?? "").trim();
-  const timeline = String(body.timeline ?? offer.deliveryEstimate ?? "").trim();
+  const timeline = String(body.timeline ?? offer.deliveryEstimate ?? "As agreed in the project scope").trim();
   const revisions = String(body.revisions ?? "As agreed in the project scope").trim();
   const price = String(body.price ?? offer.price ?? "").trim();
-  const terms = String(body.terms ?? offer.terms ?? "").trim();
+  const terms = String(body.terms ?? offer.terms ?? "As agreed in the project scope").trim();
   if (!scope || !deliverables || !timeline || !revisions || !price || !terms) { res.status(400).json({ error: "Scope, deliverables, timeline, revisions, price, and terms are required" }); return; }
   const [agreement] = await db.insert(agreementsTable).values({ projectId: project.id, scope, deliverables, timeline, revisions, price, terms }).returning();
   await db.update(projectsTable).set({ status: "agreement_sent" }).where(eq(projectsTable.id, project.id));
