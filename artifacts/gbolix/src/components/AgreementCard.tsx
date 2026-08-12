@@ -29,8 +29,9 @@ export function AgreementCard({ agreement, canAccept, onChanged }: { agreement: 
     setLoading(true);
     try {
       const data = await customFetch<{ agreement: Agreement; nextStep?: string }>(`/api/agreements/${current.id}/accept`, { method: "POST", headers: { "Content-Type": "application/json" }, responseType: "json" });
-      setCurrent(data.agreement);
-      onChanged?.(data.agreement, data.nextStep);
+      const updatedAgreement = { ...current, ...data.agreement };
+      setCurrent(updatedAgreement);
+      onChanged?.(updatedAgreement, data.nextStep);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Unable to accept agreement");
     } finally {
