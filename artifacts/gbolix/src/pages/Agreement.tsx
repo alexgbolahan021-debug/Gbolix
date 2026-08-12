@@ -4,16 +4,18 @@ import { ArrowLeft, FileSignature, Loader2 } from "lucide-react";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Button } from "@/components/ui/button";
 import { AgreementCard, type Agreement } from "@/components/AgreementCard";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch, useGetMe } from "@workspace/api-client-react";
 
 export default function AgreementPage() {
   const [, params] = useRoute("/agreement/:projectId");
   const [, navigate] = useLocation();
+  const { data: me } = useGetMe();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const projectId = params?.projectId;
+  const canAccept = me?.role === "client";
 
   useEffect(() => {
     if (!projectId) return;
@@ -47,7 +49,7 @@ export default function AgreementPage() {
 
         {loading && <div className="flex min-h-48 items-center justify-center text-muted-foreground"><Loader2 size={22} className="animate-spin"/></div>}
         {!loading && error && <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
-        {!loading && !error && agreement && <AgreementCard agreement={agreement} canAccept onChanged={(updated, nextStep) => { setAgreement(updated); if (nextStep === "payment") navigate("/messages"); }} />}
+        {!loading && !error && agreement && <AgreementCard agreement={agreement} canAccept={canAccept} onChanged={(updated, nextStep) => { setAgreement(updated); if (nextStep === "payment") navigate("/messages"); }} />}
       </div>
     </div>
   </ClientLayout>;
