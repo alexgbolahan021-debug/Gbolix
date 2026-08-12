@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileSignature, Check, X, Loader2, Ban } from "lucide-react";
 import { AgreementCard, type Agreement } from "@/components/AgreementCard";
+import { customFetch } from "@workspace/api-client-react";
 
 export type Offer = { id:number; projectId:number; serviceType:string; serviceName:string; scope:string; requirements?:string|null; price:string; deliveryEstimate?:string|null; terms?:string|null; status:string; sentAt?:string|null; createdAt?:string|null };
 
@@ -10,20 +11,18 @@ export function OfferCard({ offer, canRespond, isOwner=false, onChanged }: { off
   const [loading,setLoading]=useState<"accept"|"decline"|"withdraw"|"agreement"|null>(null);
   const [agreement,setAgreement]=useState<Agreement|null>(null);
 
-  const loadAgreement=async()=>{try{const r=await fetch(`/api/projects/${offer.projectId}/agreement`);if(r.ok)setAgreement(await r.json());}catch{}};
+  const loadAgreement=async()=>{try{const data=await customFetch<Agreement>(`/projects/${offer.projectId}/agreement`,{responseType:"json"});setAgreement(data);}catch{}};
   useEffect(()=>{if(offer.status==="accepted")loadAgreement();},[offer.status,offer.projectId]);
 
   const respond=async(action:"accept"|"decline"|"withdraw")=>{
     setLoading(action);
     try{
-      const r=await fetch(`/api/offers/${offer.id}/${action}`,{method:"POST",headers:{"Content-Type":"application/json"}});
-      const d=await r.json();
-      if(!r.ok)throw new Error(d.error||`Unable to ${action} offer`);
+      const d=await customFetch<{offer:Offer;nextStep?:string}>(`/offers/${offer.id}/${action}`,{method:"POST",headers:{"Content-Type":"application/json"},responseType:"json"});
       onChanged?.(d.offer,d.nextStep);
     }catch(e){alert(e instanceof Error?e.message:`Unable to ${action} offer`);}finally{setLoading(null);}
   };
 
-  const createAgreement=async()=>{setLoading("agreement");try{const r=await fetch(`/api/offers/${offer.id}/agreement`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({})});const d=await r.json();if(!r.ok)throw new Error(d.error||"Unable to create agreement");setAgreement(d);onChanged?.(offer,"agreement_created");}catch(e){alert(e instanceof Error?e.message:"Unable to create agreement");}finally{setLoading(null);}};
+  const createAgreement=async()=>{setLoading("agreement");try{const d=await customFetch<Agreement>(`/offers/${offer.id}/agreement`,{method:"POST",headers:{"Content-Type":"application/json"},responseType:"json",body:JSON.stringify({})});setAgreement(d);onChanged?.(offer,"agreement_created");}catch(e){alert(e instanceof Error?e.message:"Unable to create agreement");}finally{setLoading(null);}};
 
   const statusLabel = offer.status === "withdrawn" ? "Withdrawn" : offer.status;
 
