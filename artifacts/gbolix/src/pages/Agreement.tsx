@@ -7,44 +7,38 @@ import { AgreementCard, type Agreement } from "@/components/AgreementCard";
 import { customFetch, useGetMe } from "@workspace/api-client-react";
 
 export default function AgreementPage() {
-  const [, params] = useRoute("/agreement/:projectId");
+  const [, params] = useRoute("/agreement/:agreementId");
   const [, navigate] = useLocation();
   const { data: me } = useGetMe();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const projectId = params?.projectId;
+  const agreementId = params?.agreementId;
   const canAccept = me?.role === "client";
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!agreementId) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    customFetch<Agreement>(`/api/projects/${projectId}/agreement`, { responseType: "json" })
+    customFetch<Agreement>(`/api/agreements/${agreementId}`, { responseType: "json" })
       .then(data => { if (!cancelled) setAgreement(data); })
       .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load the agreement"); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [projectId]);
+  }, [agreementId]);
 
   return <ClientLayout>
     <div className="min-h-full overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8 md:py-10">
-        <Button variant="ghost" onClick={() => navigate("/messages")} className="mb-6 gap-2 px-0 hover:bg-transparent hover:text-primary">
+      <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 md:py-10">
+        <Button variant="ghost" onClick={() => navigate("/messages")} className="mb-6 gap-2 px-0 hover:bg-transparent hover:text-primary print:hidden">
           <ArrowLeft size={16}/> Back to Messages
         </Button>
 
-        <div className="mb-7 flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <FileSignature size={20}/>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Gbolix Agreement</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">Review your project agreement</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Review the scope, deliverables, timeline, price, and terms before accepting.</p>
-          </div>
+        <div className="mb-7 flex items-start gap-3 print:mb-5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"><FileSignature size={20}/></div>
+          <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Gbolix Agreement</p><h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">Review your project agreement</h1><p className="mt-1 text-sm text-muted-foreground">Review the agreement overview below before accepting.</p></div>
         </div>
 
         {loading && <div className="flex min-h-48 items-center justify-center text-muted-foreground"><Loader2 size={22} className="animate-spin"/></div>}
