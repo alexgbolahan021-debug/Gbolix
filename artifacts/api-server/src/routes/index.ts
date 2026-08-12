@@ -8,6 +8,7 @@ import adminRouter from "./admin";
 import notificationsRouter from "./notifications";
 import offersRouter from "./offers";
 import paymentsRouter from "./payments";
+import agreementsRouter from "./agreements";
 
 const router: IRouter = Router();
 
@@ -18,6 +19,7 @@ router.use("/files", filesRouter);
 router.use("/projects/:projectId/messages", messagesRouter);
 router.use("/admin", adminRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/agreements", agreementsRouter);
 router.use("/", paymentsRouter);
 router.use("/", offersRouter);
 
