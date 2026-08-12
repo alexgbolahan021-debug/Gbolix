@@ -11,18 +11,18 @@ export function OfferCard({ offer, canRespond, isOwner=false, onChanged }: { off
   const [loading,setLoading]=useState<"accept"|"decline"|"withdraw"|"agreement"|null>(null);
   const [agreement,setAgreement]=useState<Agreement|null>(null);
 
-  const loadAgreement=async()=>{try{const data=await customFetch<Agreement>(`/projects/${offer.projectId}/agreement`,{responseType:"json"});setAgreement(data);}catch{}};
+  const loadAgreement=async()=>{try{const data=await customFetch<Agreement>(`/api/projects/${offer.projectId}/agreement`,{responseType:"json"});setAgreement(data);}catch{}};
   useEffect(()=>{if(offer.status==="accepted")loadAgreement();},[offer.status,offer.projectId]);
 
   const respond=async(action:"accept"|"decline"|"withdraw")=>{
     setLoading(action);
     try{
-      const d=await customFetch<{offer:Offer;nextStep?:string}>(`/offers/${offer.id}/${action}`,{method:"POST",headers:{"Content-Type":"application/json"},responseType:"json"});
+      const d=await customFetch<{offer:Offer;nextStep?:string}>(`/api/offers/${offer.id}/${action}`,{method:"POST",headers:{"Content-Type":"application/json"},responseType:"json"});
       onChanged?.(d.offer,d.nextStep);
     }catch(e){alert(e instanceof Error?e.message:`Unable to ${action} offer`);}finally{setLoading(null);}
   };
 
-  const createAgreement=async()=>{setLoading("agreement");try{const d=await customFetch<Agreement>(`/offers/${offer.id}/agreement`,{method:"POST",headers:{"Content-Type":"application/json"},responseType:"json",body:JSON.stringify({})});setAgreement(d);onChanged?.(offer,"agreement_created");}catch(e){alert(e instanceof Error?e.message:"Unable to create agreement");}finally{setLoading(null);}};
+  const createAgreement=async()=>{setLoading("agreement");try{const d=await customFetch<Agreement>(`/api/offers/${offer.id}/agreement`,{method:"POST",headers:{"Content-Type":"application/json"},responseType:"json",body:JSON.stringify({})});setAgreement(d);onChanged?.(offer,"agreement_created");}catch(e){alert(e instanceof Error?e.message:"Unable to create agreement");}finally{setLoading(null);}};
 
   const statusLabel = offer.status === "withdrawn" ? "Withdrawn" : offer.status;
 
