@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { Router } from "express";
 import { db, agreementsTable, projectsTable, usersTable, paymentsTable } from "@workspace/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
@@ -8,6 +9,10 @@ const router = Router();
 function parseId(value: unknown): number | null {
   const id = Number.parseInt(String(value ?? ""), 10);
   return Number.isInteger(id) ? id : null;
+}
+
+function generatePaymentReference(projectCode: string): string {
+  return `GBX-PAY-${projectCode}-${randomUUID()}`;
 }
 
 router.get("/:agreementId", requireAuth, async (req, res): Promise<void> => {
@@ -102,7 +107,7 @@ router.post("/:agreementId/accept", requireAuth, async (req, res): Promise<void>
 
       let payment = existingPayments[0] ?? null;
       if (!payment) {
-        const reference = `GBX-PAY-${project.projectCode}-${Date.now()}`.replace(/[^A-Za-z0-9._-]/g, "-");
+        const reference = generatePaymentReference(project.projectCode);
         const [created] = await tx.insert(paymentsTable).values({
           projectId: project.id,
           gateway: "paystack",
