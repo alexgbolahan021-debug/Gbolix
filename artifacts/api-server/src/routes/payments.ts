@@ -66,6 +66,9 @@ router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, as
     const [client] = await db.select().from(usersTable).where(eq(usersTable.id, project.userId));
     if (!client?.email) { res.status(400).json({ error: "Client email is required before payment" }); return; }
 
+    const callbackUrl = process.env.PAYSTACK_CALLBACK_URL;
+    if (!callbackUrl) { res.status(500).json({ error: "PAYSTACK_CALLBACK_URL is not configured" }); return; }
+
     // Step 3 creates the payment record when the agreement is accepted.
     // Initialization must reuse that pending record rather than silently creating another one.
     const [payment] = await db.select().from(paymentsTable).where(and(
@@ -92,6 +95,7 @@ router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, as
         currency: payment.currency,
         reference: payment.reference,
         email: client.email,
+        callback_url: callbackUrl,
         metadata: {
           projectId,
           projectCode: project.projectCode,
