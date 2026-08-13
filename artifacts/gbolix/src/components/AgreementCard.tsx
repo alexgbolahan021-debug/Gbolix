@@ -52,7 +52,7 @@ export function AgreementCard({ agreement, canAccept, onChanged }: { agreement: 
   const agreementDate = current.createdAt ? new Date(current.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="w-full max-w-3xl print:mx-auto print:max-w-3xl">
       <div className="overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-[0_12px_40px_rgba(0,0,0,0.18)] print:shadow-none print:border-border">
         <div className="flex items-start gap-3 border-b border-border bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-5 py-5 md:px-7">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"><FileSignature size={20} /></div>
@@ -75,9 +75,9 @@ export function AgreementCard({ agreement, canAccept, onChanged }: { agreement: 
           </section>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-border px-5 py-4 md:flex-row md:items-center md:justify-between md:px-7 print:hidden">
+        <div className="flex flex-col gap-3 border-t border-border px-5 py-4 md:flex-row md:items-center md:justify-between md:px-7">
           <div><p className="text-xs text-muted-foreground">Total Price</p><p className="text-xl font-bold text-primary">${current.price}</p></div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"><Button variant="outline" onClick={downloadPdf} className="h-10 gap-2 sm:min-w-40"><Download size={16} /> Download PDF</Button>{canAccept && !accepted && <Button onClick={accept} disabled={loading} className="h-10 gap-2 font-semibold sm:min-w-48">{loading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}{loading ? "Accepting..." : "Accept & Continue"}</Button>}</div></div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row print:hidden"><Button variant="outline" onClick={downloadPdf} className="h-10 gap-2 sm:min-w-40"><Download size={16} /> Download PDF</Button>{canAccept && !accepted && <Button onClick={accept} disabled={loading} className="h-10 gap-2 font-semibold sm:min-w-48">{loading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}{loading ? "Accepting..." : "Accept & Continue"}</Button>}</div></div>
 
         {accepted && <div className="border-t border-emerald-500/20 bg-emerald-500/5 px-5 py-3 text-sm text-emerald-300 md:px-7">Agreement accepted. The project can now continue to the next workflow step.</div>}
       </div>
