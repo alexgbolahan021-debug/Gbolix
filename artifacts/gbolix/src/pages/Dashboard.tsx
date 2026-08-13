@@ -10,25 +10,51 @@ import { getGetDashboardSummaryQueryKey, getGetRecentActivityQueryKey, getListPr
 import { FileUp, HelpCircle, Plus, Activity, Layers, CheckSquare, Clock, Files, ArrowRight, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-const statusColor: Record<string, string> = {
-  submitted: "bg-muted text-muted-foreground",
-  queued: "bg-blue-500/10 text-blue-400",
+const requestStatusColor: Record<string, string> = {
+  pending_review: "bg-blue-500/10 text-blue-400",
+  needs_info: "bg-yellow-500/10 text-yellow-400",
+  approved: "bg-secondary/10 text-secondary",
+  declined: "bg-destructive/10 text-destructive",
+  agreement_sent: "bg-purple-500/10 text-purple-400",
+  agreement_accepted: "bg-indigo-500/10 text-indigo-400",
   in_progress: "bg-secondary/10 text-secondary",
   review: "bg-yellow-500/10 text-yellow-400",
   completed: "bg-primary/10 text-primary",
 };
 
-const statusLabel: Record<string, string> = {
-  submitted: "Submitted",
-  queued: "Queued",
+const requestStatusLabel: Record<string, string> = {
+  pending_review: "Pending Review",
+  needs_info: "Needs More Info",
+  approved: "Approved",
+  declined: "Declined",
+  agreement_sent: "Agreement Sent",
+  agreement_accepted: "Agreement Accepted",
   in_progress: "In Progress",
   review: "Review",
   completed: "Completed",
 };
 
+const paymentStatusColor: Record<string, string> = {
+  pending: "bg-yellow-500/10 text-yellow-400",
+  paid: "bg-primary/10 text-primary",
+  failed: "bg-destructive/10 text-destructive",
+  cancelled: "bg-muted text-muted-foreground",
+};
+
+const paymentStatusLabel: Record<string, string> = {
+  pending: "Pending",
+  paid: "Paid",
+  failed: "Failed",
+  cancelled: "Cancelled",
+};
+
 const statusProgress: Record<string, number> = {
-  submitted: 10,
-  queued: 30,
+  pending_review: 15,
+  needs_info: 25,
+  approved: 35,
+  declined: 0,
+  agreement_sent: 45,
+  agreement_accepted: 50,
   in_progress: 60,
   review: 80,
   completed: 100,
@@ -48,13 +74,17 @@ const activityTypeColor: Record<string, string> = {
   status_change: "bg-yellow-400",
 };
 
+type ProjectWithPaymentStatus = {
+  paymentStatus?: string | null;
+};
+
 export default function Dashboard() {
   const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
   const { data: activity, isLoading: activityLoading } = useGetRecentActivity({ query: { queryKey: getGetRecentActivityQueryKey() } });
   const { data: allProjects, isLoading: projectsLoading } = useListProjects({
     query: { queryKey: getListProjectsQueryKey() }
   });
-  const projects = allProjects?.filter(p => p.status === "in_progress" || p.status === "review");
+  const projects = allProjects?.filter(p => p.status === "in_progress" || p.status === "review" || p.status === "agreement_accepted");
   const { data: profile } = useGetMe();
 
   const summaryCards = [
@@ -71,7 +101,6 @@ export default function Dashboard() {
   return (
     <ClientLayout>
       <div className="p-6 lg:p-8 max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex items-start justify-between mb-8 pt-2">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: "Sora, sans-serif" }} data-testid="text-dashboard-heading">
@@ -90,7 +119,6 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
           {summaryCards.map(card => {
             const Icon = card.icon;
@@ -115,7 +143,6 @@ export default function Dashboard() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6 mb-6">
-          {/* Active Tasks */}
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-bold text-sm" style={{ fontFamily: "Sora, sans-serif" }}>Active Tasks</h2>
@@ -142,23 +169,39 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {projects.slice(0, 4).map(p => (
-                  <div key={p.id} className="border border-border rounded-xl p-3.5 hover:border-border/60 transition-all" data-testid={`card-active-task-${p.id}`}>
-                    <div className="flex items-start justify-between mb-2.5">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold truncate">{p.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{p.serviceType}</p>
+                {projects.slice(0, 4).map(p => {
+                  const paymentStatus = (p as typeof p & ProjectWithPaymentStatus).paymentStatus;
+
+                  return (
+                    <div key={p.id} className="border border-border rounded-xl p-3.5 hover:border-border/60 transition-all" data-testid={`card-active-task-${p.id}`}>
+                      <div className="flex items-start justify-between gap-3 mb-2.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold truncate">{p.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{p.serviceType}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">Request</span>
+                          <Badge className={`text-[10px] ${requestStatusColor[p.status] ?? "bg-muted text-muted-foreground"}`}>
+                            {requestStatusLabel[p.status] ?? p.status}
+                          </Badge>
+                          <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground mt-0.5">Payment</span>
+                          {paymentStatus ? (
+                            <Badge className={`text-[10px] ${paymentStatusColor[paymentStatus] ?? "bg-muted text-muted-foreground"}`}>
+                              {paymentStatusLabel[paymentStatus] ?? paymentStatus}
+                            </Badge>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">—</span>
+                          )}
+                        </div>
                       </div>
-                      <Badge className={`text-[10px] shrink-0 ml-2 ${statusColor[p.status] ?? ""}`}>{statusLabel[p.status] ?? p.status}</Badge>
+                      <Progress value={statusProgress[p.status] ?? 0} className="h-1" />
                     </div>
-                    <Progress value={statusProgress[p.status] ?? 0} className="h-1" />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* Recent Activity */}
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-bold text-sm" style={{ fontFamily: "Sora, sans-serif" }}>Recent Activity</h2>
@@ -194,7 +237,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="bg-gradient-to-br from-card via-card to-primary/5 border border-border rounded-xl p-5 shadow-sm">
           <h2 className="font-bold text-sm mb-4" style={{ fontFamily: "Sora, sans-serif" }}>Quick Actions</h2>
           <div className="flex flex-wrap gap-3">
