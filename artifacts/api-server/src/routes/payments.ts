@@ -60,52 +60,72 @@ function webhookSignatureIsValid(req: RawBodyRequest): boolean {
 }
 
 /**
- * Mark a payment as paid and move the project to in_progress.
+ * Atomically transition a verified payment from pending -> paid and the
+ * related request from agreement_accepted -> in_progress.
  *
- * The database update only changes a payment from pending -> paid.
- * This prevents the same payment from being processed twice.
+ * This is the single guarded payment -> project transition. Only the
+ * transaction that successfully changes the payment from pending to paid
+ * is allowed to perform the downstream project/status side effects.
  */
 async function markPaymentPaid(reference: string) {
-  const [payment] = await db
-    .select()
-    .from(paymentsTable)
-    .where(eq(paymentsTable.reference, reference));
+  return db.transaction(async (tx) => {
+    const [payment] = await tx
+      .select()
+      .from(paymentsTable)
+      .where(eq(paymentsTable.reference, reference));
 
-  if (!payment) {
-    return null;
-  }
+    if (!payment) {
+      return null;
+    }
 
-  // Already processed.
-  if (payment.status === "paid") {
-    return payment;
-  }
+    // A previous webhook/callback already completed this payment.
+    if (payment.status === "paid") {
+      return payment;
+    }
 
-  const [updated] = await db
-    .update(paymentsTable)
-    .set({
-      status: "paid",
-      paidAt: new Date(),
-    })
-    .where(
-      and(
-        eq(paymentsTable.id, payment.id),
-        eq(paymentsTable.status, "pending"),
-      ),
-    )
-    .returning();
+    // The payment transition is guarded at the database level.
+    const [updated] = await tx
+      .update(paymentsTable)
+      .set({
+        status: "paid",
+        paidAt: new Date(),
+      })
+      .where(
+        and(
+          eq(paymentsTable.id, payment.id),
+          eq(paymentsTable.status, "pending"),
+        ),
+      )
+      .returning();
 
-  // Another request may have processed it first.
-  if (!updated) {
-    return payment;
-  }
+    // Another concurrent request won the pending -> paid transition.
+    if (!updated) {
+      const [current] = await tx
+        .select()
+        .from(paymentsTable)
+        .where(eq(paymentsTable.id, payment.id));
 
-  const [project] = await db
-    .select()
-    .from(projectsTable)
-    .where(eq(projectsTable.id, payment.projectId));
+      return current ?? payment;
+    }
 
-  if (project) {
-    await db
+    // The project must still be waiting for payment. Do not allow a paid
+    // payment to move an unrelated/advanced request into in_progress.
+    const [project] = await tx
+      .select()
+      .from(projectsTable)
+      .where(eq(projectsTable.id, payment.projectId));
+
+    if (!project) {
+      throw new Error("Payment project not found");
+    }
+
+    if (project.status !== "agreement_accepted") {
+      throw new Error(
+        `Guarded payment transition rejected: project ${project.id} is ${project.status}, expected agreement_accepted`,
+      );
+    }
+
+    const [updatedProject] = await tx
       .update(projectsTable)
       .set({
         status: "in_progress",
@@ -115,15 +135,22 @@ async function markPaymentPaid(reference: string) {
           eq(projectsTable.id, project.id),
           eq(projectsTable.status, "agreement_accepted"),
         ),
-      );
+      )
+      .returning();
 
-    const [admin] = await db
+    if (!updatedProject) {
+      throw new Error(
+        `Guarded payment transition failed for project ${project.id}`,
+      );
+    }
+
+    const [admin] = await tx
       .select()
       .from(usersTable)
       .where(eq(usersTable.role, "owner"));
 
     if (admin) {
-      await db.insert(messagesTable).values({
+      await tx.insert(messagesTable).values({
         projectId: project.id,
         senderId: admin.id,
         content:
@@ -132,7 +159,7 @@ async function markPaymentPaid(reference: string) {
       });
     }
 
-    await db.insert(notificationsTable).values({
+    await tx.insert(notificationsTable).values({
       userId: project.userId,
       projectId: project.id,
       title: "Payment Successful",
@@ -140,15 +167,15 @@ async function markPaymentPaid(reference: string) {
       type: "payment",
     });
 
-    await db.insert(activityTable).values({
+    await tx.insert(activityTable).values({
       userId: project.userId,
       projectId: project.id,
       type: "status_change",
       description: `Payment received; project moved to in progress (${reference})`,
     });
-  }
 
-  return updated;
+    return updated;
+  });
 }
 
 /**
