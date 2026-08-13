@@ -53,26 +53,68 @@ router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, as
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
     if (project.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
     if (project.status !== "agreement_accepted") { res.status(400).json({ error: "This project is not ready for payment" }); return; }
+
     const [agreement] = await db.select().from(agreementsTable).where(eq(agreementsTable.projectId, projectId));
-    if (!agreement || !agreement.acceptedAt) { res.status(400).json({ error: "Accepted agreement is required before payment" }); return; }
+    if (!agreement || !agreement.acceptedAt || agreement.acceptedByUserId !== req.userId) {
+      res.status(400).json({ error: "Accepted agreement is required before payment" });
+      return;
+    }
+
     const amount = Number(agreement.price);
     if (!Number.isFinite(amount) || amount <= 0) { res.status(400).json({ error: "Invalid agreement price" }); return; }
+
     const [client] = await db.select().from(usersTable).where(eq(usersTable.id, project.userId));
     if (!client?.email) { res.status(400).json({ error: "Client email is required before payment" }); return; }
-    const existing = await db.select().from(paymentsTable).where(and(eq(paymentsTable.projectId, projectId), eq(paymentsTable.gateway, "paystack"), eq(paymentsTable.status, "pending")));
-    let reference = existing[0]?.reference;
-    if (reference) {
-      const result = await finalizeVerifiedPayment(reference);
-      if (result.paid) { res.json(result); return; }
-    } else {
-      reference = `GBX-${project.projectCode}-${Date.now()}`.replace(/[^A-Za-z0-9._-]/g, "-");
-      await db.insert(paymentsTable).values({ projectId, gateway: "paystack", amount: amount.toFixed(2), currency: "NGN", status: "pending", reference });
+
+    // Step 3 creates the payment record when the agreement is accepted.
+    // Initialization must reuse that pending record rather than silently creating another one.
+    const [payment] = await db.select().from(paymentsTable).where(and(
+      eq(paymentsTable.projectId, projectId),
+      eq(paymentsTable.gateway, "paystack"),
+      eq(paymentsTable.status, "pending"),
+    ));
+
+    if (!payment) {
+      res.status(409).json({ error: "Pending payment record not found. Please accept the agreement again to create a payment." });
+      return;
     }
-    const response = await fetch(`${PAYSTACK_API}/transaction/initialize`, { method: "POST", headers: { Authorization: `Bearer ${secretKey()}`, "Content-Type": "application/json" }, body: JSON.stringify({ amount: Math.round(amount * 100), currency: "NGN", reference, email: client.email, metadata: { projectId, projectCode: project.projectCode } }) });
+
+    if (Number(payment.amount) !== amount || payment.currency !== "NGN") {
+      res.status(409).json({ error: "Payment amount does not match the accepted agreement" });
+      return;
+    }
+
+    const response = await fetch(`${PAYSTACK_API}/transaction/initialize`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secretKey()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: Math.round(Number(payment.amount) * 100),
+        currency: payment.currency,
+        reference: payment.reference,
+        email: client.email,
+        metadata: {
+          projectId,
+          projectCode: project.projectCode,
+          paymentId: payment.id,
+        },
+      }),
+    });
     const data = await response.json() as any;
-    if (!response.ok || !data?.status) { res.status(502).json({ error: data?.message || "Unable to initialize Paystack payment" }); return; }
-    res.status(201).json({ authorization_url: data.data.authorization_url, access_code: data.data.access_code, reference });
-  } catch (error) { console.error("Paystack initialization error", error); res.status(500).json({ error: "Unable to initialize payment" }); }
+    if (!response.ok || !data?.status) {
+      res.status(502).json({ error: data?.message || "Unable to initialize Paystack payment" });
+      return;
+    }
+
+    res.status(201).json({
+      authorization_url: data.data.authorization_url,
+      access_code: data.data.access_code,
+      reference: payment.reference,
+      paymentId: payment.id,
+    });
+  } catch (error) {
+    console.error("Paystack initialization error", error);
+    res.status(500).json({ error: "Unable to initialize payment" });
+  }
 });
 
 router.get("/payments/:reference", requireAuth, async (req, res): Promise<void> => {
