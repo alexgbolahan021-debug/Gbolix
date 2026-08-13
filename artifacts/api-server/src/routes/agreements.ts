@@ -39,6 +39,7 @@ router.get("/:agreementId", requireAuth, async (req, res): Promise<void> => {
   res.json({
     ...agreement,
     projectTitle: project.title,
+    projectCode: project.projectCode,
     serviceType: project.serviceType,
     clientName: client?.name ?? "Client",
   });
