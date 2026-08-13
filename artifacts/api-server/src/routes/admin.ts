@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, projectsTable, filesTable, activityTable, messagesTable, notificationsTable, projectAssignmentsTable } from "@workspace/db";
-import { eq, count, sql, and, inArray } from "drizzle-orm";
+import { db, usersTable, projectsTable, filesTable, activityTable, messagesTable, notificationsTable, projectAssignmentsTable, paymentsTable } from "@workspace/db";
+import { eq, count, sql, and, inArray, desc } from "drizzle-orm";
 import { requireAdmin, requireOwner } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -51,7 +51,12 @@ router.get("/projects", requireAdmin, async (req, res): Promise<void> => {
   const projects = await db.select({ id: projectsTable.id, projectCode: projectsTable.projectCode, title: projectsTable.title, serviceType: projectsTable.serviceType, description: projectsTable.description, requirements: projectsTable.requirements, status: projectsTable.status, priority: projectsTable.priority, price: projectsTable.price, internalNotes: projectsTable.internalNotes, hasConversation: projectsTable.hasConversation, clientName: usersTable.name, clientEmail: usersTable.email, createdAt: projectsTable.createdAt, updatedAt: projectsTable.updatedAt, userId: projectsTable.userId }).from(projectsTable).innerJoin(usersTable, eq(projectsTable.userId, usersTable.id)).orderBy(sql`${projectsTable.createdAt} DESC`);
   const filtered = projects.filter(p => !status || p.status === status).filter(p => !priority || p.priority === priority); const projectIds = filtered.map(p => p.id); let assignmentMap = new Map<number, { id: number; name: string }[]>();
   if (projectIds.length > 0) { const assignments = await db.select({ projectId: projectAssignmentsTable.projectId, freelancerId: usersTable.id, freelancerName: usersTable.name }).from(projectAssignmentsTable).innerJoin(usersTable, eq(projectAssignmentsTable.freelancerId, usersTable.id)).where(inArray(projectAssignmentsTable.projectId, projectIds)); for (const a of assignments) { if (!assignmentMap.has(a.projectId)) assignmentMap.set(a.projectId, []); assignmentMap.get(a.projectId)!.push({ id: a.freelancerId, name: a.freelancerName }); } }
-  res.json(filtered.map(p => ({ id: p.id, projectCode: p.projectCode, title: p.title, serviceType: p.serviceType, description: p.description, requirements: p.requirements, status: p.status, priority: p.priority, price: p.price !== null ? parseFloat(p.price) : null, internalNotes: p.internalNotes, hasConversation: p.hasConversation, clientName: p.clientName, clientEmail: p.clientEmail, assignedFreelancers: assignmentMap.get(p.id) ?? [], createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString() })));
+  const paymentRows = projectIds.length > 0
+    ? await db.select({ projectId: paymentsTable.projectId, status: paymentsTable.status }).from(paymentsTable).where(inArray(paymentsTable.projectId, projectIds)).orderBy(desc(paymentsTable.createdAt))
+    : [];
+  const paymentMap = new Map<number, string>();
+  for (const payment of paymentRows) if (!paymentMap.has(payment.projectId)) paymentMap.set(payment.projectId, payment.status);
+  res.json(filtered.map(p => ({ id: p.id, projectCode: p.projectCode, title: p.title, serviceType: p.serviceType, description: p.description, requirements: p.requirements, status: p.status, paymentStatus: paymentMap.get(p.id) ?? null, priority: p.priority, price: p.price !== null ? parseFloat(p.price) : null, internalNotes: p.internalNotes, hasConversation: p.hasConversation, clientName: p.clientName, clientEmail: p.clientEmail, assignedFreelancers: assignmentMap.get(p.id) ?? [], createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString() })));
 });
 
 router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
