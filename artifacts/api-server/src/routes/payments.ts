@@ -20,7 +20,7 @@ async function markPaymentPaid(reference: string) {
   if (!updated) return payment;
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, payment.projectId));
   if (project) {
-    await db.update(projectsTable).set({ status: "in_progress" }).where(and(eq(projectsTable.id, project.id), eq(projectsTable.status, "payment_pending")));
+    await db.update(projectsTable).set({ status: "in_progress" }).where(and(eq(projectsTable.id, project.id), eq(projectsTable.status, "agreement_accepted")));
     const [admin] = await db.select().from(usersTable).where(eq(usersTable.role, "owner"));
     if (admin) await db.insert(messagesTable).values({ projectId: project.id, senderId: admin.id, content: "Payment received successfully. Your project is now in progress. We'll keep you updated here as work begins.", isRead: false });
     await db.insert(notificationsTable).values({ userId: project.userId, projectId: project.id, title: "Payment Successful", message: `Payment received for "${project.title}". Your project is now in progress.`, type: "payment" });
@@ -52,7 +52,7 @@ router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, as
     const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
     if (!project) { res.status(404).json({ error: "Project not found" }); return; }
     if (project.userId !== req.userId) { res.status(403).json({ error: "Forbidden" }); return; }
-    if (project.status !== "payment_pending") { res.status(400).json({ error: "This project is not awaiting payment" }); return; }
+    if (project.status !== "agreement_accepted") { res.status(400).json({ error: "This project is not ready for payment" }); return; }
     const [agreement] = await db.select().from(agreementsTable).where(eq(agreementsTable.projectId, projectId));
     if (!agreement || !agreement.acceptedAt) { res.status(400).json({ error: "Accepted agreement is required before payment" }); return; }
     const amount = Number(agreement.price);
