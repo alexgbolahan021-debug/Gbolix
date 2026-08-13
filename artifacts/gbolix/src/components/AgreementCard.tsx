@@ -77,9 +77,9 @@ export function AgreementCard({ agreement, canAccept, onChanged }: { agreement: 
 
         <div className="flex flex-col gap-3 border-t border-border px-5 py-4 md:flex-row md:items-center md:justify-between md:px-7">
           <div><p className="text-xs text-muted-foreground">Total Price</p><p className="text-xl font-bold text-primary">${current.price}</p></div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row print:hidden"><Button variant="outline" onClick={downloadPdf} className="h-10 gap-2 sm:min-w-40"><Download size={16} /> Download PDF</Button>{canAccept && !accepted && <Button onClick={accept} disabled={loading} className="h-10 gap-2 font-semibold sm:min-w-48">{loading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}{loading ? "Accepting..." : "Accept & Continue"}</Button>}</div></div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row print:hidden"><Button variant="outline" onClick={downloadPdf} className="h-10 gap-2 sm:min-w-40"><Download size={16} /> Download PDF</Button>{canAccept && !accepted && <Button onClick={accept} disabled={loading} className="h-10 gap-2 font-semibold sm:min-w-48">{loading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}{loading ? "Preparing Secure Payment..." : "Accept & Continue to Secure Payment"}</Button>}</div></div>
 
-        {accepted && <div className="border-t border-emerald-500/20 bg-emerald-500/5 px-5 py-3 text-sm text-emerald-300 md:px-7">Agreement accepted. The project can now continue to the next workflow step.</div>}
+        {accepted && <div className="border-t border-emerald-500/20 bg-emerald-500/5 px-5 py-3 text-sm text-emerald-300 md:px-7">Agreement accepted. Continue to secure payment to start the project.</div>}
       </div>
     </div>
   );
