@@ -61,7 +61,7 @@ function NotificationDot({ count }: { count: number }) {
   );
 }
 
-export function ClientLayout({ children }: { children: React.ReactNode }) {
+export function ClientLayout({ children, printable = false }: { children: React.ReactNode; printable?: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [location] = useLocation();
@@ -99,10 +99,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const profileHref = isFreelancer ? "/profile" : "/profile";
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className={`flex h-screen bg-background overflow-hidden ${printable ? "print:h-auto print:overflow-visible" : ""}`}>
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          className="fixed inset-0 bg-black/50 z-30 md:hidden print:hidden"
           onClick={() => setMobileOpen(false)}
           data-testid="sidebar-backdrop"
         />
@@ -112,6 +112,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border bg-sidebar transition-all duration-300 w-64
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
           md:relative md:translate-x-0 ${collapsed ? "md:w-16" : "md:w-64"}
+          ${printable ? "print:hidden" : ""}
         `}
       >
         <div className="flex items-center justify-between h-16 px-3 border-b border-border shrink-0">
@@ -231,8 +232,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         </button>
       </aside>
 
-      <main className="flex-1 overflow-auto relative">
-        <div className="md:hidden flex items-center justify-between h-14 px-3 border-b border-border bg-background sticky top-0 z-20">
+      <main className={`flex-1 overflow-auto relative ${printable ? "print:overflow-visible print:w-full" : ""}`}>
+        <div className="md:hidden flex items-center justify-between h-14 px-3 border-b border-border bg-background sticky top-0 z-20 print:hidden">
           <button
             onClick={() => setMobileOpen(true)}
             className="p-2 rounded-md hover:bg-accent"
@@ -253,7 +254,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        <div className="hidden md:block absolute top-4 right-4 z-20">
+        <div className="hidden md:block absolute top-4 right-4 z-20 print:hidden">
           <Link href="/messages">
             <button className="relative p-2 rounded-full bg-card border border-border hover:bg-accent transition-colors">
               <Bell size={16} />
