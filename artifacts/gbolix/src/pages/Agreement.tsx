@@ -29,15 +29,15 @@ export default function AgreementPage() {
     return () => { cancelled = true; };
   }, [agreementId]);
 
-  return <ClientLayout>
-    <div className="min-h-full overflow-y-auto">
-      <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 md:py-10">
+  return <ClientLayout printable>
+    <div className="min-h-full overflow-y-auto print:min-h-0 print:overflow-visible">
+      <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-8 md:py-10 print:max-w-none print:px-0 print:py-0">
         <Button variant="ghost" onClick={() => navigate("/messages")} className="mb-6 gap-2 px-0 hover:bg-transparent hover:text-primary print:hidden">
           <ArrowLeft size={16}/> Back to Messages
         </Button>
 
-        {loading && <div className="flex min-h-48 items-center justify-center text-muted-foreground"><Loader2 size={22} className="animate-spin"/></div>}
-        {!loading && error && <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
+        {loading && <div className="flex min-h-48 items-center justify-center text-muted-foreground print:hidden"><Loader2 size={22} className="animate-spin"/></div>}
+        {!loading && error && <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive print:hidden">{error}</div>}
         {!loading && !error && agreement && <AgreementCard agreement={agreement} canAccept={canAccept} onChanged={(updated, nextStep) => { setAgreement(updated); if (nextStep === "payment") navigate("/messages"); }} />}
       </div>
     </div>
