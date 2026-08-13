@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, FileSignature, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Button } from "@/components/ui/button";
 import { AgreementCard, type Agreement } from "@/components/AgreementCard";
@@ -35,11 +35,6 @@ export default function AgreementPage() {
         <Button variant="ghost" onClick={() => navigate("/messages")} className="mb-6 gap-2 px-0 hover:bg-transparent hover:text-primary print:hidden">
           <ArrowLeft size={16}/> Back to Messages
         </Button>
-
-        <div className="mb-7 flex items-start gap-3 print:mb-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"><FileSignature size={20}/></div>
-          <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Gbolix Agreement</p><h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">Review your project agreement</h1><p className="mt-1 text-sm text-muted-foreground">Review the agreement overview below before accepting.</p></div>
-        </div>
 
         {loading && <div className="flex min-h-48 items-center justify-center text-muted-foreground"><Loader2 size={22} className="animate-spin"/></div>}
         {!loading && error && <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
