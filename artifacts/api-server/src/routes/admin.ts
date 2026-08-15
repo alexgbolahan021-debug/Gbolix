@@ -15,6 +15,9 @@ import { requireAdmin, requireOwner } from "../middlewares/requireAuth";
 
 const router = Router();
 
+const NEED_INFO_MESSAGE =
+  "We have reviewed your request. We need some additional information before we can proceed. Please check your request conversation; our team will send the required details there shortly.";
+
 function formatAdminUser(
   u: typeof usersTable.$inferSelect,
   totalRequests = 0,
@@ -454,7 +457,7 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
 
 router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id as string);
-  const { action, infoMessage } = req.body;
+  const { action } = req.body;
 
   if (!["approve", "request_info", "decline"].includes(action)) {
     res.status(400).json({ error: "Invalid review action" });
@@ -471,16 +474,6 @@ router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void
     return;
   }
 
-  if (
-    action === "request_info" &&
-    !String(infoMessage ?? "").trim()
-  ) {
-    res.status(400).json({
-      error: "Information request message is required",
-    });
-    return;
-  }
-
   const status =
     action === "approve"
       ? "approved"
@@ -492,7 +485,7 @@ router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void
     action === "approve"
       ? "Great news! We have reviewed your request and we are ready to proceed with your project."
       : action === "request_info"
-        ? `Great news! We have reviewed your request, but we need some additional information before we can proceed.\n\n${String(infoMessage).trim()}`
+        ? NEED_INFO_MESSAGE
         : "We have reviewed your request and are unable to proceed with it at this time. You can submit a new request if you would like us to review a revised project request.";
 
   const alreadyHandled = project.status !== "pending_review";
@@ -511,9 +504,6 @@ router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void
     .set({
       status,
       hasConversation: shouldOpenConversation,
-      ...(action === "request_info"
-        ? { internalNotes: String(infoMessage).trim() }
-        : {}),
     })
     .where(eq(projectsTable.id, id));
 
