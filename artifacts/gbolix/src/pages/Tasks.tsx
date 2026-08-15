@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
 import { useListProjects } from "@workspace/api-client-react";
-import { getListProjectsQueryKey } from "@workspace/api-client-react";
+import { customFetch, getListProjectsQueryKey } from "@workspace/api-client-react";
 import { Plus, ChevronRight, CreditCard, Loader2 } from "lucide-react";
 
 const requestStatusColor: Record<string, string> = {
@@ -61,10 +61,12 @@ type ProjectWithPaymentStatus = {
   paymentStatus?: string | null;
 };
 
-// Keep direct payment requests on the same API server used by the generated API client.
-// VITE_API_URL is the API origin (for example, the Render API URL), while the
-// Express server exposes the payment endpoint under /api.
-const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+type PaymentInitialization = {
+  authorization_url?: string;
+  access_code?: string;
+  reference?: string;
+  paymentId?: number;
+};
 
 export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -90,32 +92,16 @@ export default function Tasks() {
     setPaymentError(null);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/projects/${projectId}/payments/paystack/initialize`,
+      // Use the shared API client so the request gets both the Render API base
+      // URL and the Clerk bearer token configured by App.tsx.
+      const data = await customFetch<PaymentInitialization>(
+        `/api/projects/${projectId}/payments/paystack/initialize`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          responseType: "json",
         },
       );
-
-      const contentType = response.headers.get("content-type") ?? "";
-      const responseText = await response.text();
-      let data: any = null;
-
-      if (responseText.trim()) {
-        if (contentType.includes("application/json")) {
-          data = JSON.parse(responseText);
-        } else {
-          throw new Error(
-            `Payment server returned an unexpected response (HTTP ${response.status}). Please try again.`,
-          );
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(data?.error || "Unable to start payment");
-      }
 
       if (!data?.authorization_url) {
         throw new Error("Paystack did not return a checkout URL. Please try again.");
@@ -163,7 +149,7 @@ export default function Tasks() {
           </Select>
 
           <Select value={serviceFilter} onValueChange={setServiceFilter}>
-            <SelectTrigger className="w-48 h-9 text-sm" data-testid="select-service-filter">
+            <SelectTrigger className="w-48 h-9 text-sm" data-testid="select-status-filter">
               <SelectValue placeholder="Service Type" />
             </SelectTrigger>
             <SelectContent>
