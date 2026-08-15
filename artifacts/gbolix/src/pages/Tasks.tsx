@@ -7,7 +7,6 @@ import { Link } from "wouter";
 import { useListProjects } from "@workspace/api-client-react";
 import { getListProjectsQueryKey } from "@workspace/api-client-react";
 import { Plus, ChevronRight, CreditCard, Loader2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
 const requestStatusColor: Record<string, string> = {
   submitted: "bg-muted text-muted-foreground",
@@ -62,6 +61,11 @@ type ProjectWithPaymentStatus = {
   paymentStatus?: string | null;
 };
 
+// Keep direct payment requests on the same API server used by the generated API client.
+// VITE_API_URL is the API origin (for example, the Render API URL), while the
+// Express server exposes the payment endpoint under /api.
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+
 export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
@@ -84,14 +88,39 @@ export default function Tasks() {
   const startPayment = async (projectId: number) => {
     setPayingProjectId(projectId);
     setPaymentError(null);
+
     try {
-      const response = await fetch(`/api/projects/${projectId}/payments/paystack/initialize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to start payment");
-      if (!data.authorization_url) throw new Error("Paystack did not return a checkout URL. Please try again.");
+      const response = await fetch(
+        `${API_BASE_URL}/api/projects/${projectId}/payments/paystack/initialize`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        },
+      );
+
+      const contentType = response.headers.get("content-type") ?? "";
+      const responseText = await response.text();
+      let data: any = null;
+
+      if (responseText.trim()) {
+        if (contentType.includes("application/json")) {
+          data = JSON.parse(responseText);
+        } else {
+          throw new Error(
+            `Payment server returned an unexpected response (HTTP ${response.status}). Please try again.`,
+          );
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to start payment");
+      }
+
+      if (!data?.authorization_url) {
+        throw new Error("Paystack did not return a checkout URL. Please try again.");
+      }
+
       window.location.assign(data.authorization_url);
     } catch (error) {
       setPaymentError(error instanceof Error ? error.message : "Unable to start payment");
