@@ -339,13 +339,8 @@ router.get("/projects", requireAdmin, async (req, res): Promise<void> => {
       serviceType: p.serviceType,
       description: p.description,
       requirements: p.requirements,
-
-      // Request/project status.
       status: p.status,
-
-      // Payment status is intentionally separate.
       paymentStatus: paymentMap.get(p.id) ?? null,
-
       priority: p.priority,
       price: p.price !== null ? parseFloat(p.price) : null,
       internalNotes: p.internalNotes,
@@ -378,8 +373,6 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
     paymentStatus,
   } = req.body;
 
-  // Payment status cannot be manually changed through the
-  // project update endpoint.
   if (paymentStatus !== undefined) {
     res.status(400).json({
       error:
@@ -388,8 +381,6 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
     return;
   }
 
-  // These are payment states, not project/request states.
-  // They must never be written into projectsTable.status.
   if (status === "payment_pending" || status === "paid") {
     res.status(400).json({
       error:
@@ -410,21 +401,10 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
 
   const updates: Record<string, unknown> = {};
 
-  if (status !== undefined) {
-    updates.status = status;
-  }
-
-  if (priority !== undefined) {
-    updates.priority = priority;
-  }
-
-  if (internalNotes !== undefined) {
-    updates.internalNotes = internalNotes;
-  }
-
-  if (price !== undefined) {
-    updates.price = price;
-  }
+  if (status !== undefined) updates.status = status;
+  if (priority !== undefined) updates.priority = priority;
+  if (internalNotes !== undefined) updates.internalNotes = internalNotes;
+  if (price !== undefined) updates.price = price;
 
   const [updated] = await db
     .update(projectsTable)
@@ -454,7 +434,7 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
 
 router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id as string);
-  const { action, infoMessage } = req.body;
+  const { action } = req.body;
 
   if (!["approve", "request_info", "decline"].includes(action)) {
     res.status(400).json({ error: "Invalid review action" });
@@ -471,16 +451,6 @@ router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void
     return;
   }
 
-  if (
-    action === "request_info" &&
-    !String(infoMessage ?? "").trim()
-  ) {
-    res.status(400).json({
-      error: "Information request message is required",
-    });
-    return;
-  }
-
   const status =
     action === "approve"
       ? "approved"
@@ -492,7 +462,7 @@ router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void
     action === "approve"
       ? "Great news! We have reviewed your request and we are ready to proceed with your project."
       : action === "request_info"
-        ? `Great news! We have reviewed your request, but we need some additional information before we can proceed.\n\n${String(infoMessage).trim()}`
+        ? "We have reviewed your request and need some additional information before we can proceed. Please check this request conversation for the details we need and reply there."
         : "We have reviewed your request and are unable to proceed with it at this time. You can submit a new request if you would like us to review a revised project request.";
 
   const alreadyHandled = project.status !== "pending_review";
@@ -511,9 +481,6 @@ router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void
     .set({
       status,
       hasConversation: shouldOpenConversation,
-      ...(action === "request_info"
-        ? { internalNotes: String(infoMessage).trim() }
-        : {}),
     })
     .where(eq(projectsTable.id, id));
 
@@ -587,16 +554,3 @@ router.post("/projects/:id/start-conversation", requireAdmin, async (req, res): 
     .update(projectsTable)
     .set({ hasConversation: true })
     .where(eq(projectsTable.id, id));
-
-  await db.insert(notificationsTable).values({
-    userId: project.userId,
-    projectId: id,
-    title: "Conversation Started",
-    message: `A conversation has been started for your project "${project.title}"`,
-    type: "message",
-  });
-
-  res.json({ ok: true });
-});
-
-export default router;
