@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, projectsTable, activityTable, usersTable, notificationsTable, paymentsTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { db, projectsTable, activityTable, usersTable, notificationsTable, paymentsTable, messagesTable } from "@workspace/db";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { randomBytes } from "crypto";
 
@@ -29,9 +29,60 @@ router.get("/", requireAuth, async (req, res): Promise<void> => {
   const conditions = [eq(projectsTable.userId, userId)];
   if (status && typeof status === "string") conditions.push(eq(projectsTable.status, status as any));
   if (serviceType && typeof serviceType === "string") conditions.push(eq(projectsTable.serviceType, serviceType as any));
+
   const projects = await db.select().from(projectsTable).where(and(...conditions)).orderBy(sql`${projectsTable.createdAt} DESC`);
+  const projectIds = projects.map(project => project.id);
+
+  const messageRows = projectIds.length
+    ? await db
+        .select({
+          projectId: messagesTable.projectId,
+          senderId: messagesTable.senderId,
+          content: messagesTable.content,
+          fileName: messagesTable.fileName,
+          isRead: messagesTable.isRead,
+          createdAt: messagesTable.createdAt,
+        })
+        .from(messagesTable)
+        .where(inArray(messagesTable.projectId, projectIds))
+        .orderBy(sql`${messagesTable.createdAt} DESC`)
+    : [];
+
+  const messageMeta = new Map<number, {
+    latestMessageAt: Date | null;
+    latestMessagePreview: string;
+    unreadMessageCount: number;
+  }>();
+
+  for (const row of messageRows) {
+    const current = messageMeta.get(row.projectId) ?? {
+      latestMessageAt: null,
+      latestMessagePreview: "",
+      unreadMessageCount: 0,
+    };
+
+    if (!current.latestMessageAt) {
+      current.latestMessageAt = row.createdAt;
+      current.latestMessagePreview = row.content?.trim() || (row.fileName ? `📎 ${row.fileName}` : "New message");
+    }
+
+    if (!row.isRead && row.senderId !== userId) {
+      current.unreadMessageCount += 1;
+    }
+
+    messageMeta.set(row.projectId, current);
+  }
+
   const formatted = await Promise.all(projects.map(formatProject));
-  res.json(formatted);
+  res.json(formatted.map(project => {
+    const meta = messageMeta.get(project.id);
+    return {
+      ...project,
+      latestMessageAt: meta?.latestMessageAt?.toISOString() ?? null,
+      latestMessagePreview: meta?.latestMessagePreview ?? "",
+      unreadMessageCount: meta?.unreadMessageCount ?? 0,
+    };
+  }));
 });
 
 // POST /api/projects
