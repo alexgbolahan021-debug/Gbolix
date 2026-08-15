@@ -91,8 +91,6 @@ export default function AdminProjects() {
   const [editStatus, setEditStatus] = useState("");
   const [editPriority, setEditPriority] = useState("");
   const [editNotes, setEditNotes] = useState("");
-  const [infoDialog, setInfoDialog] = useState(false);
-  const [infoMessage, setInfoMessage] = useState("");
   const [conversationDialog, setConversationDialog] = useState(false);
   const [offerDialog, setOfferDialog] = useState(false);
   const [offerProject, setOfferProject] = useState<AdminProject | null>(null);
@@ -159,7 +157,7 @@ export default function AdminProjects() {
   };
 
   const handleReview = async (action: "approve" | "request_info" | "decline") => {
-    if (!viewingProject || (action === "request_info" && !infoMessage.trim())) return;
+    if (!viewingProject) return;
     try {
       const data = await customFetch<{ status: string; hasConversation: boolean }>(
         apiUrl(`/admin/projects/${viewingProject.id}/review`),
@@ -167,17 +165,15 @@ export default function AdminProjects() {
           method: "POST",
           responseType: "json",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action, infoMessage: infoMessage.trim() }),
+          body: JSON.stringify({ action }),
         },
       );
       refresh();
       const updated = { ...viewingProject, status: data.status, hasConversation: action !== "decline" };
       setViewingProject(updated);
-      setInfoDialog(false);
-      setInfoMessage("");
       toast({
         title: action === "approve" ? "Request approved" : action === "request_info" ? "More information requested" : "Request declined",
-        description: action === "decline" ? "The request was declined without opening a conversation." : "The review message has been sent to the client.",
+        description: action === "decline" ? "The request was declined without opening a conversation." : "The client has been notified. Continue in the request chat to provide the specific details needed.",
       });
       if (action === "approve") openOffer(updated);
       if (action === "request_info") setConversationDialog(true);
@@ -299,14 +295,12 @@ export default function AdminProjects() {
                 <div className="flex flex-wrap items-center gap-2"><Badge className={statusColor[viewingProject.status] ?? "bg-muted text-muted-foreground"}>{statusLabel[viewingProject.status] ?? viewingProject.status}</Badge>{viewingProject.paymentStatus && <Badge className={paymentStatusColor[viewingProject.paymentStatus] ?? "bg-muted text-muted-foreground"}>{paymentStatusLabel[viewingProject.paymentStatus] ?? viewingProject.paymentStatus}</Badge>}<span className="font-semibold text-primary">{viewingProject.price ? `$${viewingProject.price}` : "—"}</span></div>
               </div>
               <div className="border-t border-border pt-5 space-y-4"><Detail label="Service" value={viewingProject.serviceType} /><Detail label="Request date" value={new Date(viewingProject.createdAt).toLocaleString()} /><Detail label="Complete requirements" value={formatRequirements(viewingProject.requirements, viewingProject.description)} />{viewingProject.requirements?.attached_files?.length > 0 && <div><p className="text-xs font-medium text-muted-foreground mb-1">Files</p><div className="space-y-1">{viewingProject.requirements.attached_files.map((name: string) => <div key={name} className="flex items-center gap-2 text-sm"><FileText size={14} className="text-primary" />{name}</div>)}</div></div>}</div>
-              {viewingProject.status === "pending_review" && <div className="border-t border-border pt-5"><p className="text-sm font-semibold mb-3">Review request</p><div className="grid grid-cols-1 sm:grid-cols-3 gap-2"><Button onClick={() => handleReview("approve")} disabled={updateMutation.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><Check size={15} /> Approve</Button><Button variant="outline" onClick={() => setInfoDialog(true)} disabled={updateMutation.isPending} className="gap-2"><Info size={15} /> Need More Information</Button><Button variant="outline" onClick={() => handleReview("decline")} disabled={updateMutation.isPending} className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-2"><X size={15} /> Decline</Button></div></div>}
+              {viewingProject.status === "pending_review" && <div className="border-t border-border pt-5"><p className="text-sm font-semibold mb-3">Review request</p><div className="grid grid-cols-1 sm:grid-cols-3 gap-2"><Button onClick={() => handleReview("approve")} disabled={updateMutation.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><Check size={15} /> Approve</Button><Button variant="outline" onClick={() => handleReview("request_info")} disabled={updateMutation.isPending} className="gap-2"><Info size={15} /> Need More Information</Button><Button variant="outline" onClick={() => handleReview("decline")} disabled={updateMutation.isPending} className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-2"><X size={15} /> Decline</Button></div></div>}
               {viewingProject.status === "approved" && <Button onClick={() => openOffer(viewingProject)} className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><FileSignature size={15} /> Create Offer</Button>}
               {viewingProject.status === "needs_info" && <div className="border-t border-border pt-5"><Button onClick={openConversation} className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><MessageSquare size={15} /> Open Chat</Button></div>}
             </div>}
           </DialogContent>
         </Dialog>
-
-        <Dialog open={infoDialog} onOpenChange={setInfoDialog}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Request More Information</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">Tell the client exactly what information is missing. They will receive this message in the request conversation.</p><Textarea value={infoMessage} onChange={e => setInfoMessage(e.target.value)} placeholder="Example: Please provide your current CRM name and the email account you want the automation connected to." rows={6} /><div className="flex gap-2"><Button variant="outline" onClick={() => setInfoDialog(false)} className="flex-1">Cancel</Button><Button onClick={() => handleReview("request_info")} disabled={!infoMessage.trim() || updateMutation.isPending} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">Send Request</Button></div></DialogContent></Dialog>
 
         <Dialog open={conversationDialog} onOpenChange={setConversationDialog}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Open Chat</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">The information request has been sent. Open the request chat to continue collecting the missing details from the client.</p><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setConversationDialog(false)} className="flex-1">Close</Button><Button onClick={openConversation} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><MessageSquare size={15} /> Open Chat</Button></div></DialogContent></Dialog>
 
