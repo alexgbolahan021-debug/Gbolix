@@ -12,6 +12,9 @@ type VerificationResult = {
   error?: string;
 };
 
+const MAX_ATTEMPTS = 6;
+const RETRY_DELAY_MS = 2000;
+
 export default function PaymentCallback() {
   const [, navigate] = useLocation();
   const [state, setState] = useState<"checking" | "paid" | "pending" | "failed">("checking");
@@ -26,29 +29,60 @@ export default function PaymentCallback() {
     }
 
     let cancelled = false;
-    customFetch<VerificationResult>(`/api/payments/paystack/verify/${encodeURIComponent(reference)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      responseType: "json",
-    })
-      .then(result => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const verifyPayment = async (attempt: number) => {
+      try {
+        const result = await customFetch<VerificationResult>(
+          `/api/payments/paystack/verify/${encodeURIComponent(reference)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            responseType: "json",
+          },
+        );
+
         if (cancelled) return;
+
         if (result.paid) {
           setState("paid");
           setMessage("Payment confirmed successfully. Your project is now in progress.");
-        } else {
-          setState("pending");
-          setMessage("Paystack has not confirmed this payment yet. You can return to your project and try again if needed.");
+          return;
         }
-      })
-      .catch(error => {
+
+        if (attempt < MAX_ATTEMPTS) {
+          setMessage("Payment received. Waiting for Paystack confirmation...");
+          timer = setTimeout(() => verifyPayment(attempt + 1), RETRY_DELAY_MS);
+          return;
+        }
+
+        setState("pending");
+        setMessage("Your payment has not been confirmed yet. Please wait a moment and check again, or return to your tasks.");
+      } catch (error) {
         if (cancelled) return;
+
+        if (attempt < MAX_ATTEMPTS) {
+          setMessage("Still confirming your payment...");
+          timer = setTimeout(() => verifyPayment(attempt + 1), RETRY_DELAY_MS);
+          return;
+        }
+
         setState("failed");
         setMessage(error instanceof Error ? error.message : "We could not confirm the payment. Please try again.");
-      });
+      }
+    };
 
-    return () => { cancelled = true; };
+    verifyPayment(1);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, []);
+
+  const retry = () => {
+    window.location.reload();
+  };
 
   return (
     <ClientLayout>
@@ -57,9 +91,22 @@ export default function PaymentCallback() {
           {state === "checking" && <Loader2 size={48} className="mx-auto mb-5 animate-spin text-primary" />}
           {state === "paid" && <CheckCircle2 size={48} className="mx-auto mb-5 text-emerald-400" />}
           {(state === "pending" || state === "failed") && <XCircle size={48} className="mx-auto mb-5 text-destructive" />}
-          <h1 className="text-2xl font-bold">{state === "checking" ? "Confirming Payment" : state === "paid" ? "Payment Successful" : state === "pending" ? "Payment Not Yet Confirmed" : "Payment Confirmation Failed"}</h1>
+          <h1 className="text-2xl font-bold">
+            {state === "checking"
+              ? "Confirming Payment"
+              : state === "paid"
+                ? "Payment Successful"
+                : state === "pending"
+                  ? "Payment Not Yet Confirmed"
+                  : "Payment Confirmation Failed"}
+          </h1>
           <p className="mt-3 text-sm text-muted-foreground">{message}</p>
-          {state !== "checking" && <div className="mt-6 flex justify-center gap-3"><Button onClick={() => navigate("/dashboard")}>Go to Dashboard</Button>{state !== "paid" && <Button variant="outline" onClick={() => navigate("/messages")}>Return to Project</Button>}</div>}
+          {state !== "checking" && (
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Button onClick={() => navigate("/tasks")}>Go to Tasks</Button>
+              {state !== "paid" && <Button variant="outline" onClick={retry}>Check Again</Button>}
+            </div>
+          )}
         </div>
       </div>
     </ClientLayout>
