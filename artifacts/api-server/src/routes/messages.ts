@@ -3,6 +3,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { db, messagesTable, projectsTable, usersTable, activityTable, notificationsTable } from "@workspace/db";
 import { eq, sql, and, ne } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
+import crypto from "crypto";
 
 const router = Router({ mergeParams: true });
 
@@ -36,7 +37,7 @@ router.get("/", requireAuth, async (req, res): Promise<void> => {
   const messages = await db.select({ id: messagesTable.id, projectId: messagesTable.projectId, senderId: messagesTable.senderId, senderName: usersTable.name, senderRole: usersTable.role, content: messagesTable.content, fileUrl: messagesTable.fileUrl, fileName: messagesTable.fileName, fileMimeType: messagesTable.fileMimeType, isRead: messagesTable.isRead, createdAt: messagesTable.createdAt }).from(messagesTable).innerJoin(usersTable, eq(messagesTable.senderId, usersTable.id)).where(eq(messagesTable.projectId, projectId)).orderBy(sql`${messagesTable.createdAt} ASC`);
   res.json(messages.map(m => ({
     ...m,
-    fileUrl: m.fileUrl && m.fileUrl.startsWith("/") ? `${getPublicFileUrl(req, m.fileUrl.split("/").pop() ?? "")}` : m.fileUrl,
+    fileUrl: m.fileUrl && m.fileUrl.startsWith("/") ? getPublicFileUrl(req, m.fileUrl.split("/").pop() ?? "") : m.fileUrl,
     createdAt: m.createdAt.toISOString(),
   })));
 });
