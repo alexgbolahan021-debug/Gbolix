@@ -8,7 +8,7 @@ import { useAdminListUsers, useAdminGetUser, useAdminChangeUserRole, useAdminDea
 import { getAdminListUsersQueryKey, getAdminGetUserQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetMe } from "@workspace/api-client-react";
-import { Search, Users, X, Mail, Phone, Globe, Building2, MapPin, Calendar, FolderOpen, MessageSquare, Files, Activity, Shield, CheckCircle, XCircle } from "lucide-react";
+import { Search, Users, X, Mail, Phone, Globe, Languages, Building2, MapPin, Calendar, FolderOpen, MessageSquare, Files, Activity, Shield, CheckCircle, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -259,6 +259,7 @@ export default function AdminUsers() {
                       { icon: Globe, label: "Website", value: userDetail.website ?? "—" },
                       { icon: Building2, label: "Company", value: userDetail.companyName ?? "—" },
                       { icon: MapPin, label: "Location", value: [userDetail.city, userDetail.country].filter(Boolean).join(", ") || "—" },
+                      { icon: Languages, label: "Language", value: userDetail.language ?? "—" },
                     ].map(item => {
                       const Icon = item.icon;
                       return (

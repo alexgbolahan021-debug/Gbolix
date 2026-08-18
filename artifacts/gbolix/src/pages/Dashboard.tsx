@@ -84,7 +84,7 @@ export default function Dashboard() {
   const { data: allProjects, isLoading: projectsLoading } = useListProjects({
     query: { queryKey: getListProjectsQueryKey() }
   });
-  const projects = allProjects?.filter(p => p.status === "in_progress" || p.status === "review" || p.status === "agreement_accepted");
+  const projects = allProjects?.filter(p => p.status === "in_progress" || p.status === "review" || (p.status as string) === "agreement_accepted");
   const { data: profile } = useGetMe();
 
   const summaryCards = [
@@ -141,6 +141,28 @@ export default function Dashboard() {
             );
           })}
         </div>
+
+        {profile && (
+          <div className="bg-card border border-border rounded-xl p-5 mb-6 shadow-sm" data-testid="card-account-profile">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 className="font-bold text-sm" style={{ fontFamily: "Sora, sans-serif" }}>Account profile</h2>
+                <p className="text-xs text-muted-foreground mt-1">The details you shared during setup.</p>
+              </div>
+              <Link href="/profile"><Button variant="outline" size="sm" className="text-xs">Edit profile</Button></Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { label: "Full Name", value: profile.name || "—" },
+                { label: "Company", value: profile.companyName || "—" },
+                { label: "Phone", value: profile.phone || "—" },
+                { label: "Website", value: profile.website || "—" },
+                { label: "Location", value: [profile.city, profile.country].filter(Boolean).join(", ") || "—" },
+                { label: "Language", value: profile.language || "—" },
+              ].map(item => <div key={item.label} className="min-w-0"><p className="text-[10px] uppercase tracking-wide text-muted-foreground">{item.label}</p><p className="truncate text-xs font-medium mt-1" title={item.value}>{item.value}</p></div>)}
+            </div>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
