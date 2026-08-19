@@ -3,6 +3,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { db, messagesTable, projectsTable, usersTable, activityTable, notificationsTable } from "@workspace/db";
 import { eq, sql, and, ne } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
+import { isStaffRole, normalizeRole } from "../lib/roles";
 import crypto from "crypto";
 
 const router = Router({ mergeParams: true });
@@ -32,11 +33,12 @@ router.get("/", requireAuth, async (req, res): Promise<void> => {
   const projectId = parseInt(req.params.projectId as string); const userId = req.userId;
   const project = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId)).limit(1);
   if (!project.length) { res.status(404).json({ error: "Project not found" }); return; }
-  const isStaff = ["owner", "admin", "freelancer"].includes(req.userRole ?? "");
+  const isStaff = isStaffRole(req.userRole);
   if (!isStaff && project[0].userId !== userId) { res.status(403).json({ error: "Forbidden" }); return; }
   const messages = await db.select({ id: messagesTable.id, projectId: messagesTable.projectId, senderId: messagesTable.senderId, senderName: usersTable.name, senderRole: usersTable.role, content: messagesTable.content, fileUrl: messagesTable.fileUrl, fileName: messagesTable.fileName, fileMimeType: messagesTable.fileMimeType, isRead: messagesTable.isRead, createdAt: messagesTable.createdAt }).from(messagesTable).innerJoin(usersTable, eq(messagesTable.senderId, usersTable.id)).where(eq(messagesTable.projectId, projectId)).orderBy(sql`${messagesTable.createdAt} ASC`);
   res.json(messages.map(m => ({
     ...m,
+    senderRole: normalizeRole(m.senderRole),
     fileUrl: m.fileUrl && m.fileUrl.startsWith("/") ? getPublicFileUrl(req, m.fileUrl.split("/").pop() ?? "") : m.fileUrl,
     createdAt: m.createdAt.toISOString(),
   })));
@@ -47,7 +49,7 @@ router.post("/", requireAuth, async (req, res): Promise<void> => {
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const project = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId)).limit(1);
   if (!project.length) { res.status(404).json({ error: "Project not found" }); return; }
-  const isStaff = ["owner", "admin", "freelancer"].includes(req.userRole ?? "");
+  const isStaff = isStaffRole(req.userRole);
   if (!isStaff && project[0].userId !== userId) { res.status(403).json({ error: "Forbidden" }); return; }
   const { content, fileData, fileName, fileMimeType } = req.body;
   let fileUrl: string | null = null; let savedFileName: string | null = null; let savedMimeType: string | null = null;
@@ -75,7 +77,8 @@ router.post("/", requireAuth, async (req, res): Promise<void> => {
   const notifyUserId = isStaff ? project[0].userId : null;
   if (notifyUserId) await db.insert(notificationsTable).values({ userId: notifyUserId, projectId, title: "New Message", message: `${sender?.name ?? "Staff"} sent a message on "${project[0].title}"`, type: "new_message" });
   await db.insert(activityTable).values({ userId: project[0].userId, projectId, type: "admin_response", description: `New message on project: ${project[0].title}` });
-  res.status(201).json({ id: msg.id, projectId: msg.projectId, senderId: msg.senderId, senderName: sender?.name ?? "Unknown", senderRole: sender?.role ?? "client", content: msg.content, fileUrl: msg.fileUrl, fileName: msg.fileName, fileMimeType: msg.fileMimeType, isRead: msg.isRead, createdAt: msg.createdAt.toISOString() });
+  res.status(201).json({ id: msg.id, projectId: msg.projectId, senderId: msg.senderId, senderName: sender?.name ?? "Unknown",     senderRole: normalizeRole(sender?.role),
+ content: msg.content, fileUrl: msg.fileUrl, fileName: msg.fileName, fileMimeType: msg.fileMimeType, isRead: msg.isRead, createdAt: msg.createdAt.toISOString() });
 });
 
 router.post("/read", requireAuth, async (req, res): Promise<void> => {

@@ -36,7 +36,7 @@ export const GetMeResponse = zod.object({
   "timezone": zod.string().nullish(),
   "language": zod.string().nullish(),
   "onboardingCompleted": zod.boolean(),
-  "role": zod.enum(['owner', 'admin', 'freelancer', 'client']),
+  "role": zod.enum(['owner', 'admin', 'specialist', 'client']),
   "isActive": zod.boolean(),
   "avatarUrl": zod.string().nullish(),
   "lastLoginAt": zod.string().nullish(),
@@ -75,7 +75,7 @@ export const UpdateMeResponse = zod.object({
   "timezone": zod.string().nullish(),
   "language": zod.string().nullish(),
   "onboardingCompleted": zod.boolean(),
-  "role": zod.enum(['owner', 'admin', 'freelancer', 'client']),
+  "role": zod.enum(['owner', 'admin', 'specialist', 'client']),
   "isActive": zod.boolean(),
   "avatarUrl": zod.string().nullish(),
   "lastLoginAt": zod.string().nullish(),
@@ -109,7 +109,7 @@ export const CompleteOnboardingResponse = zod.object({
   "timezone": zod.string().nullish(),
   "language": zod.string().nullish(),
   "onboardingCompleted": zod.boolean(),
-  "role": zod.enum(['owner', 'admin', 'freelancer', 'client']),
+  "role": zod.enum(['owner', 'admin', 'specialist', 'client']),
   "isActive": zod.boolean(),
   "avatarUrl": zod.string().nullish(),
   "lastLoginAt": zod.string().nullish(),
@@ -290,7 +290,7 @@ export const ListMessagesResponseItem = zod.object({
   "projectId": zod.number(),
   "senderId": zod.number(),
   "senderName": zod.string(),
-  "senderRole": zod.enum(['owner', 'admin', 'freelancer', 'client']),
+  "senderRole": zod.enum(['owner', 'admin', 'specialist', 'client']),
   "content": zod.string(),
   "fileUrl": zod.string().nullish(),
   "fileName": zod.string().nullish(),
@@ -379,7 +379,7 @@ export const AdminListUsersResponseItem = zod.object({
   "acquisitionSource": zod.string().nullish(),
   "registrationDate": zod.string(),
   "totalRequests": zod.number(),
-  "role": zod.enum(['owner', 'admin', 'freelancer', 'client']),
+  "role": zod.enum(['owner', 'admin', 'specialist', 'client']),
   "isActive": zod.boolean(),
   "avatarUrl": zod.string().nullish(),
   "companyName": zod.string().nullish(),
@@ -410,7 +410,7 @@ export const AdminGetUserResponse = zod.object({
   "city": zod.string().nullish(),
   "timezone": zod.string().nullish(),
   "language": zod.string().nullish(),
-  "role": zod.enum(['owner', 'admin', 'freelancer', 'client']),
+  "role": zod.enum(['owner', 'admin', 'specialist', 'client']),
   "isActive": zod.boolean(),
   "avatarUrl": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -438,7 +438,7 @@ export const AdminChangeUserRoleParams = zod.object({
 })
 
 export const AdminChangeUserRoleBody = zod.object({
-  "role": zod.enum(['owner', 'admin', 'freelancer', 'client'])
+  "role": zod.enum(['owner', 'admin', 'specialist', 'client'])
 })
 
 export const AdminChangeUserRoleResponse = zod.object({
@@ -451,7 +451,7 @@ export const AdminChangeUserRoleResponse = zod.object({
   "acquisitionSource": zod.string().nullish(),
   "registrationDate": zod.string(),
   "totalRequests": zod.number(),
-  "role": zod.enum(['owner', 'admin', 'freelancer', 'client']),
+  "role": zod.enum(['owner', 'admin', 'specialist', 'client']),
   "isActive": zod.boolean(),
   "avatarUrl": zod.string().nullish(),
   "companyName": zod.string().nullish(),
@@ -473,13 +473,13 @@ export const AdminDeactivateUserBody = zod.object({
 
 
 /**
- * @summary List all staff (owner, admin, freelancer)
+ * @summary List all staff (owner, admin, specialist)
  */
 export const AdminListTeamResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "email": zod.string(),
-  "role": zod.enum(['owner', 'admin', 'freelancer']),
+  "role": zod.enum(['owner', 'admin', 'specialist']),
   "isActive": zod.boolean(),
   "avatarUrl": zod.string().nullish(),
   "assignedProjects": zod.number(),

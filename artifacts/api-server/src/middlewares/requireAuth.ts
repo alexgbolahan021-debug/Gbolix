@@ -2,6 +2,7 @@ import { getAuth } from "@clerk/express";
 import type { Request, Response, NextFunction } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { isStaffRole, normalizeRole } from "../lib/roles";
 
 declare global {
   namespace Express {
@@ -28,7 +29,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     req.userRole = "client";
   } else {
     req.userId = existing[0].id;
-    req.userRole = existing[0].role;
+    req.userRole = normalizeRole(existing[0].role);
   }
   next();
 };
@@ -55,7 +56,7 @@ export const requireOwner = async (req: Request, res: Response, next: NextFuncti
 
 export const requireStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   await requireAuth(req, res, () => {
-    if (!["owner", "admin", "freelancer"].includes(req.userRole ?? "")) {
+    if (!isStaffRole(req.userRole)) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }

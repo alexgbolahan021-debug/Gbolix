@@ -16,7 +16,7 @@ export type UserProfileRole = typeof UserProfileRole[keyof typeof UserProfileRol
 export const UserProfileRole = {
   owner: 'owner',
   admin: 'admin',
-  freelancer: 'freelancer',
+  specialist: 'specialist',
   client: 'client',
 } as const;
 
@@ -195,7 +195,7 @@ export type MessageSenderRole = typeof MessageSenderRole[keyof typeof MessageSen
 export const MessageSenderRole = {
   owner: 'owner',
   admin: 'admin',
-  freelancer: 'freelancer',
+  specialist: 'specialist',
   client: 'client',
 } as const;
 
@@ -252,7 +252,7 @@ export type AdminUserRole = typeof AdminUserRole[keyof typeof AdminUserRole];
 export const AdminUserRole = {
   owner: 'owner',
   admin: 'admin',
-  freelancer: 'freelancer',
+  specialist: 'specialist',
   client: 'client',
 } as const;
 
@@ -288,7 +288,7 @@ export type AdminUserDetailRole = typeof AdminUserDetailRole[keyof typeof AdminU
 export const AdminUserDetailRole = {
   owner: 'owner',
   admin: 'admin',
-  freelancer: 'freelancer',
+  specialist: 'specialist',
   client: 'client',
 } as const;
 
@@ -336,7 +336,7 @@ export type RoleChangeInputRole = typeof RoleChangeInputRole[keyof typeof RoleCh
 export const RoleChangeInputRole = {
   owner: 'owner',
   admin: 'admin',
-  freelancer: 'freelancer',
+  specialist: 'specialist',
   client: 'client',
 } as const;
 
@@ -350,7 +350,7 @@ export type TeamMemberRole = typeof TeamMemberRole[keyof typeof TeamMemberRole];
 export const TeamMemberRole = {
   owner: 'owner',
   admin: 'admin',
-  freelancer: 'freelancer',
+  specialist: 'specialist',
 } as const;
 
 export interface TeamMember {

@@ -1932,7 +1932,7 @@ export const getAdminListTeamUrl = () => {
 }
 
 /**
- * @summary List all staff (owner, admin, freelancer)
+ * @summary List all staff (owner, admin, specialist)
  */
 export const adminListTeam = async ( options?: RequestInit): Promise<TeamMember[]> => {
 
@@ -1979,7 +1979,7 @@ export type AdminListTeamQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List all staff (owner, admin, freelancer)
+ * @summary List all staff (owner, admin, specialist)
  */
 
 export function useAdminListTeam<TData = Awaited<ReturnType<typeof adminListTeam>>, TError = ErrorType<unknown>>(

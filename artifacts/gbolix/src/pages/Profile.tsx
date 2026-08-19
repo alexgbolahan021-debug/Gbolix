@@ -30,7 +30,7 @@ type FormData = z.infer<typeof schema>;
 const roleBadgeStyle: Record<string, string> = {
   owner: "bg-yellow-400/10 text-yellow-400 border-yellow-400/20",
   admin: "bg-secondary/10 text-secondary border-secondary/20",
-  freelancer: "bg-blue-400/10 text-blue-400 border-blue-400/20",
+  specialist: "bg-blue-400/10 text-blue-400 border-blue-400/20",
   client: "bg-primary/10 text-primary border-primary/20",
 };
 

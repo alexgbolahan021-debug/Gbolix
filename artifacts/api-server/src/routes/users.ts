@@ -3,6 +3,7 @@ import { getAuth, clerkClient } from "@clerk/express";
 import { db, usersTable, projectsTable, filesTable, activityTable, messagesTable } from "@workspace/db";
 import { eq, count, and, sql, ne } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
+import { normalizeRole } from "../lib/roles";
 
 const router = Router();
 
@@ -29,7 +30,7 @@ function formatUser(user: typeof usersTable.$inferSelect) {
     timezone: user.timezone,
     language: user.language,
     onboardingCompleted: user.onboardingCompleted,
-    role: user.role,
+    role: normalizeRole(user.role),
     isActive: user.isActive,
     avatarUrl: user.avatarUrl,
     lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,

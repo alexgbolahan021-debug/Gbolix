@@ -8,18 +8,19 @@ import { useAdminListUsers, useAdminGetUser, useAdminChangeUserRole, useAdminDea
 import { getAdminListUsersQueryKey, getAdminGetUserQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetMe } from "@workspace/api-client-react";
-import { Search, Users, X, Mail, Phone, Globe, Languages, Building2, MapPin, Calendar, FolderOpen, MessageSquare, Files, Activity, Shield, CheckCircle, XCircle } from "lucide-react";
+import { Search, Users, X, Pencil, Mail, Phone, Globe, Languages, Building2, MapPin, Calendar, FolderOpen, MessageSquare, Files, Activity, Shield, CheckCircle, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 const roleBadgeStyle: Record<string, string> = {
   owner: "bg-yellow-400/10 text-yellow-400 border-yellow-400/20",
   admin: "bg-secondary/10 text-secondary border-secondary/20",
-  freelancer: "bg-blue-400/10 text-blue-400 border-blue-400/20",
+  specialist: "bg-blue-400/10 text-blue-400 border-blue-400/20",
   client: "bg-primary/10 text-primary border-primary/20",
 };
 
-const ROLES = ["owner", "admin", "freelancer", "client"] as const;
+const ROLES = ["owner", "admin", "specialist", "client"] as const;
+const roleLabel: Record<string, string> = { owner: "Owner", admin: "Admin", specialist: "Specialist", freelancer: "Specialist", client: "Client" };
 
 export default function AdminUsers() {
   const [search, setSearch] = useState("");
@@ -55,12 +56,12 @@ export default function AdminUsers() {
 
   const handleRoleChange = (userId: number, role: string) => {
     roleMutation.mutate(
-      { id: userId, data: { role: role as "owner" | "admin" | "freelancer" | "client" } },
+      { id: userId, data: { role: role as "owner" | "admin" | "specialist" | "client" } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey({}) });
           queryClient.invalidateQueries({ queryKey: getAdminGetUserQueryKey(userId) });
-          toast({ title: "Role updated" });
+          toast({ title: "Role updated", description: `${roleLabel[role] ?? role} access assigned.` });
         },
         onError: () => toast({ title: "Failed to update role", variant: "destructive" }),
       }
@@ -118,7 +119,7 @@ export default function AdminUsers() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
-              {ROLES.map(r => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
+              {ROLES.map(r => <SelectItem key={r} value={r}>{roleLabel[r]}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -146,6 +147,7 @@ export default function AdminUsers() {
                     <th className="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Requests</th>
                     <th className="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
                     <th className="px-5 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Joined</th>
+                    <th className="px-5 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -168,7 +170,7 @@ export default function AdminUsers() {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <Badge className={`text-[10px] border capitalize ${roleBadgeStyle[user.role] ?? ""}`}>{user.role}</Badge>
+                        <Badge className={`text-[10px] border ${roleBadgeStyle[user.role] ?? ""}`}>{roleLabel[user.role] ?? user.role}</Badge>
                       </td>
                       <td className="px-5 py-4 text-xs text-muted-foreground">{user.userType ?? "—"}</td>
                       <td className="px-5 py-4 text-xs text-muted-foreground">{user.country ?? "—"}</td>
@@ -184,6 +186,9 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-5 py-4 text-xs text-muted-foreground whitespace-nowrap">
                         {formatDistanceToNow(new Date(user.registrationDate), { addSuffix: true })}
+                      </td>
+                      <td className="px-5 py-4 text-right" onClick={event => event.stopPropagation()}>
+                        {isOwner ? <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setSelectedUserId(user.id)} data-testid={`button-edit-role-${user.id}`}><Pencil size={12} /> Edit Role</Button> : <span className="text-xs text-muted-foreground">—</span>}
                       </td>
                     </tr>
                   ))}
@@ -223,8 +228,8 @@ export default function AdminUsers() {
                     <div>
                       <p className="font-bold text-base">{userDetail.name}</p>
                       <p className="text-xs text-muted-foreground">{userDetail.email}</p>
-                      <Badge className={`text-[10px] border capitalize mt-1 ${roleBadgeStyle[userDetail.role] ?? ""}`}>
-                        <Shield size={9} className="mr-1" />{userDetail.role}
+                      <Badge className={`text-[10px] border mt-1 ${roleBadgeStyle[userDetail.role] ?? ""}`}>
+                        <Shield size={9} className="mr-1" />{roleLabel[userDetail.role] ?? userDetail.role}
                       </Badge>
                     </div>
                   </div>
@@ -338,7 +343,7 @@ export default function AdminUsers() {
                                     : "border-border hover:border-primary/50 text-muted-foreground hover:text-primary"
                                 }`}
                               >
-                                {r}
+                                {roleLabel[r]}
                               </button>
                             ))}
                           </div>

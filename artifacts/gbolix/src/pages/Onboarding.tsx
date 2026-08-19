@@ -13,7 +13,7 @@ const steps = [
   {
     question: "What best describes you?",
     field: "userType",
-    options: ["Startup Founder", "Agency Owner", "Small Business Owner", "Freelancer", "Developer", "Marketing Professional", "Student", "Other"],
+    options: ["Startup Founder", "Agency Owner", "Small Business Owner", "Specialist", "Developer", "Marketing Professional", "Student", "Other"],
   },
   {
     question: "Where are you located?",

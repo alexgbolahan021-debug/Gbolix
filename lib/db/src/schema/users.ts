@@ -18,7 +18,7 @@ export const usersTable = pgTable("users", {
   timezone: text("timezone"),
   language: text("language"),
   onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
-  role: text("role", { enum: ["owner", "admin", "freelancer", "client"] }).notNull().default("client"),
+  role: text("role", { enum: ["owner", "admin", "specialist", "client"] }).notNull().default("client"),
   isActive: boolean("is_active").notNull().default(true),
   avatarUrl: text("avatar_url"),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),

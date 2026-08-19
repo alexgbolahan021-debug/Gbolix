@@ -8,13 +8,13 @@ import { formatDistanceToNow } from "date-fns";
 const roleBadgeStyle: Record<string, string> = {
   owner: "bg-yellow-400/10 text-yellow-400 border-yellow-400/20",
   admin: "bg-secondary/10 text-secondary border-secondary/20",
-  freelancer: "bg-blue-400/10 text-blue-400 border-blue-400/20",
+  specialist: "bg-blue-400/10 text-blue-400 border-blue-400/20",
 };
 
 const roleIcon: Record<string, React.ElementType> = {
   owner: Star,
   admin: Shield,
-  freelancer: Briefcase,
+  specialist: Briefcase,
 };
 
 export default function AdminTeam() {
@@ -24,7 +24,7 @@ export default function AdminTeam() {
 
   const owners = team?.filter(m => m.role === "owner") ?? [];
   const admins = team?.filter(m => m.role === "admin") ?? [];
-  const freelancers = team?.filter(m => m.role === "freelancer") ?? [];
+  const specialists = team?.filter(m => m.role === "specialist") ?? [];
 
   const initials = (name: string) => name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 
@@ -82,7 +82,7 @@ export default function AdminTeam() {
             {[
               { label: "Total Staff", value: team?.length ?? 0, color: "text-primary" },
               { label: "Admins", value: admins.length, color: "text-secondary" },
-              { label: "Freelancers", value: freelancers.length, color: "text-blue-400" },
+              { label: "Specialists", value: specialists.length, color: "text-blue-400" },
             ].map(s => (
               <div key={s.label} className="bg-card border border-border rounded-lg px-4 py-2 text-center">
                 <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -127,14 +127,14 @@ export default function AdminTeam() {
               </div>
             )}
 
-            {freelancers.length > 0 && (
+            {specialists.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <Briefcase size={14} className="text-blue-400" />
-                  <h2 className="font-semibold text-sm uppercase tracking-wider text-blue-400">Freelancers</h2>
+                  <h2 className="font-semibold text-sm uppercase tracking-wider text-blue-400">Specialists</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {freelancers.map(m => <MemberCard key={m.id} member={m} />)}
+                  {specialists.map(m => <MemberCard key={m.id} member={m} />)}
                 </div>
               </div>
             )}

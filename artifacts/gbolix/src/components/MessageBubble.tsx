@@ -49,7 +49,7 @@ function MessageMedia({ message, isOwn }: { message: ChatMessage; isOwn: boolean
 export function MessageBubble({ message, isOwn, showSender = false, onRetry }: { message: ChatMessage; isOwn: boolean; showSender?: boolean; onRetry?: () => void }) {
   const status = message.optimisticStatus;
   const bubbleClass = isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-card border border-border text-card-foreground rounded-bl-md";
-  const roleLabel = message.senderRole === "client" ? "Client" : message.senderRole === "owner" ? "Owner" : message.senderRole === "admin" ? "Admin" : "Freelancer";
+  const roleLabel = message.senderRole === "client" ? "Client" : message.senderRole === "owner" ? "Owner" : message.senderRole === "admin" ? "Admin" : "Specialist";
 
   return (
     <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`} data-testid={`message-${message.id}`}>

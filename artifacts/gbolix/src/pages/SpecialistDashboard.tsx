@@ -16,7 +16,7 @@ const statusProgress: Record<string, number> = {
   submitted: 10, queued: 30, in_progress: 60, review: 80, completed: 100,
 };
 
-export default function FreelancerDashboard() {
+export default function SpecialistDashboard() {
   const { data: profile } = useGetMe();
   const firstName = profile?.name?.split(" ")[0];
 
@@ -26,7 +26,7 @@ export default function FreelancerDashboard() {
         {/* Header */}
         <div className="mb-8 pt-2">
           <h1 className="text-2xl font-extrabold tracking-tight" style={{ fontFamily: "Sora, sans-serif" }}>
-            {firstName ? `Hey, ${firstName} 👋` : "Freelancer Dashboard"}
+            {firstName ? `Hey, ${firstName} 👋` : "Specialist Dashboard"}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Your assigned projects and workspace overview.</p>
         </div>

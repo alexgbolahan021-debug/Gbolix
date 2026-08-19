@@ -12,6 +12,7 @@ import {
 } from "@workspace/db";
 import { eq, count, sql, and, inArray, desc } from "drizzle-orm";
 import { requireAdmin, requireOwner } from "../middlewares/requireAuth";
+import { normalizeRole } from "../lib/roles";
 
 const router = Router();
 
@@ -32,7 +33,7 @@ function formatAdminUser(
     acquisitionSource: u.acquisitionSource,
     registrationDate: u.createdAt.toISOString(),
     totalRequests,
-    role: u.role,
+    role: normalizeRole(u.role),
     isActive: u.isActive,
     avatarUrl: u.avatarUrl,
     companyName: u.companyName,
@@ -139,7 +140,7 @@ router.get("/users/:id", requireAdmin, async (req, res): Promise<void> => {
     city: user.city,
     timezone: user.timezone,
     language: user.language,
-    role: user.role,
+    role: normalizeRole(user.role),
     isActive: user.isActive,
     avatarUrl: user.avatarUrl,
     createdAt: user.createdAt.toISOString(),
@@ -160,8 +161,9 @@ router.get("/users/:id", requireAdmin, async (req, res): Promise<void> => {
 router.patch("/users/:id/role", requireOwner, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id as string);
   const { role } = req.body;
+  const requestedRole = role === "freelancer" ? "specialist" : role;
 
-  if (!["owner", "admin", "freelancer", "client"].includes(role)) {
+  if (!["owner", "admin", "specialist", "client"].includes(requestedRole)) {
     res.status(400).json({ error: "Invalid role" });
     return;
   }
@@ -176,7 +178,7 @@ router.patch("/users/:id/role", requireOwner, async (req, res): Promise<void> =>
     return;
   }
 
-  if (user.role === "owner" && role !== "owner") {
+  if (user.role === "owner" && requestedRole !== "owner") {
     const ownerCount = await db
       .select({ count: count() })
       .from(usersTable)
@@ -190,7 +192,7 @@ router.patch("/users/:id/role", requireOwner, async (req, res): Promise<void> =>
 
   const [updated] = await db
     .update(usersTable)
-    .set({ role })
+    .set({ role: requestedRole })
     .where(eq(usersTable.id, id))
     .returning();
 
@@ -218,7 +220,7 @@ router.get("/team", requireAdmin, async (req, res): Promise<void> => {
   const staff = await db
     .select()
     .from(usersTable)
-    .where(sql`${usersTable.role} IN ('owner', 'admin', 'freelancer')`)
+    .where(sql`${usersTable.role} IN ('owner', 'admin', 'specialist', 'freelancer')`)
     .orderBy(usersTable.createdAt);
 
   const assignments = await db
@@ -238,7 +240,7 @@ router.get("/team", requireAdmin, async (req, res): Promise<void> => {
       id: u.id,
       name: u.name,
       email: u.email,
-      role: u.role,
+      role: normalizeRole(u.role),
       isActive: u.isActive,
       avatarUrl: u.avatarUrl,
       assignedProjects: assignMap.get(u.id) ?? 0,

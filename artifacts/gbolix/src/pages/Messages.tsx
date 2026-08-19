@@ -177,8 +177,8 @@ export default function Messages() {
     } catch (error) { alert(error instanceof Error ? error.message : "Unable to send offer"); } finally { setOfferSaving(false); }
   };
 
-  const roleColor = (role: string) => role === "owner" || role === "admin" ? "text-primary" : role === "freelancer" ? "text-blue-400" : "text-muted-foreground";
-  const roleBadgeText = (role: string) => role === "owner" ? "Owner" : role === "admin" ? "Admin" : role === "freelancer" ? "Freelancer" : null;
+  const roleColor = (role: string) => role === "owner" || role === "admin" ? "text-primary" : role === "specialist" ? "text-blue-400" : "text-muted-foreground";
+  const roleBadgeText = (role: string) => role === "owner" ? "Owner" : role === "admin" ? "Admin" : role === "specialist" ? "Specialist" : null;
   const handleOfferChanged = async (updated: Offer, nextStep?: string) => {
     setOffers(current => current.map(offer => offer.id === updated.id ? updated : offer));
     if (selectedProjectId) { void queryClient.invalidateQueries({ queryKey: getListMessagesQueryKey(selectedProjectId) }); void queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() }); }
