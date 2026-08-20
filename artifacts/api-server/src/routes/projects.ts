@@ -115,7 +115,7 @@ router.post("/", requireAuth, async (req, res): Promise<void> => {
       projectId: project.id,
       title: "New Service Request",
       message: `${projectCode} — ${title} is waiting for your review.`,
-      type: "request_submitted",
+      type: "request_submitted" as const,
     })));
   }
 

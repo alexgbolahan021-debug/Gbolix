@@ -10,7 +10,7 @@ export const notificationsTable = pgTable("notifications", {
   projectId: integer("project_id").references(() => projectsTable.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  type: text("type", { enum: ["new_message", "status_change", "file_uploaded", "new_project", "admin_reply"] }).notNull(),
+  type: text("type", { enum: ["new_message", "status_change", "file_uploaded", "new_project", "admin_reply", "request_submitted", "message", "agreement", "payment"] }).notNull(),
   isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

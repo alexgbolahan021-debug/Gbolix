@@ -158,11 +158,12 @@ export const GetUnreadCountResponse = zod.object({
  */
 export const ListProjectsResponseItem = zod.object({
   "id": zod.number(),
+  "projectCode": zod.string(),
   "userId": zod.number(),
   "serviceType": zod.string(),
   "title": zod.string(),
   "description": zod.string(),
-  "status": zod.enum(['submitted', 'queued', 'in_progress', 'review', 'completed']),
+  "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']),
   "price": zod.number().nullish(),
   "hasConversation": zod.boolean(),
@@ -193,11 +194,12 @@ export const GetProjectParams = zod.object({
 
 export const GetProjectResponse = zod.object({
   "id": zod.number(),
+  "projectCode": zod.string(),
   "userId": zod.number(),
   "serviceType": zod.string(),
   "title": zod.string(),
   "description": zod.string(),
-  "status": zod.enum(['submitted', 'queued', 'in_progress', 'review', 'completed']),
+  "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']),
   "price": zod.number().nullish(),
   "hasConversation": zod.boolean(),
@@ -221,11 +223,12 @@ export const UpdateProjectBody = zod.object({
 
 export const UpdateProjectResponse = zod.object({
   "id": zod.number(),
+  "projectCode": zod.string(),
   "userId": zod.number(),
   "serviceType": zod.string(),
   "title": zod.string(),
   "description": zod.string(),
-  "status": zod.enum(['submitted', 'queued', 'in_progress', 'review', 'completed']),
+  "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']),
   "price": zod.number().nullish(),
   "hasConversation": zod.boolean(),
@@ -499,10 +502,11 @@ export const AdminListProjectsQueryParams = zod.object({
 
 export const AdminListProjectsResponseItem = zod.object({
   "id": zod.number(),
+  "projectCode": zod.string(),
   "title": zod.string(),
   "serviceType": zod.string(),
   "description": zod.string(),
-  "status": zod.enum(['submitted', 'queued', 'in_progress', 'review', 'completed']),
+  "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']),
   "price": zod.number().nullish(),
   "internalNotes": zod.string().nullish(),
@@ -527,7 +531,7 @@ export const AdminUpdateProjectParams = zod.object({
 })
 
 export const AdminUpdateProjectBody = zod.object({
-  "status": zod.enum(['submitted', 'queued', 'in_progress', 'review', 'completed']).optional(),
+  "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']).optional(),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']).optional(),
   "internalNotes": zod.string().optional(),
   "price": zod.number().optional()
@@ -535,10 +539,11 @@ export const AdminUpdateProjectBody = zod.object({
 
 export const AdminUpdateProjectResponse = zod.object({
   "id": zod.number(),
+  "projectCode": zod.string(),
   "title": zod.string(),
   "serviceType": zod.string(),
   "description": zod.string(),
-  "status": zod.enum(['submitted', 'queued', 'in_progress', 'review', 'completed']),
+  "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']),
   "price": zod.number().nullish(),
   "internalNotes": zod.string().nullish(),
@@ -563,10 +568,11 @@ export const AdminStartConversationParams = zod.object({
 
 export const AdminStartConversationResponse = zod.object({
   "id": zod.number(),
+  "projectCode": zod.string(),
   "title": zod.string(),
   "serviceType": zod.string(),
   "description": zod.string(),
-  "status": zod.enum(['submitted', 'queued', 'in_progress', 'review', 'completed']),
+  "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']),
   "price": zod.number().nullish(),
   "internalNotes": zod.string().nullish(),

@@ -115,6 +115,12 @@ export type ProjectStatus = typeof ProjectStatus[keyof typeof ProjectStatus];
 export const ProjectStatus = {
   submitted: 'submitted',
   queued: 'queued',
+  pending_review: 'pending_review',
+  needs_info: 'needs_info',
+  approved: 'approved',
+  declined: 'declined',
+  agreement_sent: 'agreement_sent',
+  agreement_accepted: 'agreement_accepted',
   in_progress: 'in_progress',
   review: 'review',
   completed: 'completed',
@@ -132,6 +138,7 @@ export const ProjectPriority = {
 
 export interface Project {
   id: number;
+  projectCode: string;
   userId: number;
   serviceType: string;
   title: string;
@@ -377,6 +384,12 @@ export type AdminProjectStatus = typeof AdminProjectStatus[keyof typeof AdminPro
 export const AdminProjectStatus = {
   submitted: 'submitted',
   queued: 'queued',
+  pending_review: 'pending_review',
+  needs_info: 'needs_info',
+  approved: 'approved',
+  declined: 'declined',
+  agreement_sent: 'agreement_sent',
+  agreement_accepted: 'agreement_accepted',
   in_progress: 'in_progress',
   review: 'review',
   completed: 'completed',
@@ -399,6 +412,7 @@ export type AdminProjectAssignedFreelancersItem = {
 
 export interface AdminProject {
   id: number;
+  projectCode: string;
   title: string;
   serviceType: string;
   description: string;
@@ -422,6 +436,12 @@ export type AdminProjectUpdateStatus = typeof AdminProjectUpdateStatus[keyof typ
 export const AdminProjectUpdateStatus = {
   submitted: 'submitted',
   queued: 'queued',
+  pending_review: 'pending_review',
+  needs_info: 'needs_info',
+  approved: 'approved',
+  declined: 'declined',
+  agreement_sent: 'agreement_sent',
+  agreement_accepted: 'agreement_accepted',
   in_progress: 'in_progress',
   review: 'review',
   completed: 'completed',
