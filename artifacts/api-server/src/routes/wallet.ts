@@ -4,6 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { creditLedgerEntriesTable, creditPacksTable, db, productOrdersTable, usersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { WalletError, ensureWorkspaceWallet, getWalletContext, settleCreditPurchase } from "../lib/walletService";
+import { convertUsdCatalogPriceToNgn, getUsdToNgnRate } from "../lib/walletExchangeRate";
 
 const router = Router();
 const PAYSTACK_API = "https://api.paystack.co";
@@ -64,19 +65,37 @@ router.post("/checkout/:packKey/initialize", requireAuth, async (req, res) => {
     if (!pack) return res.status(404).json({ error: "CREDIT_PACK_NOT_FOUND", message: "The selected credit pack is not available" });
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId)).limit(1);
     if (!user?.email) return res.status(422).json({ error: "BILLING_EMAIL_REQUIRED", message: "A verified account email is required for checkout" });
+    if (pack.currency !== "USD") return res.status(500).json({ error: "WALLET_PACK_CURRENCY_UNSUPPORTED", message: "Wallet pack currency configuration is invalid" });
+    const rate = await getUsdToNgnRate();
+    const conversion = convertUsdCatalogPriceToNgn(Number(pack.price), rate);
     const orderKey = `gwo_${crypto.randomUUID().replace(/-/g, "")}`;
     const reference = paymentReference(orderKey);
-    const [order] = await db.insert(productOrdersTable).values({ orderKey, workspaceId: context.workspace.id, productId: context.product.id, packId: pack.id, purchasedByUserId: req.userId, paymentReference: reference, amount: pack.price, currency: pack.currency, credits: pack.credits }).returning();
+    await db.insert(productOrdersTable).values({
+      orderKey,
+      workspaceId: context.workspace.id,
+      productId: context.product.id,
+      packId: pack.id,
+      purchasedByUserId: req.userId,
+      paymentReference: reference,
+      amount: conversion.amountNgn.toFixed(2),
+      currency: "NGN",
+      catalogAmount: pack.price,
+      catalogCurrency: pack.currency,
+      exchangeRate: rate.rate.toFixed(8),
+      exchangeRateProvider: rate.provider,
+      exchangeRateFetchedAt: rate.fetchedAt,
+      credits: pack.credits,
+    });
     const callbackUrl = process.env.PAYSTACK_WALLET_CALLBACK_URL;
     if (!callbackUrl) return res.status(503).json({ error: "WALLET_CHECKOUT_NOT_CONFIGURED", message: "Wallet checkout callback is not configured" });
     const gatewayResponse = await fetch(`${PAYSTACK_API}/transaction/initialize`, {
       method: "POST",
       headers: { Authorization: `Bearer ${paystackSecret()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: Math.round(Number(pack.price) * 100), currency: pack.currency, reference, email: user.email, callback_url: callbackUrl, metadata: { walletOrderKey: orderKey, workspaceKey: context.workspace.workspaceKey, productKey: context.product.productKey, packKey: pack.packKey, credits: pack.credits } }),
+      body: JSON.stringify({ amount: conversion.amountKobo, currency: "NGN", reference, email: user.email, callback_url: callbackUrl, metadata: { walletOrderKey: orderKey, workspaceKey: context.workspace.workspaceKey, productKey: context.product.productKey, packKey: pack.packKey, credits: pack.credits, catalogAmount: Number(pack.price), catalogCurrency: pack.currency, exchangeRate: rate.rate, exchangeRateProvider: rate.provider, exchangeRateFetchedAt: rate.fetchedAt.toISOString() } }),
     });
     const data = await gatewayResponse.json() as any;
     if (!gatewayResponse.ok || !data?.status) return res.status(502).json({ error: "PAYMENT_INITIALIZATION_FAILED", message: data?.message ?? "Unable to initialize wallet checkout" });
-    return res.status(201).json({ orderKey, paymentReference: reference, authorizationUrl: data.data.authorization_url, accessCode: data.data.access_code, credits: pack.credits, amount: Number(pack.price), currency: pack.currency });
+    return res.status(201).json({ orderKey, paymentReference: reference, authorizationUrl: data.data.authorization_url, accessCode: data.data.access_code, credits: pack.credits, amount: conversion.amountNgn, currency: "NGN", catalogAmount: Number(pack.price), catalogCurrency: pack.currency, exchangeRate: rate.rate, exchangeRateFetchedAt: rate.fetchedAt.toISOString() });
   } catch (error) { return walletError(res, error); }
 });
 
