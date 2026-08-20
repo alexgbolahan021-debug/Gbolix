@@ -1,4 +1,6 @@
 export const GBOLIX_LEADS_PRODUCT_KEY = "gbolix-leads";
+export const GBOLIX_AI_AGENT_PRODUCT_KEY = "gbolix-ai-agent";
+export const GBOLIX_AI_AGENT_CREDIT_COST = 1;
 export const QUALIFIED_LEAD_CREDIT_COST = 1;
 export const CREDIT_AUTHORIZATION_TTL_MS = 30 * 60 * 1000;
 

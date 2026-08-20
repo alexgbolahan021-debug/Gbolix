@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: gbolix-site
+    runtime: static
+    buildCommand: pnpm install --frozen-lockfile && PORT=5173 BASE_PATH=/ NODE_ENV=production pnpm --filter @workspace/gbolix run build
+    staticPublishPath: artifacts/gbolix/dist/public
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_GBOLIX_AGENT_URL
+        sync: false
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: VITE_CLERK_PROXY_URL
+        sync: false
