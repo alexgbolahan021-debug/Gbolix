@@ -4,10 +4,12 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Button } from "@/components/ui/button";
 import { customFetch } from "@workspace/api-client-react";
+import { isWalletPaymentReference, paystackVerificationPath } from "@/lib/paymentCallbackRouting";
 
 type VerificationResult = {
   paid: boolean;
   payment?: { reference?: string; status?: string };
+  order?: { key?: string; status?: string; credits?: number };
   status?: string;
   error?: string;
   reason?: string;
@@ -36,7 +38,7 @@ export default function PaymentCallback() {
     const verifyPayment = async (attempt: number) => {
       try {
         const result = await customFetch<VerificationResult>(
-          `/api/payments/paystack/verify/${encodeURIComponent(reference)}`,
+          paystackVerificationPath(reference),
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -48,7 +50,9 @@ export default function PaymentCallback() {
 
         if (result.paid) {
           setState("paid");
-          setMessage("Payment confirmed successfully. Your project is now in progress.");
+          setMessage(isWalletPaymentReference(reference)
+            ? `Payment confirmed successfully. ${result.order?.credits ?? "Your"} Wallet credits are now available.`
+            : "Payment confirmed successfully. Your project is now in progress.");
           return;
         }
 
@@ -108,7 +112,7 @@ export default function PaymentCallback() {
           <p className="mt-3 text-sm text-muted-foreground">{message}</p>
           {state !== "checking" && (
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Button onClick={() => navigate("/tasks")}>Go to Tasks</Button>
+              <Button onClick={() => navigate(window.location.search.includes("GBX-WALLET-") ? "/dashboard/wallet" : "/tasks")}>{window.location.search.includes("GBX-WALLET-") ? "Go to Wallet" : "Go to Tasks"}</Button>
               {state !== "paid" && <Button variant="outline" onClick={retry}>Check Again</Button>}
             </div>
           )}
