@@ -10,9 +10,10 @@ type VerificationResult = {
   payment?: { reference?: string; status?: string };
   status?: string;
   error?: string;
+  reason?: string;
 };
 
-const MAX_ATTEMPTS = 6;
+const MAX_ATTEMPTS = 15;
 const RETRY_DELAY_MS = 2000;
 
 export default function PaymentCallback() {
@@ -21,7 +22,8 @@ export default function PaymentCallback() {
   const [message, setMessage] = useState("Confirming your payment with Paystack...");
 
   useEffect(() => {
-    const reference = new URLSearchParams(window.location.search).get("reference");
+    const query = new URLSearchParams(window.location.search);
+    const reference = query.get("reference") || query.get("trxref");
     if (!reference) {
       setState("failed");
       setMessage("No Paystack payment reference was found.");
@@ -51,7 +53,10 @@ export default function PaymentCallback() {
         }
 
         if (attempt < MAX_ATTEMPTS) {
-          setMessage("Payment received. Waiting for Paystack confirmation...");
+          const reason = result.reason === "amount_mismatch" || result.reason === "currency_mismatch"
+            ? "Payment returned successfully, but the server is still validating the amount and currency..."
+            : "Payment received. Waiting for Paystack confirmation...";
+          setMessage(reason);
           timer = setTimeout(() => verifyPayment(attempt + 1), RETRY_DELAY_MS);
           return;
         }

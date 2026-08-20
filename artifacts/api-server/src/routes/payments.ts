@@ -119,12 +119,33 @@ async function finalizeVerifiedPayment(reference: string) {
   }
 
   const paystackTransaction = data.data;
-  const amountMatches = Number(paystackTransaction?.amount) === toPaystackSubunit(Number(payment.amount));
+  const expectedAmountSubunit = toPaystackSubunit(Number(payment.amount));
+  const requestedAmountSubunit = Number(paystackTransaction?.requested_amount);
+  const chargedAmountSubunit = Number(paystackTransaction?.amount);
+  // Paystack may include customer-paid fees in data.amount. requested_amount
+  // is the merchant amount requested during initialization and is the value
+  // that must match the stored payable amount when Paystack provides it.
+  const amountMatches = Number.isFinite(requestedAmountSubunit)
+    ? requestedAmountSubunit === expectedAmountSubunit
+    : chargedAmountSubunit === expectedAmountSubunit;
   const currencyMatches = paystackTransaction?.currency === payment.currency;
   const transactionSucceeded = paystackTransaction?.status === "success";
 
   if (!transactionSucceeded || !amountMatches || !currencyMatches) {
-    return { paid: false, status: paystackTransaction?.status ?? "unknown" };
+    console.warn("Paystack verification did not match stored payment", {
+      reference,
+      transactionStatus: paystackTransaction?.status,
+      expectedAmountSubunit,
+      requestedAmountSubunit: Number.isFinite(requestedAmountSubunit) ? requestedAmountSubunit : null,
+      chargedAmountSubunit: Number.isFinite(chargedAmountSubunit) ? chargedAmountSubunit : null,
+      expectedCurrency: payment.currency,
+      receivedCurrency: paystackTransaction?.currency,
+    });
+    return {
+      paid: false,
+      status: paystackTransaction?.status ?? "unknown",
+      reason: !transactionSucceeded ? "transaction_not_successful" : !amountMatches ? "amount_mismatch" : "currency_mismatch",
+    };
   }
 
   return { paid: true, payment: await markPaymentPaid(reference) };
@@ -307,7 +328,7 @@ router.post("/payments/paystack/verify/:reference", requireAuth, async (req, res
       res.json(result);
       return;
     }
-    res.json({ payment, paid: false, status: result.status ?? "unknown" });
+    res.json({ payment, paid: false, status: result.status ?? "unknown", reason: result.reason });
   } catch (error) {
     console.error("Paystack verification error", error);
     res.status(500).json({ error: "Unable to verify payment" });
