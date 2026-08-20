@@ -11,6 +11,14 @@ cd lib/db
 pnpm exec drizzle-kit push --config ./drizzle.config.ts
 ```
 
+If Render Shell is unavailable, use this controlled command in the **Gbolix API service’s Render Build Command** immediately before the existing API build command:
+
+```bash
+pnpm wallet:migrate && <existing-build-command>
+```
+
+Do not place `pnpm wallet:migrate` in the normal API start command. A migration is a deliberate deployment operation and must finish before the API process starts.
+
 The implementation workspace could not establish an SSL connection to the configured database, so this schema push was **not applied** during development. Do not deploy or exercise the Wallet APIs until the schema has been applied and the workspace, ledger, and order tables have been verified.
 
 ## Required environment variables
