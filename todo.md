@@ -12,4 +12,4 @@
 - [x] Add automated tests and run full type checks.
 - [ ] Add backend integration tests for workspace isolation, ledger persistence/idempotency, reserve/finalize/release behavior, entitlement enforcement, and signed engine dispatch after the Wallet schema is available to a test database.
 - [ ] Verify Wallet, product access, and top-up flows against the Gbolix backend after the schema is applied.
-- [ ] Commit and push the Wallet v1.0 implementation to the Gbolix repository.
+- [x] Commit and push the Wallet v1.0 implementation to the Gbolix repository.
