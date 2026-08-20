@@ -5,6 +5,7 @@ import { creditLedgerEntriesTable, creditPacksTable, db, productOrdersTable, use
 import { requireAuth } from "../middlewares/requireAuth";
 import { WalletError, ensureWorkspaceWallet, getWalletContext, settleCreditPurchase } from "../lib/walletService";
 import { convertUsdCatalogPriceToNgn, getUsdToNgnRate } from "../lib/walletExchangeRate";
+import { verifyWalletPaystackTransaction } from "../lib/walletPaymentVerification";
 
 const router = Router();
 const PAYSTACK_API = "https://api.paystack.co";
@@ -110,8 +111,10 @@ router.post("/payments/paystack/verify/:reference", requireAuth, async (req, res
     const verification = await fetch(`${PAYSTACK_API}/transaction/verify/${encodeURIComponent(reference)}`, { headers: { Authorization: `Bearer ${paystackSecret()}` } });
     const data = await verification.json() as any;
     const tx = data?.data;
-    const verified = verification.ok && data?.status && tx?.status === "success" && Number(tx.amount) === Math.round(Number(order.amount) * 100) && tx.currency === order.currency;
-    if (!verified) return res.json({ paid: false, orderKey: order.orderKey, status: tx?.status ?? "unknown" });
+    const settlement = verifyWalletPaystackTransaction(tx, Number(order.amount), order.currency);
+    if (!verification.ok || !data?.status || !settlement.verified) {
+      return res.json({ paid: false, orderKey: order.orderKey, status: tx?.status ?? "unknown", reason: settlement.reason });
+    }
     const settled = await settleCreditPurchase(order.orderKey);
     const wallet = settled.account ?? (await ensureWorkspaceWallet(req.userId)).account;
     return res.json({ paid: true, order: { key: settled.order.orderKey, credits: settled.order.credits, status: settled.order.status }, wallet: { availableCredits: wallet.availableCredits, reservedCredits: wallet.reservedCredits, neverExpires: true } });
