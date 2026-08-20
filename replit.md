@@ -10,6 +10,7 @@ A premium B2B operations automation SaaS platform by Alex Gbolahan — clients s
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Paystack checkout settles in NGN: `USD_NGN_RATE` can provide an explicit production rate, or `FX_RATE_URL` can provide USD/NGN JSON with `rates.NGN` or `conversion_rates.NGN`; `FX_RATE_CACHE_TTL_MS` defaults to 3 hours and `FX_RATE_MAX_STALE_MS` defaults to 6 hours.
 
 ## Stack
 
@@ -36,6 +37,7 @@ A premium B2B operations automation SaaS platform by Alex Gbolahan — clients s
 - File uploads use base64 JSON body (not multipart) — stored in `artifacts/api-server/uploads/`
 - Onboarding is a required 4-step flow after sign-up (userType, location, companySize, acquisitionSource); `ProtectedRoute` enforces completion
 - Admin role is stored in DB (`users.role = 'admin'`); set manually via SQL for the first admin
+- Agreement prices are authored in USD, then converted server-side to cached-rate NGN major units and Paystack subunits at checkout; verification compares Paystack’s exact NGN amount and currency before delivering value.
 - Messages are scoped to projects; admin must "start a conversation" on a project before messages appear in client portal
 
 ## Product

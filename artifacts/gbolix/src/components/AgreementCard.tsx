@@ -68,7 +68,7 @@ export function AgreementCard({ agreement, canAccept, onChanged }: { agreement: 
             <div className="divide-y divide-border">
               <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-[1fr_1.5fr] sm:gap-4"><p className="text-xs text-muted-foreground">Project / Service</p><p className="text-sm font-medium">{current.projectTitle ?? current.serviceType ?? current.deliverables}</p></div>
               <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-[1fr_1.5fr] sm:gap-4"><p className="text-xs text-muted-foreground">Client</p><p className="text-sm font-medium">{current.clientName ?? "Client"}</p></div>
-              <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-[1fr_1.5fr] sm:gap-4"><p className="text-xs text-muted-foreground">Price</p><p className="text-sm font-bold text-primary">${current.price}</p></div>
+              <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-[1fr_1.5fr] sm:gap-4"><p className="text-xs text-muted-foreground">Price (USD)</p><p className="text-sm font-bold text-primary">${current.price}</p></div>
               <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-[1fr_1.5fr] sm:gap-4"><p className="text-xs text-muted-foreground">Delivery Timeline</p><p className="flex items-center gap-2 text-sm font-medium"><CalendarDays size={15} className="text-primary" />{current.timeline}</p></div>
               <div className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-[1fr_1.5fr] sm:gap-4"><p className="text-xs text-muted-foreground">Date</p><p className="text-sm font-medium">{agreementDate}</p></div>
             </div>
@@ -76,7 +76,7 @@ export function AgreementCard({ agreement, canAccept, onChanged }: { agreement: 
         </div>
 
         <div className="flex flex-col gap-3 border-t border-border px-5 py-4 md:flex-row md:items-center md:justify-between md:px-7">
-          <div><p className="text-xs text-muted-foreground">Total Price</p><p className="text-xl font-bold text-primary">${current.price}</p></div>
+          <div><p className="text-xs text-muted-foreground">Total Price (USD)</p><p className="text-xl font-bold text-primary">${current.price}</p></div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row print:hidden"><Button variant="outline" onClick={downloadPdf} className="h-10 gap-2 sm:min-w-40"><Download size={16} /> Download PDF</Button>{canAccept && !accepted && <Button onClick={accept} disabled={loading} className="h-10 gap-2 font-semibold sm:min-w-48">{loading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}{loading ? "Preparing Secure Payment..." : "Accept & Continue to Secure Payment"}</Button>}</div></div>
 
         {accepted && <div className="border-t border-emerald-500/20 bg-emerald-500/5 px-5 py-3 text-sm text-emerald-300 md:px-7">Agreement accepted. Continue to secure payment to start the project.</div>}

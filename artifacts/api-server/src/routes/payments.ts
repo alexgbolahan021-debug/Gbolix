@@ -12,6 +12,7 @@ import {
 } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
+import { getCachedUsdToNgnRate, toPaystackSubunit, usdToNgnMajorUnits } from "../lib/exchange-rate";
 
 const router = Router();
 
@@ -118,7 +119,7 @@ async function finalizeVerifiedPayment(reference: string) {
   }
 
   const paystackTransaction = data.data;
-  const amountMatches = Number(paystackTransaction?.amount) === Math.round(Number(payment.amount) * 100);
+  const amountMatches = Number(paystackTransaction?.amount) === toPaystackSubunit(Number(payment.amount));
   const currencyMatches = paystackTransaction?.currency === payment.currency;
   const transactionSucceeded = paystackTransaction?.status === "success";
 
@@ -186,16 +187,24 @@ router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, as
       return;
     }
 
-    if (Number(payment.amount) !== amount || payment.currency !== "NGN") {
-      res.status(409).json({ error: "Payment amount does not match the accepted agreement" });
+    const exchangeRate = await getCachedUsdToNgnRate();
+    const chargeAmountNgn = usdToNgnMajorUnits(amount, exchangeRate.rate);
+
+    const [repricedPayment] = await db.update(paymentsTable)
+      .set({ amount: chargeAmountNgn.toFixed(2), currency: "NGN" })
+      .where(and(eq(paymentsTable.id, payment.id), eq(paymentsTable.status, "pending")))
+      .returning();
+
+    if (!repricedPayment) {
+      res.status(409).json({ error: "Payment is already being processed. Please refresh and try again." });
       return;
     }
 
     // The previous reference may already have been used by Paystack. If it
     // completed successfully, finalize it instead of charging again.
-    const previousVerification = await verifyWithPaystack(payment.reference);
+    const previousVerification = await verifyWithPaystack(repricedPayment.reference);
     if (previousVerification.response.ok && previousVerification.data?.status && previousVerification.data?.data?.status === "success") {
-      const finalized = await finalizeVerifiedPayment(payment.reference);
+      const finalized = await finalizeVerifiedPayment(repricedPayment.reference);
       if (finalized.paid && finalized.payment) {
         res.json({ paid: true, payment: finalized.payment, reference: finalized.payment.reference });
         return;
@@ -223,7 +232,7 @@ router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, as
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount: Math.round(Number(updatedPayment.amount) * 100),
+        amount: toPaystackSubunit(Number(updatedPayment.amount)),
         currency: updatedPayment.currency,
         reference: updatedPayment.reference,
         email: client.email,
@@ -232,6 +241,9 @@ router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, as
           projectId,
           projectCode: project.projectCode,
           paymentId: updatedPayment.id,
+          originalAmountUsd: amount,
+          exchangeRateUsdToNgn: exchangeRate.rate,
+          chargeAmountNgn,
         },
       }),
     });
@@ -247,9 +259,17 @@ router.post("/projects/:projectId/payments/paystack/initialize", requireAuth, as
       access_code: data.data.access_code,
       reference: updatedPayment.reference,
       paymentId: updatedPayment.id,
+      amount: Number(updatedPayment.amount),
+      currency: updatedPayment.currency,
+      originalAmountUsd: amount,
+      exchangeRateUsdToNgn: exchangeRate.rate,
     });
   } catch (error) {
     console.error("Paystack initialization error", error);
+    if (error instanceof Error && error.message.includes("Exchange rate")) {
+      res.status(503).json({ error: "The USD/NGN exchange rate is temporarily unavailable. Please try again shortly." });
+      return;
+    }
     res.status(500).json({ error: "Unable to initialize payment" });
   }
 });
