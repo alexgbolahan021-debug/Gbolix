@@ -359,7 +359,7 @@ const services = [
 
 // ─── Products data ─────────────────────────────────────────────────────────────
 const products = [
-  { name: "Gbolix Prospect Finder", tagline: "AI-Powered Prospecting",          image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80&auto=format&fit=crop" },
+  { name: "Gbolix Leads",            tagline: "Verified Lead Intelligence",     image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80&auto=format&fit=crop", href: "/dashboard/products/gbolix-leads" },
   { name: "Gbolix Monitor",         tagline: "Real-Time Website Monitoring",    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80&auto=format&fit=crop" },
   { name: "Gbolix AI Agent",        tagline: "Automated Conversations & Booking", image: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600&q=80&auto=format&fit=crop" },
 ];
@@ -591,12 +591,12 @@ export default function Home() {
       <section className="py-24 px-4 bg-card border-y border-border">
         <div className="max-w-6xl mx-auto">
           <FadeUp className="text-center mb-16">
-            <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">Coming Soon</Badge>
+            <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">Gbolix Products</Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
               Gbolix <GradientText>Products</GradientText>
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Powerful tools built for the modern business. Join the waitlist to be first in line.
+              One wallet powers the Gbolix toolset. Open Gbolix Leads from your account today; more tools are on the way.
             </p>
           </FadeUp>
 
@@ -607,14 +607,14 @@ export default function Home() {
                   <div className="h-44 overflow-hidden relative">
                     <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F14] via-[#0B0F14]/40 to-transparent" />
-                    <Badge className="absolute top-3 right-3 text-[10px] backdrop-blur-sm border-0" style={{ background: "linear-gradient(135deg,rgba(168,85,247,0.3),rgba(34,211,238,0.2))", color: "white" }}>
-                      Coming Soon
+                    <Badge className="absolute top-3 right-3 text-[10px] backdrop-blur-sm border-0" style={{ background: p.href ? "rgba(0,255,102,0.86)" : "linear-gradient(135deg,rgba(168,85,247,0.3),rgba(34,211,238,0.2))", color: p.href ? "#0B0F14" : "white" }}>
+                      {p.href ? "Account Access" : "Coming Soon"}
                     </Badge>
                   </div>
                   <div className="p-5">
                     <p className="text-[10px] text-secondary font-semibold uppercase tracking-wider mb-1">{p.tagline}</p>
                     <h3 className="font-bold text-sm mb-3" style={{ fontFamily: "Space Grotesk, sans-serif" }}>{p.name}</h3>
-                    {waitlisted === p.name ? (
+                    {p.href ? <Link href={p.href}><Button size="sm" className="w-full text-xs bg-primary text-primary-foreground hover:bg-primary/90">Open Gbolix Leads</Button></Link> : waitlisted === p.name ? (
                       <div className="flex items-center gap-2 text-primary text-xs font-semibold">
                         <Check size={13} /> You're on the waitlist!
                       </div>

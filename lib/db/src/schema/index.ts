@@ -9,3 +9,5 @@ export * from "./agreements";
 export * from "./payments";
 export * from "./invoices";
 export * from "./offers";
+export * from "./users";
+export * from "./wallet";

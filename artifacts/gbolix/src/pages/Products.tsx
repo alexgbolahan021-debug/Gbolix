@@ -5,15 +5,16 @@ import { Link } from "wouter";
 
 const products = [
   {
-    name: "Gbolix Prospect Finder",
-    tagline: "AI-Powered B2B Prospecting",
-    desc: "Generate verified business prospects automatically. Find your ideal customers with AI-powered prospecting that delivers accurate contact data and company insights at scale.",
+    name: "Gbolix Leads",
+    tagline: "Verified Lead Intelligence",
+    desc: "Generate, enrich, verify, deduplicate, and score B2B leads. Spend Gbolix Wallet credits only on qualified new leads.",
     image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80&auto=format&fit=crop",
     accentColor: "text-primary",
     accentBg: "bg-primary/10",
     borderHover: "hover:border-primary/30",
     glowColor: "rgba(0,255,102,0.1)",
-    features: ["Verified contact emails", "Company intelligence", "Industry filtering", "CSV export"],
+    features: ["1 qualified lead = 1 credit", "Workspace deduplication", "Evidence-aware verification", "Scored CSV exports"],
+    href: "/dashboard/products/gbolix-leads",
   },
   {
     name: "Gbolix Monitor",
@@ -48,7 +49,7 @@ export default function Products() {
         <Badge className="mb-4 bg-secondary/10 text-secondary border-secondary/20">Products</Badge>
         <h1 className="text-4xl md:text-5xl font-extrabold mb-4" style={{ fontFamily: "Sora, sans-serif" }}>Built for the Modern Business</h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          Powerful tools that automate, monitor, and scale your operations. Currently in development — launching soon.
+          Powerful tools that automate, monitor, and scale your operations. Gbolix Leads is available through your Gbolix account; more tools are on the way.
         </p>
       </div>
 
@@ -64,7 +65,7 @@ export default function Products() {
                 <div className="h-44 overflow-hidden relative">
                   <img src={p.image} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
                   <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
-                  <Badge className="absolute top-3 right-3 bg-muted/80 text-muted-foreground border-0 backdrop-blur-sm text-[10px]">Coming Soon</Badge>
+                  {p.href ? <Badge className="absolute top-3 right-3 bg-primary/90 text-primary-foreground border-0 backdrop-blur-sm text-[10px]">Account access</Badge> : <Badge className="absolute top-3 right-3 bg-muted/80 text-muted-foreground border-0 backdrop-blur-sm text-[10px]">Coming Soon</Badge>}
                 </div>
                 <div className="p-6 flex flex-col flex-1">
                   <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${p.accentColor}`}>{p.tagline}</p>
@@ -78,9 +79,7 @@ export default function Products() {
                       </li>
                     ))}
                   </ul>
-                  <Button variant="outline" size="sm" disabled className="w-full" data-testid={`button-coming-soon-${p.name.toLowerCase().replace(/\s/g, "-")}`}>
-                    Coming Soon
-                  </Button>
+                  {p.href ? <Link href={p.href}><Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" data-testid="button-open-gbolix-leads">Open Gbolix Leads</Button></Link> : <Button variant="outline" size="sm" disabled className="w-full" data-testid={`button-coming-soon-${p.name.toLowerCase().replace(/\s/g, "-")}`}>Coming Soon</Button>}
                 </div>
               </div>
             ))}

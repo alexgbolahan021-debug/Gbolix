@@ -784,6 +784,8 @@ components:
       properties:
         id:
           type: integer
+        projectCode:
+          type: string
         userId:
           type: integer
         serviceType:
@@ -794,7 +796,7 @@ components:
           type: string
         status:
           type: string
-          enum: [submitted, queued, in_progress, review, completed]
+          enum: [submitted, queued, pending_review, needs_info, approved, declined, agreement_sent, agreement_accepted, in_progress, review, completed]
         priority:
           type: string
           enum: [low, medium, high, urgent]
@@ -808,6 +810,7 @@ components:
           type: string
       required:
         - id
+        - projectCode
         - userId
         - serviceType
         - title
@@ -1135,6 +1138,8 @@ components:
       properties:
         id:
           type: integer
+        projectCode:
+          type: string
         title:
           type: string
         serviceType:
@@ -1143,7 +1148,7 @@ components:
           type: string
         status:
           type: string
-          enum: [submitted, queued, in_progress, review, completed]
+          enum: [submitted, queued, pending_review, needs_info, approved, declined, agreement_sent, agreement_accepted, in_progress, review, completed]
         priority:
           type: string
           enum: [low, medium, high, urgent]
@@ -1175,6 +1180,7 @@ components:
           type: string
       required:
         - id
+        - projectCode
         - title
         - serviceType
         - description
@@ -1192,7 +1198,7 @@ components:
       properties:
         status:
           type: string
-          enum: [submitted, queued, in_progress, review, completed]
+          enum: [submitted, queued, pending_review, needs_info, approved, declined, agreement_sent, agreement_accepted, in_progress, review, completed]
         priority:
           type: string
           enum: [low, medium, high, urgent]

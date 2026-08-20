@@ -9,6 +9,9 @@ import notificationsRouter from "./notifications";
 import offersRouter from "./offers";
 import paymentsRouter from "./payments";
 import agreementsRouter from "./agreements";
+import walletRouter from "./wallet";
+import leadsRouter from "./leads";
+import leadsIntegrationRouter from "./leadsIntegration";
 
 const router: IRouter = Router();
 
@@ -20,6 +23,9 @@ router.use("/projects/:projectId/messages", messagesRouter);
 router.use("/admin", adminRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/agreements", agreementsRouter);
+router.use("/wallet", walletRouter);
+router.use("/leads", leadsRouter);
+router.use("/integrations/leads", leadsIntegrationRouter);
 router.use("/", paymentsRouter);
 router.use("/", offersRouter);
 

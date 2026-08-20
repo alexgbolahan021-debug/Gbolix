@@ -317,7 +317,7 @@ function Detail({ label, value }: { label: string; value?: unknown }) {
   return <div><p className="text-xs font-medium text-muted-foreground mb-1">{label}</p><p className="text-sm leading-6 whitespace-pre-wrap">{String(value)}</p></div>;
 }
 
-function formatRequirements(req: any, description?: string) {
+function formatRequirements(req: any, description?: string | null) {
   if (!req || typeof req !== "object") return description ?? "Not provided";
   const entries = Object.entries(req).filter(([k, v]) => k !== "attached_files" && v !== undefined && v !== null && v !== "");
   if (!entries.length) return description ?? "Not provided";
