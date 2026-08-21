@@ -33,3 +33,15 @@ export async function agentRequest<T>(token: string, path: string, init: Request
 }
 
 export function isAgentConfigured(): boolean { return Boolean(baseUrl); }
+
+export type AdminOverview = { customers: number; agents: number; responses: number; creditsUsed?: number; credits_used?: number; deployments?: number };
+export type AdminCustomer = { workspaceId: string; agents: number; responses: number; creditsUsed: number };
+export type AdminAgent = Agent & { knowledgeCount: number; conversationCount: number; responses: number; creditsUsed: number; deploymentCount: number };
+export type AdminConversation = { id: string; agentId: string; workspaceId: string; channel: string; visitorKey: string; status: string; createdAt: string; updatedAt: string; agentName: string; messageCount: number; lastMessage?: string };
+export type AdminMessage = { id: string; conversationId: string; role: string; content: string; toolName?: string; createdAt: string };
+export type AdminUsageEvent = { requestId: string; workspaceId: string; agentId: string; conversationId: string; model: string; inputTokens: number; outputTokens: number; toolCalls: number; credits: number; status: string; channel: string; createdAt: string; agentName: string };
+export type AdminDeployment = { id: string; agentId: string; workspaceId: string; channel: string; allowedOrigin?: string; tokenPrefix: string; status: string; createdAt: string; updatedAt: string; agentName: string };
+export type AdminKnowledge = { id: string; agentId: string; workspaceId: string; title: string; content: string; sourceType: string; status: string; createdAt: string; updatedAt: string; agentName: string };
+export type AdminTool = { name: string; description: string; agents: number; calls: number };
+export type AdminActivity = { id: string; type: "usage" | "conversation" | "deployment"; workspaceId: string; agentId?: string; agentName?: string; description: string; status: string; createdAt: string };
+export type AdminSettings = { creditMode: string; aiProvider: string; storage: string; adminUsers: number; corsOrigins: number };
