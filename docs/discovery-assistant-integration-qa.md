@@ -17,3 +17,13 @@ The live production hero CTA opened the assistant modal successfully, showing th
 ## Focused-card redesign verification
 
 The revised local homepage no longer embeds the Discovery Assistant landing page. The hero CTA opens only a focused conversation card with a Gbolix Discovery header, welcome message, suggestion chips, composer, discovery-path rail, consent control, working-picture action, and restart control. The card has a restrained dark operations-console treatment and collapses naturally for smaller screens.
+
+The focused card successfully called the production Discovery Assistant API from the local Gbolix origin and rendered a streamed response inside the card. The response remained within the conversation UI; no landing page or external navigation was introduced.
+
+A 390×844 mobile render was generated successfully. The hero typography remains readable, the navigation collapses to the mobile menu, and the floating `Talk to Gbolix` button remains visible and reachable at the bottom-right. The focused card uses mobile-first single-column classes and a compact progress strip in place of the desktop side rail.
+
+## Final production deployment
+
+The refined Vercel deployment for commit `e9b1618` reached `READY` and is serving the canonical `https://gbolix.site/` domain. The initial live page shows the Problem Discovery hero CTA and the floating `Talk to Gbolix` button, with no assistant landing page or automatic popup visible.
+
+On the canonical production homepage, selecting the hero `Problem Discovery` CTA opens a modal containing only the self-contained Gbolix Discovery conversation card. The assistant landing page is not embedded. A built-in suggestion (`Something in my operations is too manual`) produced a live Gemini reply in the card: `Manual processes can take up a lot of time and energy. Which specific part of your daily operations requires the most manual effort right now, and what ideal outcome are you hoping to achieve?`

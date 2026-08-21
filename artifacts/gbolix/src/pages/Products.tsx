@@ -2,6 +2,7 @@ import { PublicNav } from "@/components/PublicNav";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
+import { DiscoveryAssistantContextBlock } from "@/components/DiscoveryAssistantContextBlock";
 
 const products = [
   {
@@ -52,6 +53,16 @@ export default function Products() {
           Powerful tools that automate, monitor, and scale your operations. Gbolix Leads is available through your Gbolix account; more tools are on the way.
         </p>
       </div>
+
+      <DiscoveryAssistantContextBlock
+        eyebrow="From problems to products"
+        title="Have an idea but do not know what to build?"
+        description="Future products should start with a real outcome. Tell Gbolix what you are trying to accomplish and we can help clarify the smallest useful direction."
+        buttonLabel="Talk through the idea"
+        floatingLabel="Have an idea?"
+        prompt="I have an idea but don't know what product I need."
+        tone="purple"
+      />
 
       <div className="py-16 px-4">
         <div className="max-w-6xl mx-auto">

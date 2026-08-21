@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PublicNav } from "@/components/PublicNav";
 import { DiscoveryAssistantDialog, DiscoveryAssistantFloatingButton, DiscoveryAssistantHeroButton } from "@/components/DiscoveryAssistantLauncher";
+import { DiscoveryAssistantShowcase } from "@/components/DiscoveryAssistantShowcase";
 import { motion, useInView, useScroll } from "framer-motion";
 import { ArrowRight, Check, Zap, Bot, Activity, Star, Layers, Eye, Headphones, ArrowDown, Timer, ShieldCheck } from "lucide-react";
 
@@ -369,6 +370,12 @@ const products = [
 export default function Home() {
   const [waitlisted, setWaitlisted] = useState<string | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantPrompt, setAssistantPrompt] = useState("");
+
+  function openAssistant(prompt = "") {
+    setAssistantPrompt(prompt);
+    setAssistantOpen(true);
+  }
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -419,7 +426,7 @@ export default function Home() {
             <p className="-mt-1 max-w-xl text-xs text-slate-400 sm:text-sm">
               Tell Gbolix what&apos;s happening. We&apos;ll help you figure it out.
             </p>
-            <DiscoveryAssistantHeroButton onClick={() => setAssistantOpen(true)} />
+            <DiscoveryAssistantHeroButton onClick={() => openAssistant()} />
           </motion.div>
 
           <motion.div
@@ -456,8 +463,8 @@ export default function Home() {
           </motion.div>
         </div>
 
-        <DiscoveryAssistantDialog open={assistantOpen} onOpenChange={setAssistantOpen} />
-        <DiscoveryAssistantFloatingButton onClick={() => setAssistantOpen(true)} hidden={assistantOpen} />
+        <DiscoveryAssistantDialog open={assistantOpen} onOpenChange={setAssistantOpen} initialPrompt={assistantPrompt} />
+        <DiscoveryAssistantFloatingButton onClick={() => openAssistant()} hidden={assistantOpen} />
 
         {/* Scroll indicator */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-50">
@@ -467,6 +474,9 @@ export default function Home() {
 
       {/* ═══ HOW GBOLIX WORKS ══════════════════════════════════════════════════ */}
       <HowItWorksSection />
+
+      {/* ═══ DISCOVERY ASSISTANT SHOWCASE ═══════════════════════════════════════ */}
+      <DiscoveryAssistantShowcase onOpenAssistant={openAssistant} />
 
       {/* ═══ SERVICES ══════════════════════════════════════════════════════════ */}
       <section className="py-24 px-4 bg-card border-y border-border">

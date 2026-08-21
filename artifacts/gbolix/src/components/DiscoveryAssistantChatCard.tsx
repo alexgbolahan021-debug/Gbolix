@@ -52,9 +52,13 @@ function apiUrl(path: string) {
   return `${ASSISTANT_API_URL}${path}`;
 }
 
-export function DiscoveryAssistantChatCard() {
+type DiscoveryAssistantChatCardProps = {
+  initialPrompt?: string;
+};
+
+export function DiscoveryAssistantChatCard({ initialPrompt = "" }: DiscoveryAssistantChatCardProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialPrompt);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState("");
   const [storageConsent, setStorageConsent] = useState(false);
@@ -69,6 +73,11 @@ export function DiscoveryAssistantChatCard() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, analysis]);
+
+  useEffect(() => {
+    setInput(initialPrompt);
+    setAnalysis(null);
+  }, [initialPrompt]);
 
   async function persist(snapshot = messages, snapshotAnalysis = analysis) {
     if (!storageConsent || snapshot.length < 2) return;
@@ -160,7 +169,7 @@ export function DiscoveryAssistantChatCard() {
 
   function restart() {
     setMessages([{ ...welcomeMessage, id: makeId() }]);
-    setInput("");
+    setInput(initialPrompt);
     setError("");
     setAnalysis(null);
     setConversationId(null);
