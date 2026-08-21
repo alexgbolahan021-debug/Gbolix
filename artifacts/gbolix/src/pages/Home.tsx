@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PublicNav } from "@/components/PublicNav";
+import { DiscoveryAssistantDialog, DiscoveryAssistantFloatingButton, DiscoveryAssistantHeroButton } from "@/components/DiscoveryAssistantLauncher";
 import { motion, useInView, useScroll } from "framer-motion";
 import { ArrowRight, Check, Zap, Bot, Activity, Star, Layers, Eye, Headphones, ArrowDown, Timer, ShieldCheck } from "lucide-react";
 
@@ -367,6 +368,7 @@ const products = [
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Home() {
   const [waitlisted, setWaitlisted] = useState<string | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -400,10 +402,25 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.25 }}
-            className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed"
+            className="text-lg md:text-xl text-slate-400 mb-7 max-w-2xl mx-auto leading-relaxed"
           >
             Helping founders and businesses automate operations, launch products faster, and scale efficiently. All from one platform.
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.34 }}
+            className="mb-7 flex flex-col items-center gap-3"
+          >
+            <p className="text-sm font-medium text-white/85 sm:text-base">
+              Have a problem with your business but don&apos;t know exactly what you need?
+            </p>
+            <p className="-mt-1 max-w-xl text-xs text-slate-400 sm:text-sm">
+              Tell Gbolix what&apos;s happening. We&apos;ll help you figure it out.
+            </p>
+            <DiscoveryAssistantHeroButton onClick={() => setAssistantOpen(true)} />
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -438,6 +455,9 @@ export default function Home() {
             </Link>
           </motion.div>
         </div>
+
+        <DiscoveryAssistantDialog open={assistantOpen} onOpenChange={setAssistantOpen} />
+        <DiscoveryAssistantFloatingButton onClick={() => setAssistantOpen(true)} hidden={assistantOpen} />
 
         {/* Scroll indicator */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-50">
