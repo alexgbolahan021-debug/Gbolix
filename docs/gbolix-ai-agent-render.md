@@ -18,7 +18,7 @@ Set these on the `gbolix-site` service:
 | `VITE_CLERK_PUBLISHABLE_KEY` | Existing Clerk publishable key |
 | `VITE_CLERK_PROXY_URL` | Existing Clerk proxy URL, if used |
 
-The browser calls management routes with the current Clerk bearer token. It must never receive `GBOLIX_PLATFORM_TOKEN`, the engine provider key, or a database URL.
+The browser calls management routes with the current Clerk bearer token. It must never receive `GBOLIX_PLATFORM_TOKEN`, the engine provider key, or a database URL. If the engine reports `no applicable key found in the JSON Web Key Set`, check that the Vercel `VITE_CLERK_PUBLISHABLE_KEY` and Render `CLERK_JWKS_URL` belong to the same Clerk instance, then redeploy the engine after correcting the URL.
 
 ## Engine variables
 
@@ -33,7 +33,7 @@ Set these on the `gbolix-ai-agent-engine` service:
 | `CREDIT_MODE` | Use `platform` in production and `local` only for smoke tests |
 | `GBOLIX_PLATFORM_URL` | Existing Gbolix API base URL that owns credit authorization and usage events |
 | `GBOLIX_PLATFORM_TOKEN` | Private service-to-service credential |
-| `CLERK_JWKS_URL` | Clerk JWKS URL used to verify site bearer tokens |
+| `CLERK_JWKS_URL` | Clerk JWKS URL used to verify site bearer tokens. It must come from the same Clerk instance used by the frontend. If the frontend key starts with `pk_test_`, use the test/development instance JWKS URL; if it starts with `pk_live_`, use the production instance JWKS URL. |
 | `AGENT_ADMIN_USER_IDS` | Comma-separated owner/admin subjects allowed to view global AI Agent data |
 | `CORS_ORIGINS` | Comma-separated allowed site/customer origins |
 | `PUBLIC_BASE_URL` | Public engine URL used in generated embed snippets |
