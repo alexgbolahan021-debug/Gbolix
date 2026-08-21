@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import { Router, type NextFunction, type Request, type Response } from "express";
+import { eq } from "drizzle-orm";
+import { db, usersTable, workspacesTable } from "@workspace/db";
 import { finalizeCredits, releaseCredits, reserveAIAgentCredits, WalletError } from "../lib/walletService";
 
 const router = Router();
@@ -15,10 +17,11 @@ router.use((req, res, next) => {
 router.post("/credit-authorizations", async (req, res) => {
   try {
     const body = req.body as Record<string, unknown>;
-    const workspaceKey = String(body.workspaceKey ?? body.workspaceId ?? "");
+    const rawWorkspaceKey = String(body.workspaceKey ?? body.workspaceId ?? "");
     const requestKey = String(body.requestKey ?? body.sourceKey ?? "");
     const maximumCredits = Number(body.maximumCredits ?? 0);
-    if (!workspaceKey || !requestKey || !Number.isInteger(maximumCredits) || maximumCredits <= 0) return res.status(400).json({ error: "INVALID_CREDIT_AUTHORIZATION" });
+    if (!rawWorkspaceKey || !requestKey || !Number.isInteger(maximumCredits) || maximumCredits <= 0) return res.status(400).json({ error: "INVALID_CREDIT_AUTHORIZATION" });
+    const workspaceKey = await resolveWalletWorkspaceKey(rawWorkspaceKey);
     const result = await reserveAIAgentCredits({ workspaceKey, requestKey, maximumCredits, agentId: typeof body.agentId === "string" ? body.agentId : undefined });
     return res.status(result.reused ? 200 : 201).json({ authorizationKey: result.authorization.authorizationKey, maximumCredits: result.authorization.maximumCredits, expiresAt: result.authorization.expiresAt });
   } catch (error) { return walletErrorResponse(res, error); }
@@ -51,5 +54,19 @@ function walletErrorResponse(res: Response, error: unknown) {
   return res.status(500).json({ error: "AI_AGENT_CREDIT_INTEGRATION_FAILED" });
 }
 function safeEqual(left: string, right: string) { const a = Buffer.from(left); const b = Buffer.from(right); return a.length === b.length && crypto.timingSafeEqual(a, b); }
+
+async function resolveWalletWorkspaceKey(rawWorkspaceKey: string) {
+  const [directWorkspace] = await db.select({ workspaceKey: workspacesTable.workspaceKey }).from(workspacesTable).where(eq(workspacesTable.workspaceKey, rawWorkspaceKey)).limit(1);
+  if (directWorkspace) return directWorkspace.workspaceKey;
+
+  const clerkIdCandidates = [rawWorkspaceKey, rawWorkspaceKey.replace(/^workspace[_:]/, "")];
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.clerkId, clerkIdCandidates[0])).limit(1);
+  if (user) return `gws_user_${user.id}`;
+  if (clerkIdCandidates[1] !== clerkIdCandidates[0]) {
+    const [prefixedUser] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.clerkId, clerkIdCandidates[1])).limit(1);
+    if (prefixedUser) return `gws_user_${prefixedUser.id}`;
+  }
+  throw new WalletError("WORKSPACE_NOT_FOUND", "The Gbolix workspace could not be resolved", 404);
+}
 
 export default router;
