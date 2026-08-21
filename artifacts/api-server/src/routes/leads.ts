@@ -5,7 +5,7 @@ import { db, leadsIntegrationEventsTable, leadsRequestsTable } from "@workspace/
 import { requireAuth } from "../middlewares/requireAuth";
 import { canUseProduct } from "../lib/walletPolicy";
 import { WalletError, ensureWorkspaceWallet, releaseCredits, reserveCredits } from "../lib/walletService";
-import { dispatchGbolixLeadsRequest } from "../lib/leadsEngineClient";
+import { createGbolixLeadsExport, dispatchGbolixLeadsRequest, getGbolixLeadsResults } from "../lib/leadsEngineClient";
 import { statusAfterSuccessfulLeadDispatch, statusAfterUsageFinalized } from "../lib/leadsLifecycleState";
 
 const router = Router();
@@ -75,6 +75,30 @@ router.get("/requests/:requestKey", requireAuth, async (req, res) => {
     const [request] = await db.select().from(leadsRequestsTable).where(and(eq(leadsRequestsTable.workspaceId, context.workspace.id), eq(leadsRequestsTable.requestKey, String(req.params.requestKey)))).limit(1);
     if (!request) return res.status(404).json({ error: "LEADS_REQUEST_NOT_FOUND" });
     return res.json({ requestKey: request.requestKey, status: request.status, requestedLeadCount: request.requestedLeadCount, processedLeads: request.processedLeads, qualifiedLeads: request.qualifiedLeads, duplicatesSuppressed: request.duplicateLeads, engineJobKey: request.engineJobKey, resultSetKey: request.resultSetKey, requestSpec: request.requestSpec, lastErrorCode: request.lastErrorCode, updatedAt: request.updatedAt.toISOString() });
+  } catch (error) { return fail(res, error); }
+});
+
+router.get("/requests/:requestKey/results", requireAuth, async (req, res) => {
+  try {
+    if (!req.userId) return res.status(404).json({ error: "USER_NOT_READY" });
+    const context = await ensureWorkspaceWallet(req.userId);
+    const requestKey = String(req.params.requestKey);
+    const [request] = await db.select().from(leadsRequestsTable).where(and(eq(leadsRequestsTable.workspaceId, context.workspace.id), eq(leadsRequestsTable.requestKey, requestKey))).limit(1);
+    if (!request) return res.status(404).json({ error: "LEADS_REQUEST_NOT_FOUND" });
+    if (request.status !== "completed") return res.status(409).json({ error: "LEADS_RESULTS_PENDING", message: "Results are available only after the Lead request completes" });
+    return res.json(await getGbolixLeadsResults({ externalRequestId: request.requestKey, externalWorkspaceId: context.workspace.workspaceKey, actorId: String(req.userId) }));
+  } catch (error) { return fail(res, error); }
+});
+
+router.get("/requests/:requestKey/export", requireAuth, async (req, res) => {
+  try {
+    if (!req.userId) return res.status(404).json({ error: "USER_NOT_READY" });
+    const context = await ensureWorkspaceWallet(req.userId);
+    const requestKey = String(req.params.requestKey);
+    const [request] = await db.select().from(leadsRequestsTable).where(and(eq(leadsRequestsTable.workspaceId, context.workspace.id), eq(leadsRequestsTable.requestKey, requestKey))).limit(1);
+    if (!request) return res.status(404).json({ error: "LEADS_REQUEST_NOT_FOUND" });
+    if (request.status !== "completed") return res.status(409).json({ error: "LEADS_RESULTS_PENDING", message: "Exports are available only after the Lead request completes" });
+    return res.json(await createGbolixLeadsExport({ externalRequestId: request.requestKey, externalWorkspaceId: context.workspace.workspaceKey, actorId: String(req.userId) }));
   } catch (error) { return fail(res, error); }
 });
 

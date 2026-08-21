@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import { useState, type FormEvent } from "react";
 import { Link } from "wouter";
-import { ArrowRight, DatabaseZap, Loader2, LockKeyhole, SearchCheck, Sparkles } from "lucide-react";
+import { ArrowRight, DatabaseZap, Download, Eye, Loader2, LockKeyhole, SearchCheck, Sparkles } from "lucide-react";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,28 @@ type LeadsContext = {
   requests: LeadRequest[];
 };
 
+type LeadResult = {
+  id: string;
+  businessName: string;
+  categoryCode: string | null;
+  website: string | null;
+  publicEmail: string | null;
+  phone: string | null;
+  city: string | null;
+  score: number | null;
+};
+
+type LeadsResultsResponse = {
+  job: { id: string; status: string; requestedCount: number; processedCount: number; qualifiedCount: number; duplicateCount: number; completedAt: string | null };
+  leads: LeadResult[];
+};
+
 async function getLeads() {
   return customFetch<LeadsContext>("/api/leads", { responseType: "json" });
+}
+
+async function getLeadResults(requestKey: string) {
+  return customFetch<LeadsResultsResponse>(`/api/leads/requests/${encodeURIComponent(requestKey)}/results`, { responseType: "json" });
 }
 
 function activityLabel(status: string, resultSetKey: string | null) {
@@ -46,6 +66,9 @@ export default function LeadsWorkspace() {
   const [rawContent, setRawContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedRequestKey, setSelectedRequestKey] = useState<string | null>(null);
+  const [exportingRequestKey, setExportingRequestKey] = useState<string | null>(null);
+  const results = useQuery({ queryKey: ["gbolix-lead-results", selectedRequestKey], queryFn: () => getLeadResults(selectedRequestKey!), enabled: Boolean(selectedRequestKey) });
   const active = leads.data?.product.entitlementStatus === "active" || leads.data?.product.entitlementStatus === "trialing";
 
   const submit = async (event: FormEvent) => {
@@ -77,6 +100,19 @@ export default function LeadsWorkspace() {
       setError(err instanceof Error ? err.message : "Unable to start the lead request");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const downloadCsv = async (requestKey: string) => {
+    setError(null);
+    setExportingRequestKey(requestKey);
+    try {
+      const exportResult = await customFetch<{ downloadUrl: string }>(`/api/leads/requests/${encodeURIComponent(requestKey)}/export`, { responseType: "json" });
+      window.location.assign(exportResult.downloadUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create the CSV export");
+    } finally {
+      setExportingRequestKey(null);
     }
   };
 
@@ -157,16 +193,24 @@ export default function LeadsWorkspace() {
                 {!leads.data?.requests.length ? (
                   <p className="py-7 text-sm text-muted-foreground">No lead jobs yet. Start your first request above.</p>
                 ) : leads.data.requests.map(job => (
-                  <div key={job.key} className="grid gap-3 py-4 sm:grid-cols-[1.2fr_repeat(4,auto)] sm:items-center">
+                  <div key={job.key} className="grid gap-3 py-4 sm:grid-cols-[1.2fr_repeat(5,auto)] sm:items-center">
                     <div><p className="font-mono text-xs font-semibold">{job.key}</p><p className="mt-1 text-xs text-muted-foreground">Updated {new Date(job.updatedAt).toLocaleString()}</p></div>
                     <Badge className="w-fit bg-muted text-muted-foreground capitalize">{job.status.replace(/_/g, " ")}</Badge>
                     <span className="text-xs text-muted-foreground">{job.qualifiedLeads}/{job.requestedLeadCount} qualified</span>
                     <span className="text-xs text-muted-foreground">{job.duplicatesSuppressed} duplicates suppressed</span>
                     <span className="text-xs text-primary">{activityLabel(job.status, job.resultSetKey)}</span>
+                    {job.status === "completed" && <div className="flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => setSelectedRequestKey(job.key)}><Eye className="mr-1 h-3.5 w-3.5" />View</Button>
+                      <Button type="button" size="sm" variant="outline" disabled={exportingRequestKey === job.key} onClick={() => void downloadCsv(job.key)}><Download className="mr-1 h-3.5 w-3.5" />{exportingRequestKey === job.key ? "Preparing…" : "CSV"}</Button>
+                    </div>}
                   </div>
                 ))}
               </div>
             </section>
+            {selectedRequestKey && <section className="mt-6 rounded-2xl border border-primary/30 bg-card p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-primary">Completed request</p><h2 className="mt-1 text-xl font-bold">Lead results</h2></div><Button type="button" size="sm" variant="outline" onClick={() => setSelectedRequestKey(null)}>Close</Button></div>
+              {results.isLoading ? <div className="flex h-36 items-center justify-center"><Loader2 className="animate-spin text-primary" /></div> : results.isError ? <p className="mt-5 text-sm text-destructive">Unable to load results. Refresh and try again.</p> : <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[740px] text-left text-sm"><thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="pb-3 pr-4">Business</th><th className="pb-3 pr-4">Website</th><th className="pb-3 pr-4">Email</th><th className="pb-3 pr-4">Phone</th><th className="pb-3 pr-4">City</th><th className="pb-3">Score</th></tr></thead><tbody>{results.data?.leads.length ? results.data.leads.map(lead => <tr key={lead.id} className="border-b border-border/60"><td className="py-3 pr-4 font-medium">{lead.businessName}</td><td className="py-3 pr-4 text-muted-foreground">{lead.website ?? "—"}</td><td className="py-3 pr-4 text-muted-foreground">{lead.publicEmail ?? "—"}</td><td className="py-3 pr-4 text-muted-foreground">{lead.phone ?? "—"}</td><td className="py-3 pr-4 text-muted-foreground">{lead.city ?? "—"}</td><td className="py-3 font-semibold text-primary">{lead.score ?? "—"}</td></tr>) : <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No new qualified leads were created for this request.</td></tr>}</tbody></table></div>}
+            </section>}
           </>
         )}
       </div>
