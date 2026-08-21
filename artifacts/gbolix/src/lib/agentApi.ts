@@ -35,7 +35,7 @@ export async function agentRequest<T>(token: string, path: string, init: Request
 export function isAgentConfigured(): boolean { return Boolean(baseUrl); }
 
 export type AdminOverview = { customers: number; agents: number; responses: number; creditsUsed?: number; credits_used?: number; deployments?: number };
-export type AdminCustomer = { workspaceId: string; agents: number; responses: number; creditsUsed: number };
+export type AdminCustomer = { workspaceId: string; customerName?: string; customerEmail?: string; agents: number; responses: number; creditsUsed: number };
 export type AdminAgent = Agent & { knowledgeCount: number; conversationCount: number; responses: number; creditsUsed: number; deploymentCount: number };
 export type AdminConversation = { id: string; agentId: string; workspaceId: string; channel: string; visitorKey: string; status: string; createdAt: string; updatedAt: string; agentName: string; messageCount: number; lastMessage?: string };
 export type AdminMessage = { id: string; conversationId: string; role: string; content: string; toolName?: string; createdAt: string };
