@@ -13,3 +13,9 @@ The browser render shows the section’s four-step rail, asymmetric copy-and-pho
 The local Services page renders `Problem-first service matching` above the catalogue, with `Let Gbolix help me figure it out` and a contextual floating label `Not sure what you need?`. Clicking the block opens the focused card and pre-fills `I don't know which Gbolix service I need yet.` without auto-submitting it.
 
 The local Products page renders `From problems to products` above the product cards, with `Talk through the idea` and a contextual floating label `Have an idea?`. Clicking the block opens the focused card and pre-fills `I have an idea but don't know what product I need.` without auto-submitting it. The purple accent treatment differentiates product discovery while remaining inside the Gbolix palette.
+
+## Production deployment
+
+Commit `865a82f` (`Expand Discovery Assistant across Gbolix experience`) reached `READY` on Vercel deployment `dpl_7XNNug4xHuQF2HrMi77GPjtQv43X` and now serves the canonical `https://gbolix.site/` aliases. The production homepage exposes the four-step Discovery explanation, example selectors, phone-style conversation mockup, and clickable starter prompts.
+
+The live production browser render shows the phone mockup and discovery path in the canonical homepage context. Selecting `Operations` updates the phone example to the manual-workflow conversation and the matching `What Gbolix discovered` panel without navigation.
