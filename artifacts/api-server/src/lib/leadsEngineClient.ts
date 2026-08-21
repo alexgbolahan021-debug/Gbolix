@@ -8,9 +8,10 @@ export type GbolixLeadsEngineRequest = {
   actorId?: string;
   creditAuthorizationId: string;
   label: string;
-  inputType: "csv_upload" | "domain_list";
+  inputType: "csv_upload" | "domain_list" | "openstreetmap_discovery";
   rawContent: string;
   categoryCode: string;
+  discovery?: { adapterKey: "openstreetmap-pilot-v1"; city: string; country?: string; limit: number };
 };
 
 export type GbolixLeadsResultsRequest = {

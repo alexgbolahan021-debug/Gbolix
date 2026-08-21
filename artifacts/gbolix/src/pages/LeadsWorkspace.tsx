@@ -61,7 +61,7 @@ export default function LeadsWorkspace() {
   const [categoryCode, setCategoryCode] = useState("restaurants");
   const [city, setCity] = useState("");
   const [desiredLeadCount, setDesiredLeadCount] = useState(25);
-  const [inputType, setInputType] = useState<"csv_upload" | "domain_list">("domain_list");
+  const [inputType, setInputType] = useState<"csv_upload" | "domain_list" | "openstreetmap_discovery">("domain_list");
   const [label, setLabel] = useState("My business list");
   const [rawContent, setRawContent] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -74,8 +74,16 @@ export default function LeadsWorkspace() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (!rawContent.trim() || !label.trim()) {
-      setError("Provide a label and a CSV or domain-list source before starting this request.");
+    if (!label.trim()) {
+      setError("Provide a label before starting this request.");
+      return;
+    }
+    if (inputType !== "openstreetmap_discovery" && !rawContent.trim()) {
+      setError("Provide a CSV or domain-list source before starting this request.");
+      return;
+    }
+    if (inputType === "openstreetmap_discovery" && !city.trim()) {
+      setError("OpenStreetMap pilot discovery requires a city.");
       return;
     }
 
@@ -147,30 +155,30 @@ export default function LeadsWorkspace() {
             <section className="mt-7 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               <form onSubmit={submit} className="rounded-2xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2"><DatabaseZap className="text-primary" size={18} /><h2 className="font-bold">New lead request</h2></div>
-                <p className="mt-2 text-sm text-muted-foreground">Start with a user-provided source. The maximum requested leads is reserved; workspace duplicates are suppressed before final credit usage.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Import a source you provide, or run the tightly limited OpenStreetMap discovery pilot. The maximum requested leads is reserved; workspace duplicates are suppressed before final credit usage.</p>
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Source type
-                    <select className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={inputType} onChange={event => setInputType(event.target.value as "csv_upload" | "domain_list")}>
-                      <option value="domain_list">Domain list</option><option value="csv_upload">CSV source</option>
+                    <select className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={inputType} onChange={event => { const next = event.target.value as "csv_upload" | "domain_list" | "openstreetmap_discovery"; setInputType(next); if (next === "openstreetmap_discovery") { setDesiredLeadCount(current => Math.min(current, 25)); setLabel(current => current === "My business list" ? "OpenStreetMap discovery" : current); } }}>
+                      <option value="domain_list">Domain list</option><option value="csv_upload">CSV source</option><option value="openstreetmap_discovery">Discover businesses — OpenStreetMap pilot</option>
                     </select>
                   </label>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Source label
                     <input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={label} onChange={event => setLabel(event.target.value)} />
                   </label>
                 </div>
-                <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{inputType === "csv_upload" ? "CSV content" : "Domains (one per line)"}
+                {inputType === "openstreetmap_discovery" ? <div className="mt-4 rounded-xl border border-primary/25 bg-primary/[0.07] p-4 text-xs leading-5 text-muted-foreground"><p className="font-semibold text-primary">Limited OpenStreetMap discovery pilot</p><p className="mt-1">Search one city for Restaurants or Real Estate. The pilot returns at most 25 public place records, preserves source provenance, and is not intended for bulk or background discovery.</p><p className="mt-2 text-[11px]">Data © OpenStreetMap contributors.</p></div> : <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{inputType === "csv_upload" ? "CSV content" : "Domains (one per line)"}
                   <textarea className="mt-2 min-h-32 w-full rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-xs" value={rawContent} onChange={event => setRawContent(event.target.value)} placeholder={inputType === "csv_upload" ? "Company Name,Website,Email\nRiver House,river.example,hello@river.example" : "river.example\nshore.example"} />
-                </label>
+                </label>}
                 <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category
                   <select className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={categoryCode} onChange={event => setCategoryCode(event.target.value)}>
                     <option value="restaurants">Restaurants</option><option value="real-estate">Real Estate</option>
                   </select>
                 </label>
-                <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">City (optional)
-                  <input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={city} onChange={event => setCity(event.target.value)} placeholder="Chicago" />
+                <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">City {inputType === "openstreetmap_discovery" ? "(required)" : "(optional)"}
+                  <input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" required={inputType === "openstreetmap_discovery"} value={city} onChange={event => setCity(event.target.value)} placeholder="Chicago" />
                 </label>
                 <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Maximum qualified leads
-                  <input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" type="number" min={1} max={50000} value={desiredLeadCount} onChange={event => setDesiredLeadCount(Number(event.target.value))} />
+                  <input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" type="number" min={1} max={inputType === "openstreetmap_discovery" ? 25 : 50000} value={desiredLeadCount} onChange={event => setDesiredLeadCount(Number(event.target.value))} />
                 </label>
                 {error && <p className="mt-4 text-xs text-destructive">{error}</p>}
                 <Button disabled={submitting} className="mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90">{submitting ? "Reserving credits…" : "Reserve credits & start job"}<SearchCheck className="ml-2 h-4 w-4" /></Button>

@@ -40,24 +40,29 @@ router.post("/requests", requireAuth, async (req, res) => {
     if (!req.userId) return res.status(404).json({ error: "USER_NOT_READY" });
     const desiredLeadCount = Number(req.body?.desiredLeadCount);
     const categoryCode = typeof req.body?.categoryCode === "string" ? req.body.categoryCode.trim() : "";
-    const inputType = req.body?.inputType === "domain_list" ? "domain_list" : req.body?.inputType === "csv_upload" ? "csv_upload" : null;
+    const inputType = req.body?.inputType === "domain_list" ? "domain_list" : req.body?.inputType === "csv_upload" ? "csv_upload" : req.body?.inputType === "openstreetmap_discovery" ? "openstreetmap_discovery" : null;
     const label = typeof req.body?.label === "string" ? req.body.label.trim() : "";
     const rawContent = typeof req.body?.rawContent === "string" ? req.body.rawContent : "";
+    const city = Array.isArray(req.body?.geography?.cities) && typeof req.body.geography.cities[0] === "string" ? req.body.geography.cities[0].trim() : "";
+    const country = typeof req.body?.geography?.country === "string" ? req.body.geography.country.trim() : "";
     const idempotencyKey = String(req.header("idempotency-key") ?? req.body?.idempotencyKey ?? "").trim();
     if (!idempotencyKey || idempotencyKey.length > 160) return res.status(400).json({ error: "IDEMPOTENCY_KEY_REQUIRED", message: "Provide a unique Idempotency-Key for this Gbolix Leads request" });
     if (!Number.isInteger(desiredLeadCount) || desiredLeadCount < 1 || desiredLeadCount > 50000) return res.status(422).json({ error: "INVALID_LEAD_COUNT", message: "Gbolix Leads requests must contain between 1 and 50,000 leads" });
     if (!categoryCode) return res.status(422).json({ error: "CATEGORY_REQUIRED", message: "Select a lead category" });
-    if (!inputType || !label || !rawContent) return res.status(422).json({ error: "USER_SOURCE_REQUIRED", message: "Provide a CSV or domain-list source, label, and content for this Leads request" });
+    if (!inputType || !label) return res.status(422).json({ error: "LEADS_REQUEST_INVALID", message: "Provide a request type and label" });
+    if (inputType !== "openstreetmap_discovery" && !rawContent) return res.status(422).json({ error: "USER_SOURCE_REQUIRED", message: "Provide a CSV or domain-list source, label, and content for this Leads request" });
+    if (inputType === "openstreetmap_discovery" && !city) return res.status(422).json({ error: "DISCOVERY_CITY_REQUIRED", message: "OpenStreetMap pilot discovery requires one city" });
+    if (inputType === "openstreetmap_discovery" && desiredLeadCount > 25) return res.status(422).json({ error: "DISCOVERY_PILOT_LIMIT", message: "OpenStreetMap pilot discovery is limited to 25 candidate leads per request" });
     const context = await ensureWorkspaceWallet(req.userId);
     if (!canUseProduct(context.entitlement.status)) return res.status(403).json({ error: "PRODUCT_ENTITLEMENT_REQUIRED", message: "Activate Gbolix Leads or purchase a credit pack before starting a lead request" });
     const existing = await db.select().from(leadsRequestsTable).where(and(eq(leadsRequestsTable.workspaceId, context.workspace.id), eq(leadsRequestsTable.idempotencyKey, idempotencyKey))).limit(1);
     if (existing[0]) return res.status(200).json({ requestKey: existing[0].requestKey, status: existing[0].status, reused: true });
     const requestKey = `grq_${crypto.randomUUID().replace(/-/g, "")}`;
     const reservation = await reserveCredits({ userId: req.userId, requestKey, maximumCredits: desiredLeadCount });
-    const requestSpec = { categoryCode, inputType, label, geography: req.body?.geography ?? {}, keywords: Array.isArray(req.body?.keywords) ? req.body.keywords : [], sourcePolicy: { allowUserProvidedSources: true, allowProviderDiscovery: false } };
+    const requestSpec = { categoryCode, inputType, label, geography: req.body?.geography ?? {}, keywords: Array.isArray(req.body?.keywords) ? req.body.keywords : [], sourcePolicy: { allowUserProvidedSources: inputType !== "openstreetmap_discovery", allowProviderDiscovery: inputType === "openstreetmap_discovery", adapterKey: inputType === "openstreetmap_discovery" ? "openstreetmap-pilot-v1" : "user-provided-v1", attribution: inputType === "openstreetmap_discovery" ? "© OpenStreetMap contributors" : undefined } };
     const [created] = await db.insert(leadsRequestsTable).values({ requestKey, workspaceId: context.workspace.id, productId: context.product.id, requestedByUserId: req.userId, creditAuthorizationId: reservation.authorization.id, idempotencyKey, requestSpec, requestedLeadCount: desiredLeadCount, status: "queued" }).returning();
     try {
-      const dispatch = await dispatchGbolixLeadsRequest({ externalRequestId: requestKey, externalWorkspaceId: context.workspace.workspaceKey, externalCustomerId: String(req.userId), actorId: String(req.userId), creditAuthorizationId: reservation.authorization.authorizationKey, label, inputType, rawContent, categoryCode });
+      const dispatch = await dispatchGbolixLeadsRequest({ externalRequestId: requestKey, externalWorkspaceId: context.workspace.workspaceKey, externalCustomerId: String(req.userId), actorId: String(req.userId), creditAuthorizationId: reservation.authorization.authorizationKey, label, inputType, rawContent, categoryCode, discovery: inputType === "openstreetmap_discovery" ? { adapterKey: "openstreetmap-pilot-v1", city, country: country || undefined, limit: desiredLeadCount } : undefined });
       await db.update(leadsRequestsTable).set({ engineJobKey: dispatch.jobId, status: statusAfterSuccessfulLeadDispatch("queued"), updatedAt: new Date() }).where(and(eq(leadsRequestsTable.id, created.id), eq(leadsRequestsTable.status, "queued")));
       return res.status(202).json({ requestKey: created.requestKey, workspaceKey: context.workspace.workspaceKey, status: "running", engineJobKey: dispatch.jobId, creditAuthorization: { key: reservation.authorization.authorizationKey, maximumCredits: reservation.authorization.maximumCredits, state: reservation.authorization.state }, reused: false });
     } catch (dispatchError) {
