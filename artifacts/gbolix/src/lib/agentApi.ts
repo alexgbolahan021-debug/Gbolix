@@ -15,6 +15,11 @@ export type Agent = {
 
 export type Knowledge = { id: string; agentId: string; workspaceId: string; title: string; content: string; sourceType: string; status: string; createdAt: string; };
 export type UsageSummary = { requests: number; responses: number; toolCalls: number; creditsUsed: number };
+export type Conversation = { id: string; agentId: string; workspaceId: string; channel: string; visitorKey: string; status: string; createdAt: string; updatedAt: string };
+export type ConversationMessage = { id: string; conversationId: string; role: string; content: string; toolName?: string; createdAt: string };
+export type Deployment = { id: string; agentId: string; workspaceId: string; channel: string; allowedOrigin?: string; tokenPrefix: string; status: string; createdAt: string; updatedAt: string };
+export type ApiKey = { id: string; agentId: string; workspaceId: string; keyPrefix: string; status: string; createdAt: string; lastUsedAt?: string };
+export type WalletLedgerEntry = { id: string; type: string; credits: number; sourceType: string; sourceKey: string; metadata?: Record<string, unknown>; createdAt: string };
 
 const baseUrl = (import.meta.env.VITE_GBOLIX_AGENT_URL ?? "").replace(/\/$/, "");
 
