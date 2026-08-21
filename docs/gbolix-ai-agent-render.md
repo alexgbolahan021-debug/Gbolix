@@ -27,9 +27,13 @@ Set these on the `gbolix-ai-agent-engine` service:
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Render Postgres connection string |
-| `OPENAI_API_KEY` | Provider credential used only by the engine |
-| `OPENAI_BASE_URL` | Provider-compatible base URL; defaults to OpenAI |
-| `DEFAULT_MODEL` | Recommended initial value: `gpt-5-mini` |
+| `AI_PROVIDER` | Set to `gemini` for the free-tier Gemini setup |
+| `GEMINI_API_KEY` | API key created in [Google AI Studio](https://aistudio.google.com/api-keys) |
+| `GEMINI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta` |
+| `DEFAULT_MODEL` | `gemini-2.5-flash-lite` for the initial free-tier setup |
+| `OPENAI_API_KEY` | Optional; only needed when `AI_PROVIDER=openai` |
+| `OPENAI_BASE_URL` | Optional OpenAI-compatible base URL |
+
 | `CREDIT_MODE` | Use `platform` in production and `local` only for smoke tests |
 | `GBOLIX_PLATFORM_URL` | Existing Gbolix API base URL that owns credit authorization and usage events |
 | `GBOLIX_PLATFORM_TOKEN` | Private service-to-service credential |
@@ -45,7 +49,7 @@ Deploy the engine first, create its Postgres database, set `PUBLIC_BASE_URL`, an
 
 ## Production credit integration
 
-The current engine has a real reservation/finalization client, but the authoritative endpoints remain owned by the Gbolix platform. The site API should implement:
+The current engine has a real reservation/finalization client, but the authoritative endpoints remain owned by the Gbolix platform. Google AI Studio provides a free tier with limited model access and project-level rate limits; the free tier is suitable for initial testing, not guaranteed unlimited production traffic. Check Google’s [pricing](https://ai.google.dev/gemini-api/docs/pricing) and [rate limits](https://ai.google.dev/gemini-api/docs/rate-limits) before launch. The site API should implement:
 
 ```text
 POST /api/internal/credit-authorizations
