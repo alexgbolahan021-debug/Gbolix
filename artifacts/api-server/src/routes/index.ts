@@ -13,6 +13,7 @@ import agreementsRouter from "./agreements";
 import walletRouter from "./wallet";
 import leadsRouter from "./leads";
 import leadsIntegrationRouter from "./leadsIntegration";
+import aiAgentIntegrationRouter from "./aiAgentIntegration";
 
 const router: IRouter = Router();
 
@@ -28,6 +29,7 @@ router.use("/agreements", agreementsRouter);
 router.use("/wallet", walletRouter);
 router.use("/leads", leadsRouter);
 router.use("/integrations/leads", leadsIntegrationRouter);
+router.use("/internal", aiAgentIntegrationRouter);
 router.use("/", paymentsRouter);
 router.use("/", offersRouter);
 

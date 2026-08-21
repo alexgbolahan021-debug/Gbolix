@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { ArrowRight, Check } from "lucide-react";
+import { DiscoveryAssistantContextBlock } from "@/components/DiscoveryAssistantContextBlock";
 
 const serviceCategories = [
   {
@@ -68,6 +69,15 @@ export default function Services() {
           Professional services delivered by our expert team. Submit a request and we handle the rest.
         </p>
       </div>
+
+      <DiscoveryAssistantContextBlock
+        eyebrow="Problem-first service matching"
+        title="Not sure which service you need?"
+        description="You do not have to choose from a catalogue before you understand the problem. Tell Gbolix what is happening and we will help you find the right next step."
+        buttonLabel="Let Gbolix help me figure it out"
+        floatingLabel="Not sure what you need?"
+        prompt="I don't know which Gbolix service I need yet."
+      />
 
       <div className="py-16 px-4">
         <div className="max-w-7xl mx-auto space-y-24">

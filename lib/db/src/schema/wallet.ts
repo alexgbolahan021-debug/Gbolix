@@ -45,6 +45,19 @@ export const creditPacksTable = pgTable("credit_packs", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const walletExchangeRatesTable = pgTable("wallet_exchange_rates", {
+  id: serial("id").primaryKey(),
+  baseCurrency: text("base_currency").notNull(),
+  quoteCurrency: text("quote_currency").notNull(),
+  rate: numeric("rate", { precision: 18, scale: 8 }).notNull(),
+  provider: text("provider").notNull(),
+  providerUpdatedAt: timestamp("provider_updated_at", { withTimezone: true }),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+}, table => ({ baseQuoteUnique: unique("wallet_exchange_rates_base_quote_unique").on(table.baseCurrency, table.quoteCurrency) }));
+
 export const productEntitlementsTable = pgTable("product_entitlements", {
   id: serial("id").primaryKey(),
   workspaceId: integer("workspace_id").notNull().references(() => workspacesTable.id, { onDelete: "cascade" }),
@@ -108,6 +121,11 @@ export const productOrdersTable = pgTable("product_orders", {
   paymentReference: text("payment_reference").notNull().unique(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("USD"),
+  catalogAmount: numeric("catalog_amount", { precision: 10, scale: 2 }),
+  catalogCurrency: text("catalog_currency"),
+  exchangeRate: numeric("exchange_rate", { precision: 18, scale: 8 }),
+  exchangeRateProvider: text("exchange_rate_provider"),
+  exchangeRateFetchedAt: timestamp("exchange_rate_fetched_at", { withTimezone: true }),
   credits: integer("credits").notNull(),
   status: text("status", { enum: ["pending", "paid", "failed", "cancelled"] }).notNull().default("pending"),
   paidAt: timestamp("paid_at", { withTimezone: true }),
@@ -152,6 +170,7 @@ export type Workspace = typeof workspacesTable.$inferSelect;
 export type WorkspaceMembership = typeof workspaceMembershipsTable.$inferSelect;
 export type Product = typeof productsTable.$inferSelect;
 export type CreditPack = typeof creditPacksTable.$inferSelect;
+export type WalletExchangeRate = typeof walletExchangeRatesTable.$inferSelect;
 export type ProductEntitlement = typeof productEntitlementsTable.$inferSelect;
 export type CreditAccount = typeof creditAccountsTable.$inferSelect;
 export type CreditLedgerEntry = typeof creditLedgerEntriesTable.$inferSelect;

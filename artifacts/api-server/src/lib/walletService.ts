@@ -11,7 +11,7 @@ import {
   workspacesTable,
   workspaceMembershipsTable,
 } from "@workspace/db";
-import { CREDIT_AUTHORIZATION_TTL_MS, GBOLIX_LEADS_PRODUCT_KEY, approvedCreditPacks, calculateReleasedCredits } from "./walletPolicy";
+import { CREDIT_AUTHORIZATION_TTL_MS, GBOLIX_AI_AGENT_PRODUCT_KEY, GBOLIX_LEADS_PRODUCT_KEY, approvedCreditPacks, calculateReleasedCredits } from "./walletPolicy";
 
 const NOW = () => new Date();
 
@@ -39,6 +39,14 @@ export async function ensureWalletFoundation() {
     await db.insert(creditPacksTable).values(pack).onConflictDoNothing({ target: creditPacksTable.packKey });
   }
 
+  await db.insert(productsTable).values({
+    productKey: GBOLIX_AI_AGENT_PRODUCT_KEY,
+    displayName: "Gbolix AI Agent",
+    marketingName: "Gbolix AI Agent",
+    description: "Configurable AI workers for business conversations and tasks.",
+    status: "private_beta",
+    usageModel: "credits",
+  }).onConflictDoNothing({ target: productsTable.productKey });
   const [leadsProduct] = await db.select().from(productsTable).where(eq(productsTable.productKey, GBOLIX_LEADS_PRODUCT_KEY)).limit(1);
   if (!leadsProduct) throw new WalletError("PRODUCT_CONFIGURATION_ERROR", "Gbolix Leads product configuration could not be loaded", 500);
   return leadsProduct;
@@ -71,6 +79,37 @@ export async function ensureWorkspaceWallet(userId: number, displayName?: string
   const [entitlement] = await db.select().from(productEntitlementsTable).where(and(eq(productEntitlementsTable.workspaceId, workspace.id), eq(productEntitlementsTable.productId, product.id))).limit(1);
   if (!account || !entitlement) throw new WalletError("WALLET_CONFIGURATION_ERROR", "Wallet context could not be initialized", 500);
   return { product, workspace, membership, account, entitlement };
+}
+
+export async function ensureAIAgentWorkspaceWallet(workspaceKey: string, displayName?: string) {
+  await ensureWalletFoundation();
+  const [workspace] = await db.select().from(workspacesTable).where(eq(workspacesTable.workspaceKey, workspaceKey)).limit(1);
+  if (!workspace) throw new WalletError("WORKSPACE_NOT_FOUND", "The Gbolix workspace could not be resolved", 404);
+  const [product] = await db.select().from(productsTable).where(eq(productsTable.productKey, GBOLIX_AI_AGENT_PRODUCT_KEY)).limit(1);
+  if (!product) throw new WalletError("PRODUCT_CONFIGURATION_ERROR", "Gbolix AI Agent product configuration could not be loaded", 500);
+  await db.insert(creditAccountsTable).values({ workspaceId: workspace.id }).onConflictDoNothing({ target: creditAccountsTable.workspaceId });
+  await db.insert(productEntitlementsTable).values({ workspaceId: workspace.id, productId: product.id, status: "inactive" }).onConflictDoNothing({ target: [productEntitlementsTable.workspaceId, productEntitlementsTable.productId] });
+  const [account] = await db.select().from(creditAccountsTable).where(eq(creditAccountsTable.workspaceId, workspace.id)).limit(1);
+  const [entitlement] = await db.select().from(productEntitlementsTable).where(and(eq(productEntitlementsTable.workspaceId, workspace.id), eq(productEntitlementsTable.productId, product.id))).limit(1);
+  if (!account || !entitlement) throw new WalletError("WALLET_CONFIGURATION_ERROR", "AI Agent wallet context could not be initialized", 500);
+  return { product, workspace, account, entitlement };
+}
+
+export async function reserveAIAgentCredits(input: { workspaceKey: string; requestKey: string; maximumCredits: number; agentId?: string }) {
+  if (!Number.isInteger(input.maximumCredits) || input.maximumCredits <= 0) throw new WalletError("INVALID_CREDIT_RESERVATION", "Maximum credits must be a positive integer");
+  const context = await ensureAIAgentWorkspaceWallet(input.workspaceKey);
+  const existing = await db.select().from(creditAuthorizationsTable).where(eq(creditAuthorizationsTable.requestKey, input.requestKey)).limit(1);
+  if (existing[0]) return { authorization: existing[0], reused: true, context };
+  return db.transaction(async tx => {
+    const [current] = await tx.select().from(creditAccountsTable).where(eq(creditAccountsTable.id, context.account.id)).limit(1);
+    if (!current || current.availableCredits < input.maximumCredits) throw new WalletError("INSUFFICIENT_CREDITS", "Your workspace does not have enough available Gbolix Wallet credits", 409);
+    const [updated] = await tx.update(creditAccountsTable).set({ availableCredits: current.availableCredits - input.maximumCredits, reservedCredits: current.reservedCredits + input.maximumCredits, version: current.version + 1, updatedAt: NOW() }).where(and(eq(creditAccountsTable.id, current.id), eq(creditAccountsTable.version, current.version), gte(creditAccountsTable.availableCredits, input.maximumCredits))).returning();
+    if (!updated) throw new WalletError("CREDIT_RESERVATION_CONFLICT", "Your wallet changed while this request was starting. Please try again.", 409);
+    const authorizationKey = makeKey("gca");
+    const [authorization] = await tx.insert(creditAuthorizationsTable).values({ authorizationKey, requestKey: input.requestKey, accountId: current.id, workspaceId: context.workspace.id, productId: context.product.id, maximumCredits: input.maximumCredits, expiresAt: new Date(Date.now() + CREDIT_AUTHORIZATION_TTL_MS) }).returning();
+    await tx.insert(creditLedgerEntriesTable).values({ accountId: current.id, workspaceId: context.workspace.id, productId: context.product.id, entryType: "reserve", credits: -input.maximumCredits, idempotencyKey: `reserve:${input.requestKey}`, sourceType: "gbolix_ai_agent", sourceKey: input.requestKey, metadata: { authorizationKey, agentId: input.agentId } });
+    return { authorization, reused: false, context: { ...context, account: updated } };
+  });
 }
 
 export async function getWalletContext(userId: number, displayName?: string) {
@@ -124,7 +163,7 @@ export async function reserveCredits(input: ReserveInput) {
   });
 }
 
-export async function finalizeCredits(input: { authorizationKey: string; finalizedCredits: number; usageEventKey: string; metadata?: Record<string, unknown> }) {
+export async function finalizeCredits(input: { authorizationKey: string; finalizedCredits: number; usageEventKey: string; sourceType?: string; metadata?: Record<string, unknown> }) {
   if (!Number.isInteger(input.finalizedCredits) || input.finalizedCredits < 0) throw new WalletError("INVALID_FINAL_USAGE", "Finalized credits must be a non-negative integer");
   return db.transaction(async tx => {
     const [authorization] = await tx.select().from(creditAuthorizationsTable).where(eq(creditAuthorizationsTable.authorizationKey, input.authorizationKey)).limit(1);
@@ -137,14 +176,14 @@ export async function finalizeCredits(input: { authorizationKey: string; finaliz
     if (!account || account.reservedCredits < authorization.maximumCredits) throw new WalletError("CREDIT_LEDGER_INTEGRITY_ERROR", "Reserved credit balance cannot be finalized", 409);
     const [updated] = await tx.update(creditAccountsTable).set({ availableCredits: account.availableCredits + releasedCredits, reservedCredits: account.reservedCredits - authorization.maximumCredits, version: account.version + 1, updatedAt: NOW() }).where(and(eq(creditAccountsTable.id, account.id), eq(creditAccountsTable.version, account.version))).returning();
     if (!updated) throw new WalletError("CREDIT_FINALIZATION_CONFLICT", "Wallet changed while finalizing usage", 409);
-    if (input.finalizedCredits > 0) await tx.insert(creditLedgerEntriesTable).values({ accountId: account.id, workspaceId: authorization.workspaceId, productId: authorization.productId, entryType: "finalize", credits: -input.finalizedCredits, idempotencyKey: `finalize:${input.usageEventKey}`, sourceType: "leads_usage", sourceKey: input.usageEventKey, metadata: input.metadata ?? {} }).onConflictDoNothing({ target: creditLedgerEntriesTable.idempotencyKey });
-    if (releasedCredits > 0) await tx.insert(creditLedgerEntriesTable).values({ accountId: account.id, workspaceId: authorization.workspaceId, productId: authorization.productId, entryType: "release", credits: releasedCredits, idempotencyKey: `release:${input.usageEventKey}`, sourceType: "leads_usage", sourceKey: input.usageEventKey, metadata: input.metadata ?? {} }).onConflictDoNothing({ target: creditLedgerEntriesTable.idempotencyKey });
+    if (input.finalizedCredits > 0) await tx.insert(creditLedgerEntriesTable).values({ accountId: account.id, workspaceId: authorization.workspaceId, productId: authorization.productId, entryType: "finalize", credits: -input.finalizedCredits, idempotencyKey: `finalize:${input.usageEventKey}`, sourceType: input.sourceType ?? "leads_usage", sourceKey: input.usageEventKey, metadata: input.metadata ?? {} }).onConflictDoNothing({ target: creditLedgerEntriesTable.idempotencyKey });
+    if (releasedCredits > 0) await tx.insert(creditLedgerEntriesTable).values({ accountId: account.id, workspaceId: authorization.workspaceId, productId: authorization.productId, entryType: "release", credits: releasedCredits, idempotencyKey: `release:${input.usageEventKey}`, sourceType: input.sourceType ?? "leads_usage", sourceKey: input.usageEventKey, metadata: input.metadata ?? {} }).onConflictDoNothing({ target: creditLedgerEntriesTable.idempotencyKey });
     const [finalized] = await tx.update(creditAuthorizationsTable).set({ state: "finalized", finalizedCredits: input.finalizedCredits, releasedCredits, updatedAt: NOW() }).where(eq(creditAuthorizationsTable.id, authorization.id)).returning();
     return { authorization: finalized, account: updated, reused: false };
   });
 }
 
-export async function releaseCredits(input: { authorizationKey: string; releaseKey: string; reason: string }) {
+export async function releaseCredits(input: { authorizationKey: string; releaseKey: string; reason: string; sourceType?: string }) {
   return db.transaction(async tx => {
     const [authorization] = await tx.select().from(creditAuthorizationsTable).where(eq(creditAuthorizationsTable.authorizationKey, input.authorizationKey)).limit(1);
     if (!authorization) throw new WalletError("CREDIT_AUTHORIZATION_NOT_FOUND", "Credit authorization was not found", 404);
@@ -154,7 +193,7 @@ export async function releaseCredits(input: { authorizationKey: string; releaseK
     if (!account || account.reservedCredits < authorization.maximumCredits) throw new WalletError("CREDIT_LEDGER_INTEGRITY_ERROR", "Reserved balance cannot be released", 409);
     const [updated] = await tx.update(creditAccountsTable).set({ availableCredits: account.availableCredits + authorization.maximumCredits, reservedCredits: account.reservedCredits - authorization.maximumCredits, version: account.version + 1, updatedAt: NOW() }).where(and(eq(creditAccountsTable.id, account.id), eq(creditAccountsTable.version, account.version))).returning();
     if (!updated) throw new WalletError("CREDIT_RELEASE_CONFLICT", "Wallet changed while releasing credits", 409);
-    await tx.insert(creditLedgerEntriesTable).values({ accountId: account.id, workspaceId: authorization.workspaceId, productId: authorization.productId, entryType: "release", credits: authorization.maximumCredits, idempotencyKey: `release:${input.releaseKey}`, sourceType: "leads_release", sourceKey: input.releaseKey, metadata: { reason: input.reason } }).onConflictDoNothing({ target: creditLedgerEntriesTable.idempotencyKey });
+    await tx.insert(creditLedgerEntriesTable).values({ accountId: account.id, workspaceId: authorization.workspaceId, productId: authorization.productId, entryType: "release", credits: authorization.maximumCredits, idempotencyKey: `release:${input.releaseKey}`, sourceType: input.sourceType ?? "leads_release", sourceKey: input.releaseKey, metadata: { reason: input.reason } }).onConflictDoNothing({ target: creditLedgerEntriesTable.idempotencyKey });
     const [released] = await tx.update(creditAuthorizationsTable).set({ state: "released", releasedCredits: authorization.maximumCredits, updatedAt: NOW() }).where(eq(creditAuthorizationsTable.id, authorization.id)).returning();
     return { authorization: released, account: updated, reused: false };
   });
