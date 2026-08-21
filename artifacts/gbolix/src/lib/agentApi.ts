@@ -21,6 +21,7 @@ export type Deployment = { id: string; agentId: string; workspaceId: string; cha
 export type ApiKey = { id: string; agentId: string; workspaceId: string; keyPrefix: string; status: string; createdAt: string; lastUsedAt?: string };
 export type AgentVersion = { id: string; agentId: string; workspaceId: string; version: number; config: Pick<Agent, "name" | "description" | "instructions" | "tone" | "model" | "status" | "welcomeMessage" | "enabledTools">; createdBy: string; createdAt: string };
 export type WalletLedgerEntry = { id: string; type: string; credits: number; sourceType: string; sourceKey: string; metadata?: Record<string, unknown>; createdAt: string };
+export type WorkspaceActivity = { id: string; type: string; description: string; status: string; agentId?: string; agentName?: string; createdAt: string };
 
 const baseUrl = (import.meta.env.VITE_GBOLIX_AGENT_URL ?? "").replace(/\/$/, "");
 
