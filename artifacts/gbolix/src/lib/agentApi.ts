@@ -14,7 +14,7 @@ export type Agent = {
 };
 
 export type Knowledge = { id: string; agentId: string; workspaceId: string; title: string; content: string; sourceType: string; status: string; createdAt: string; };
-export type UsageSummary = { requests: number; responses: number; toolCalls: number; creditsUsed: number };
+export type UsageSummary = { requests: number; responses: number; failed?: number; toolCalls: number; creditsUsed: number; conversations?: number; resolved?: number; handoffs?: number; open?: number };
 export type Conversation = { id: string; agentId: string; workspaceId: string; channel: string; visitorKey: string; status: string; createdAt: string; updatedAt: string };
 export type ConversationMessage = { id: string; conversationId: string; role: string; content: string; toolName?: string; createdAt: string };
 export type Deployment = { id: string; agentId: string; workspaceId: string; channel: string; allowedOrigin?: string; tokenPrefix: string; status: string; createdAt: string; updatedAt: string };
