@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useAdminListProjects, useAdminUpdateProject, customFetch } from "@workspace/api-client-react";
+import { useAdminListProjects, useAdminUpdateProject, useAdminGetInsights, customFetch } from "@workspace/api-client-react";
+import { getAdminGetInsightsQueryKey } from "@workspace/api-client-react";
 import { getAdminListProjectsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Edit, Search, ChevronRight, Check, X, FileText, Info, FileSignature, MessageSquare } from "lucide-react";
@@ -107,6 +108,7 @@ export default function AdminProjects() {
   const queryClient = useQueryClient();
   const params = statusFilter !== "all" ? { status: statusFilter as any } : {};
   const { data: projects, isLoading } = useAdminListProjects(params, { query: { queryKey: getAdminListProjectsQueryKey(params) } });
+  const { data: insights } = useAdminGetInsights({ range: "all" }, { query: { queryKey: getAdminGetInsightsQueryKey({ range: "all" }) } });
   const updateMutation = useAdminUpdateProject();
   const filtered = (projects as AdminProject[] | undefined)?.filter(p =>
     !search ||
@@ -233,6 +235,8 @@ export default function AdminProjects() {
           </div>
         </div>
 
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5"><Summary label="Total projects" value={insights?.totalProjects ?? projects?.length ?? 0} /><Summary label="Active" value={insights?.activeProjects ?? 0} tone="text-yellow-400" /><Summary label="Completed" value={insights?.completedProjects ?? 0} tone="text-primary" /><Summary label="Pending payments" value={insights ? formatMoney(insights.totalAmountPending) : "—"} tone="text-orange-400" /><Summary label="Paid value" value={insights ? formatMoney(insights.totalAmountPaid) : "—"} tone="text-primary" /></div>
+
         <div className="flex flex-wrap gap-3 mb-6">
           <div className="relative flex-1 min-w-48 max-w-72">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -311,6 +315,9 @@ export default function AdminProjects() {
     </ClientLayout>
   );
 }
+
+function Summary({ label, value, tone = "text-foreground" }: { label: string; value: number | string; tone?: string }) { return <div className="rounded-xl border border-border bg-card p-4"><p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p><p className={`mt-2 text-lg font-bold ${tone}`}>{typeof value === "number" ? value.toLocaleString() : value}</p></div>; }
+function formatMoney(values: Array<{ currency: string; amount: number }>) { return values.length ? values.map(value => `${value.currency} ${value.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`).join(" · ") : "—"; }
 
 function Detail({ label, value }: { label: string; value?: unknown }) {
   if (value === undefined || value === null || value === "") return null;

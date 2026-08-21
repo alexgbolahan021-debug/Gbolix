@@ -23,6 +23,7 @@ import type {
   ActivityItem,
   AdminAssignFreelancer200,
   AdminDeactivateUserBody,
+  AdminGetInsightsParams,
   AdminListProjectsParams,
   AdminListUsersParams,
   AdminProject,
@@ -2298,20 +2299,27 @@ export const useAdminAssignFreelancer = <TError = ErrorType<unknown>,
       return useMutation(getAdminAssignFreelancerMutationOptions(options));
     }
 
-export const getAdminGetInsightsUrl = () => {
+export const getAdminGetInsightsUrl = (params?: AdminGetInsightsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/insights`
+  return stringifiedParams.length > 0 ? `/api/admin/insights?${stringifiedParams}` : `/api/admin/insights`
 }
 
 /**
  * @summary Get aggregated analytics/insights
  */
-export const adminGetInsights = async ( options?: RequestInit): Promise<Insights> => {
+export const adminGetInsights = async (params?: AdminGetInsightsParams, options?: RequestInit): Promise<Insights> => {
 
-  return customFetch<Insights>(getAdminGetInsightsUrl(),
+  return customFetch<Insights>(getAdminGetInsightsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -2324,23 +2332,23 @@ export const adminGetInsights = async ( options?: RequestInit): Promise<Insights
 
 
 
-export const getAdminGetInsightsQueryKey = () => {
+export const getAdminGetInsightsQueryKey = (params?: AdminGetInsightsParams,) => {
     return [
-    `/api/admin/insights`
+    `/api/admin/insights`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getAdminGetInsightsQueryOptions = <TData = Awaited<ReturnType<typeof adminGetInsights>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetInsights>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getAdminGetInsightsQueryOptions = <TData = Awaited<ReturnType<typeof adminGetInsights>>, TError = ErrorType<unknown>>(params?: AdminGetInsightsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetInsights>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getAdminGetInsightsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getAdminGetInsightsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetInsights>>> = ({ signal }) => adminGetInsights({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetInsights>>> = ({ signal }) => adminGetInsights(params, { signal, ...requestOptions });
 
 
 
@@ -2358,11 +2366,11 @@ export type AdminGetInsightsQueryError = ErrorType<unknown>
  */
 
 export function useAdminGetInsights<TData = Awaited<ReturnType<typeof adminGetInsights>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetInsights>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: AdminGetInsightsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminGetInsights>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getAdminGetInsightsQueryOptions(options)
+  const queryOptions = getAdminGetInsightsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

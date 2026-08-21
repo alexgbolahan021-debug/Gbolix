@@ -609,6 +609,14 @@ paths:
       operationId: adminGetInsights
       tags: [admin]
       summary: Get aggregated analytics/insights
+      parameters:
+        - name: range
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 12m, all]
+            default: all
       responses:
         "200":
           description: Insights data
@@ -1210,22 +1218,76 @@ components:
     Insights:
       type: object
       properties:
+        range:
+          type: string
+        generatedAt:
+          type: string
         totalUsers:
           type: integer
         totalClients:
           type: integer
         totalRequests:
           type: integer
+        totalProjects:
+          type: integer
         completedProjects:
           type: integer
         activeProjects:
           type: integer
-        openTickets:
+        pendingRequests:
           type: integer
+        acceptedRequests:
+          type: integer
+        completedRequests:
+          type: integer
+        declinedProjects:
+          type: integer
+        cancelledProjects:
+          type: integer
+        openTickets:
+          type: ["integer", "null"]
         newUsersThisWeek:
           type: integer
         conversionRate:
           type: number
+        projectValue:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+        totalAmountPaid:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+        totalAmountPending:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+        totalAmountDeclined:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+        totalRevenue:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+        outstandingPaymentValue:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+        activeProjectValue:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+        completedProjectValue:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+        projectValueByStatus:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectValueSlice"
+        wallet:
+          $ref: "#/components/schemas/WalletMetrics"
         userTypeBreakdown:
           type: array
           items:
@@ -1250,6 +1312,30 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PieSlice"
+        usersOverTime:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        clientsOverTime:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        projectsOverTime:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        revenueOverTime:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        creditPurchaseValueOverTime:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        dataAvailability:
+          type: object
+          additionalProperties:
+            type: boolean
         insightsSummary:
           type: array
           items:
@@ -1258,18 +1344,94 @@ components:
         - totalUsers
         - totalClients
         - totalRequests
+        - totalProjects
         - completedProjects
         - activeProjects
+        - pendingRequests
+        - acceptedRequests
+        - completedRequests
+        - declinedProjects
+        - cancelledProjects
         - openTickets
         - newUsersThisWeek
         - conversionRate
+        - projectValue
+        - totalAmountPaid
+        - totalAmountPending
+        - totalAmountDeclined
+        - totalRevenue
+        - outstandingPaymentValue
+        - activeProjectValue
+        - completedProjectValue
+        - projectValueByStatus
+        - wallet
         - userTypeBreakdown
         - locationBreakdown
         - companySizeBreakdown
         - acquisitionSourceBreakdown
         - serviceRequestBreakdown
         - statusBreakdown
+        - usersOverTime
+        - clientsOverTime
+        - projectsOverTime
+        - revenueOverTime
+        - creditPurchaseValueOverTime
+        - dataAvailability
         - insightsSummary
+
+    MoneyTotal:
+      type: object
+      properties:
+        currency:
+          type: string
+        amount:
+          type: number
+      required: [currency, amount]
+
+    ProjectValueSlice:
+      type: object
+      properties:
+        status:
+          type: string
+        currency:
+          type: string
+        amount:
+          type: number
+      required: [status, currency, amount]
+
+    TrendPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        value:
+          type: number
+        currency:
+          type: string
+      required: [date, value]
+
+    WalletMetrics:
+      type: object
+      properties:
+        totalPurchases:
+          type: integer
+        purchaseValue:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+        creditsPurchased:
+          type: integer
+        outstandingCredits:
+          type: integer
+        creditsUsed:
+          type: integer
+        purchasingCustomers:
+          type: integer
+        averagePurchaseValue:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+      required: [totalPurchases, purchaseValue, creditsPurchased, outstandingCredits, creditsUsed, purchasingCustomers, averagePurchaseValue]
 
     PieSlice:
       type: object

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useAdminListProjects, useListMessages, useSendMessage, useGetMe, useListNotifications, customFetch } from "@workspace/api-client-react";
@@ -12,6 +14,7 @@ import { OfferCard, type Offer } from "@/components/OfferCard";
 import { ChatComposer, type ChatDraft } from "@/components/ChatComposer";
 import { MessageBubble } from "@/components/MessageBubble";
 import type { ChatMessage } from "@/components/chat-types";
+import { useToast } from "@/hooks/use-toast";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -39,10 +42,20 @@ export default function AdminMessages() {
   const [search, setSearch] = useState("");
   const [offers, setOffers] = useState<Offer[]>([]);
   const [offerLoadError, setOfferLoadError] = useState<string | null>(null);
+  const [offerDialog, setOfferDialog] = useState(false);
+  const [offerServiceType, setOfferServiceType] = useState("");
+  const [offerServiceName, setOfferServiceName] = useState("");
+  const [offerScope, setOfferScope] = useState("");
+  const [offerRequirements, setOfferRequirements] = useState("");
+  const [offerPrice, setOfferPrice] = useState("");
+  const [offerDelivery, setOfferDelivery] = useState("");
+  const [offerTerms, setOfferTerms] = useState("");
+  const [offerSaving, setOfferSaving] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<Record<number, ChatMessage[]>>({});
   const pendingIdRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { data: me } = useGetMe();
   const { data: notifications } = useListNotifications();
   const { data: projects } = useAdminListProjects({}, { query: { queryKey: getAdminListProjectsQueryKey({}) } });
@@ -130,7 +143,34 @@ export default function AdminMessages() {
   };
 
   const selectedProject = projects?.find(project => project.id === selectedProjectId);
-  const isOwner = me?.role === "owner" || me?.role === "admin";
+  const isAdmin = me?.role === "owner" || me?.role === "admin";
+  const openOffer = () => {
+    if (!selectedProject) return;
+    setOfferServiceType(selectedProject.serviceType ?? "");
+    setOfferServiceName(selectedProject.title ?? "");
+    setOfferScope(selectedProject.description ?? "");
+    setOfferRequirements("");
+    setOfferPrice(selectedProject.price != null ? String(selectedProject.price) : "");
+    setOfferDelivery("");
+    setOfferTerms("");
+    setOfferDialog(true);
+  };
+  const sendOffer = async () => {
+    if (!selectedProjectId || !offerServiceType.trim() || !offerServiceName.trim() || !offerScope.trim() || !offerPrice.trim()) {
+      toast({ title: "Missing offer details", description: "Service, name, scope, and price are required.", variant: "destructive" });
+      return;
+    }
+    setOfferSaving(true);
+    try {
+      const result = await customFetch<{ offer: Offer }>(`/api/projects/${selectedProjectId}/offers`, { method: "POST", responseType: "json", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serviceType: offerServiceType.trim(), serviceName: offerServiceName.trim(), scope: offerScope.trim(), requirements: offerRequirements.trim() || undefined, price: offerPrice.trim(), deliveryEstimate: offerDelivery.trim() || undefined, terms: offerTerms.trim() || undefined, send: true }) });
+      if (result.offer) setOffers(current => [...current, result.offer]);
+      setOfferDialog(false);
+      toast({ title: "Offer sent", description: "The client can now review the offer in this conversation." });
+      void queryClient.invalidateQueries({ queryKey: getAdminListProjectsQueryKey({}) });
+    } catch (error) {
+      toast({ title: "Offer failed", description: error instanceof Error ? error.message : "Unable to send offer", variant: "destructive" });
+    } finally { setOfferSaving(false); }
+  };
   const timeline = [...visibleMessages.map(message => ({ kind: "message" as const, timestamp: new Date(message.createdAt).getTime(), message })), ...offers.map(offer => ({ kind: "offer" as const, timestamp: new Date(offer.sentAt ?? offer.createdAt ?? 0).getTime(), offer }))].sort((a, b) => a.timestamp - b.timestamp || (a.kind === "message" ? -1 : 1));
 
   return <ClientLayout><div className="flex h-full overflow-hidden bg-background" style={{ height: "calc(100vh - 0px)" }}>
@@ -151,9 +191,10 @@ export default function AdminMessages() {
       {!selectedProjectId ? <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground"><div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><MessageSquare size={24} /></div><p className="text-sm font-medium text-foreground">Select a client conversation</p><p className="mt-1 text-xs">Choose a project to view and reply to messages.</p></div> : <>
         <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card/50 px-4 py-3 backdrop-blur-sm md:px-5"><Button variant="ghost" size="sm" className="h-8 w-8 p-0 md:hidden" onClick={() => setSelectedProjectId(null)} aria-label="Back to conversations"><ArrowLeft size={16} /></Button><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{projectInitial(selectedProject)}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-sm font-semibold">{selectedProject?.title}</p><Badge className="hidden h-5 border-0 bg-primary/10 px-1.5 text-[9px] text-primary sm:inline-flex"><UserRound size={10} className="mr-1" /> Staff view</Badge></div><p className="truncate text-[11px] text-muted-foreground">{selectedProject?.clientName || "Client"} · {selectedProject?.serviceType}</p></div><div className="hidden items-center gap-2 sm:flex"><Badge variant="outline" className="gap-1 border-border text-[10px] text-muted-foreground"><CheckCircle2 size={11} className="text-primary" /> {statusLabel(selectedProject?.status)}</Badge><span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Admin</span></div></div>
         {offerLoadError && <div className="mx-3 mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">Offer loading error: {offerLoadError}</div>}
-        <ScrollArea className="flex-1 bg-gradient-to-b from-background to-muted/5 p-3 md:p-4"><div className="mx-auto w-full max-w-3xl">{messagesLoading && !timeline.length ? <div className="space-y-3">{[1, 2, 3].map(index => <div key={index} className="h-10 animate-pulse rounded-lg bg-muted" />)}</div> : !timeline.length ? <div className="py-12 text-center text-sm text-muted-foreground"><div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"><MessageSquare size={20} /></div><p className="font-medium text-foreground">No messages yet</p><p className="mt-1 text-xs">Send a reply, photo, file, or voice note to start the conversation.</p></div> : <div className="space-y-4">{timeline.map(item => item.kind === "message" ? <MessageBubble key={`message-${item.message.id}`} message={item.message} isOwn={item.message.senderId === me?.id} showSender={item.message.senderId !== me?.id} onRetry={item.message.optimisticStatus === "failed" ? () => retryMessage(item.message) : undefined} /> : <div key={`offer-${item.offer.id}`} className="flex justify-start"><OfferCard offer={item.offer} canRespond={!isOwner} isOwner={isOwner} onChanged={updated => setOffers(current => current.map(offer => offer.id === updated.id ? updated : offer))} /></div>)}<div ref={messagesEndRef} /></div>}</div></ScrollArea>
-        <div className="shrink-0 border-t border-border bg-card/60 backdrop-blur-sm"><ChatComposer onSend={sendDraft} testId="input-admin-message" placeholder="Reply to client..." /></div>
+        <ScrollArea className="flex-1 bg-gradient-to-b from-background to-muted/5 p-3 md:p-4"><div className="mx-auto w-full max-w-3xl">{messagesLoading && !timeline.length ? <div className="space-y-3">{[1, 2, 3].map(index => <div key={index} className="h-10 animate-pulse rounded-lg bg-muted" />)}</div> : !timeline.length ? <div className="py-12 text-center text-sm text-muted-foreground"><div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"><MessageSquare size={20} /></div><p className="font-medium text-foreground">No messages yet</p><p className="mt-1 text-xs">Send a reply, photo, file, or voice note to start the conversation.</p></div> : <div className="space-y-4">{timeline.map(item => item.kind === "message" ? <MessageBubble key={`message-${item.message.id}`} message={item.message} isOwn={item.message.senderId === me?.id} showSender={item.message.senderId !== me?.id} onRetry={item.message.optimisticStatus === "failed" ? () => retryMessage(item.message) : undefined} /> : <div key={`offer-${item.offer.id}`} className="flex justify-start"><OfferCard offer={item.offer} canRespond={!isAdmin} isOwner={isAdmin} onChanged={updated => setOffers(current => current.map(offer => offer.id === updated.id ? updated : offer))} /></div>)}<div ref={messagesEndRef} /></div>}</div></ScrollArea>
+        <div className="shrink-0 border-t border-border bg-card/60 backdrop-blur-sm"><ChatComposer onSend={sendDraft} onCreateOffer={isAdmin ? openOffer : undefined} testId="input-admin-message" placeholder="Reply to client..." /></div>
       </>}
     </div>
-  </div></ClientLayout>;
+      <Dialog open={offerDialog} onOpenChange={setOfferDialog}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>Create offer for {selectedProject?.clientName || "client"}</DialogTitle></DialogHeader><div className="space-y-4"><div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground"><p className="font-medium text-foreground">{selectedProject?.title}</p><p>{selectedProject?.projectCode ?? `Project #${selectedProject?.id}`} · {selectedProject?.serviceType}</p></div><div className="grid gap-4 sm:grid-cols-2"><div><label className="mb-1.5 block text-xs font-medium">Service</label><Input value={offerServiceType} onChange={event => setOfferServiceType(event.target.value)} /></div><div><label className="mb-1.5 block text-xs font-medium">Offer name</label><Input value={offerServiceName} onChange={event => setOfferServiceName(event.target.value)} /></div></div><div><label className="mb-1.5 block text-xs font-medium">Scope of work</label><Textarea rows={5} value={offerScope} onChange={event => setOfferScope(event.target.value)} placeholder="Describe what will be delivered..." /></div><div><label className="mb-1.5 block text-xs font-medium">Requirements</label><Textarea rows={3} value={offerRequirements} onChange={event => setOfferRequirements(event.target.value)} placeholder="List requirements or deliverables..." /></div><div className="grid gap-4 sm:grid-cols-2"><div><label className="mb-1.5 block text-xs font-medium">Price (USD)</label><Input type="number" min="0" step="0.01" value={offerPrice} onChange={event => setOfferPrice(event.target.value)} /></div><div><label className="mb-1.5 block text-xs font-medium">Delivery estimate</label><Input value={offerDelivery} onChange={event => setOfferDelivery(event.target.value)} placeholder="e.g. 5 business days" /></div></div><div><label className="mb-1.5 block text-xs font-medium">Terms / notes</label><Textarea rows={3} value={offerTerms} onChange={event => setOfferTerms(event.target.value)} placeholder="Payment or project terms..." /></div><div className="flex gap-2 pt-2"><Button variant="outline" className="flex-1" onClick={() => setOfferDialog(false)}>Cancel</Button><Button className="flex-1" disabled={offerSaving} onClick={() => void sendOffer()}>{offerSaving ? "Sending..." : "Send offer"}</Button></div></div></DialogContent></Dialog>
+    </div></ClientLayout>;
 }

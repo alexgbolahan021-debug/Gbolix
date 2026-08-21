@@ -1,4 +1,5 @@
 import { Router } from "express";
+import crypto from "node:crypto";
 import {
   db,
   usersTable,
@@ -9,15 +10,99 @@ import {
   notificationsTable,
   projectAssignmentsTable,
   paymentsTable,
+  workspaceMembershipsTable,
+  creditAccountsTable,
+  creditLedgerEntriesTable,
+  productOrdersTable,
 } from "@workspace/db";
 import { eq, count, sql, and, inArray, desc } from "drizzle-orm";
 import { requireAdmin, requireOwner } from "../middlewares/requireAuth";
 import { normalizeRole } from "../lib/roles";
+import { ensureWorkspaceWallet } from "../lib/walletService";
 
 const router = Router();
 
 const NEED_INFO_MESSAGE =
   "We have reviewed your request. We need some additional information before we can proceed. Please check your request conversation; our team will send the required details there shortly.";
+
+function moneyTotal(rows: Array<{ amount: string | number; currency: string }>) {
+  const totals = new Map<string, number>();
+  for (const row of rows) totals.set(row.currency, (totals.get(row.currency) ?? 0) + Number(row.amount || 0));
+  return [...totals.entries()].map(([currency, amount]) => ({ currency, amount: Math.round(amount * 100) / 100 }));
+}
+
+router.get("/credits", requireAdmin, async (req, res): Promise<void> => {
+  const query = String(req.query.search ?? "").trim().toLowerCase();
+  const customers = await db.select({
+    id: usersTable.id,
+    name: usersTable.name,
+    email: usersTable.email,
+    workspaceId: workspaceMembershipsTable.workspaceId,
+    availableCredits: creditAccountsTable.availableCredits,
+    reservedCredits: creditAccountsTable.reservedCredits,
+  }).from(usersTable)
+    .leftJoin(workspaceMembershipsTable, eq(workspaceMembershipsTable.userId, usersTable.id))
+    .leftJoin(creditAccountsTable, eq(creditAccountsTable.workspaceId, workspaceMembershipsTable.workspaceId))
+    .where(eq(usersTable.role, "client"))
+    .orderBy(usersTable.createdAt);
+
+  const filtered = customers.filter(customer => !query || [customer.name, customer.email].filter(Boolean).some(value => String(value).toLowerCase().includes(query)));
+  const customerIds = filtered.map(customer => customer.id);
+  const orders = customerIds.length ? await db.select().from(productOrdersTable).where(inArray(productOrdersTable.purchasedByUserId, customerIds)).orderBy(desc(productOrdersTable.createdAt)) : [];
+  const ledger = customerIds.length ? await db.select().from(creditLedgerEntriesTable).where(inArray(creditLedgerEntriesTable.workspaceId, filtered.map(customer => customer.workspaceId).filter((id): id is number => id !== null))).orderBy(desc(creditLedgerEntriesTable.createdAt)) : [];
+
+  res.json(filtered.map(customer => {
+    const customerOrders = orders.filter(order => order.purchasedByUserId === customer.id);
+    const customerLedger = customer.workspaceId === null ? [] : ledger.filter(entry => entry.workspaceId === customer.workspaceId);
+    const successfulOrders = customerOrders.filter(order => order.status === "paid");
+    return {
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      availableCredits: customer.availableCredits ?? 0,
+      reservedCredits: customer.reservedCredits ?? 0,
+      totalCredits: (customer.availableCredits ?? 0) + (customer.reservedCredits ?? 0),
+      totalCreditsPurchased: successfulOrders.reduce((total, order) => total + order.credits, 0),
+      totalCreditValue: moneyTotal(successfulOrders),
+      purchaseCount: successfulOrders.length,
+      history: customerLedger.slice(0, 100).map(entry => ({ id: entry.id, type: entry.entryType, credits: entry.credits, sourceType: entry.sourceType, sourceKey: entry.sourceKey, metadata: entry.metadata, createdAt: entry.createdAt.toISOString() })),
+      purchases: customerOrders.slice(0, 100).map(order => ({ id: order.id, orderKey: order.orderKey, credits: order.credits, amount: Number(order.amount), currency: order.currency, status: order.status, createdAt: order.createdAt.toISOString(), paidAt: order.paidAt?.toISOString() ?? null })),
+    };
+  }));
+});
+
+router.post("/credits/:userId/adjust", requireAdmin, async (req, res): Promise<void> => {
+  const userId = Number(req.params.userId);
+  const credits = Number(req.body?.credits);
+  const reason = String(req.body?.reason ?? "").trim();
+  if (!Number.isInteger(userId) || !Number.isInteger(credits) || credits <= 0 || !reason) {
+    res.status(400).json({ error: "A positive whole-credit amount and reason are required" });
+    return;
+  }
+  const [customer] = await db.select().from(usersTable).where(and(eq(usersTable.id, userId), eq(usersTable.role, "client"))).limit(1);
+  if (!customer) {
+    res.status(404).json({ error: "Client not found" });
+    return;
+  }
+  if (!req.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const context = await ensureWorkspaceWallet(customer.id, customer.name ?? undefined);
+  const adjustmentKey = `admin_adjustment:${crypto.randomUUID()}`;
+  const result = await db.transaction(async tx => {
+    const [account] = await tx.select().from(creditAccountsTable).where(eq(creditAccountsTable.id, context.account.id)).limit(1);
+    if (!account) throw new Error("Wallet account not found");
+    const [updated] = await tx.update(creditAccountsTable).set({ availableCredits: account.availableCredits + credits, version: account.version + 1, updatedAt: new Date() }).where(and(eq(creditAccountsTable.id, account.id), eq(creditAccountsTable.version, account.version))).returning();
+    if (!updated) throw Object.assign(new Error("Wallet changed while applying the adjustment"), { statusCode: 409 });
+    await tx.insert(creditLedgerEntriesTable).values({ accountId: account.id, workspaceId: context.workspace.id, productId: context.product.id, entryType: "adjustment", credits, idempotencyKey: adjustmentKey, sourceType: "admin_manual_adjustment", sourceKey: adjustmentKey, metadata: { adminUserId: req.userId, reason, previousAvailableCredits: account.availableCredits, newAvailableCredits: updated.availableCredits } });
+    return updated;
+  });
+
+  await db.insert(activityTable).values({ userId: customer.id, type: "payment", description: `Admin credit adjustment: +${credits} credits (${reason})` });
+  res.status(201).json({ ok: true, adjustmentKey, availableCredits: result.availableCredits, reservedCredits: result.reservedCredits });
+});
 
 function formatAdminUser(
   u: typeof usersTable.$inferSelect,

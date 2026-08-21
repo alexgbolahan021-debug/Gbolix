@@ -464,26 +464,80 @@ export interface AdminProjectUpdate {
   price?: number;
 }
 
+export type InsightsDataAvailability = {[key: string]: boolean};
+
+export interface MoneyTotal {
+  currency: string;
+  amount: number;
+}
+
+export interface ProjectValueSlice {
+  status: string;
+  currency: string;
+  amount: number;
+}
+
+export interface WalletMetrics {
+  totalPurchases: number;
+  purchaseValue: MoneyTotal[];
+  creditsPurchased: number;
+  outstandingCredits: number;
+  creditsUsed: number;
+  purchasingCustomers: number;
+  averagePurchaseValue: MoneyTotal[];
+}
+
 export interface PieSlice {
   name: string;
   value: number;
 }
 
+export interface TrendPoint {
+  date: string;
+  value: number;
+  currency?: string;
+}
+
 export interface Insights {
+  range?: string;
+  generatedAt?: string;
   totalUsers: number;
   totalClients: number;
   totalRequests: number;
+  totalProjects: number;
   completedProjects: number;
   activeProjects: number;
-  openTickets: number;
+  pendingRequests: number;
+  acceptedRequests: number;
+  completedRequests: number;
+  declinedProjects: number;
+  cancelledProjects: number;
+  /** @nullable */
+  openTickets: number | null;
   newUsersThisWeek: number;
   conversionRate: number;
+  projectValue: MoneyTotal[];
+  totalAmountPaid: MoneyTotal[];
+  totalAmountPending: MoneyTotal[];
+  totalAmountDeclined: MoneyTotal[];
+  totalRevenue: MoneyTotal[];
+  outstandingPaymentValue: MoneyTotal[];
+  activeProjectValue: MoneyTotal[];
+  completedProjectValue: MoneyTotal[];
+  projectValueByStatus: ProjectValueSlice[];
+  wallet: WalletMetrics;
   userTypeBreakdown: PieSlice[];
   locationBreakdown: PieSlice[];
   companySizeBreakdown: PieSlice[];
   acquisitionSourceBreakdown: PieSlice[];
   serviceRequestBreakdown: PieSlice[];
   statusBreakdown: PieSlice[];
+  usersOverTime: TrendPoint[];
+  clientsOverTime: TrendPoint[];
+  projectsOverTime: TrendPoint[];
+  revenueOverTime: TrendPoint[];
+  creditPurchaseValueOverTime: TrendPoint[];
+  dataAvailability: InsightsDataAvailability;
   insightsSummary: string[];
 }
 
@@ -514,4 +568,19 @@ export type AdminAssignFreelancer200 = {
   projectId: number;
   freelancerIds: number[];
 };
+
+export type AdminGetInsightsParams = {
+range?: AdminGetInsightsRange;
+};
+
+export type AdminGetInsightsRange = typeof AdminGetInsightsRange[keyof typeof AdminGetInsightsRange];
+
+
+export const AdminGetInsightsRange = {
+  '7d': '7d',
+  '30d': '30d',
+  '90d': '90d',
+  '12m': '12m',
+  all: 'all',
+} as const;
 

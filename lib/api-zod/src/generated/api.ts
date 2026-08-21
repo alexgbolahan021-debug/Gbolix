@@ -608,15 +608,81 @@ export const AdminAssignFreelancerResponse = zod.object({
 /**
  * @summary Get aggregated analytics/insights
  */
+export const adminGetInsightsQueryRangeDefault = `all`;
+
+export const AdminGetInsightsQueryParams = zod.object({
+  "range": zod.enum(['7d', '30d', '90d', '12m', 'all']).default(adminGetInsightsQueryRangeDefault)
+})
+
 export const AdminGetInsightsResponse = zod.object({
+  "range": zod.string().optional(),
+  "generatedAt": zod.string().optional(),
   "totalUsers": zod.number(),
   "totalClients": zod.number(),
   "totalRequests": zod.number(),
+  "totalProjects": zod.number(),
   "completedProjects": zod.number(),
   "activeProjects": zod.number(),
-  "openTickets": zod.number(),
+  "pendingRequests": zod.number(),
+  "acceptedRequests": zod.number(),
+  "completedRequests": zod.number(),
+  "declinedProjects": zod.number(),
+  "cancelledProjects": zod.number(),
+  "openTickets": zod.number().nullable(),
   "newUsersThisWeek": zod.number(),
   "conversionRate": zod.number(),
+  "projectValue": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "totalAmountPaid": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "totalAmountPending": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "totalAmountDeclined": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "totalRevenue": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "outstandingPaymentValue": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "activeProjectValue": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "completedProjectValue": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "projectValueByStatus": zod.array(zod.object({
+  "status": zod.string(),
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "wallet": zod.object({
+  "totalPurchases": zod.number(),
+  "purchaseValue": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+})),
+  "creditsPurchased": zod.number(),
+  "outstandingCredits": zod.number(),
+  "creditsUsed": zod.number(),
+  "purchasingCustomers": zod.number(),
+  "averagePurchaseValue": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+}))
+}),
   "userTypeBreakdown": zod.array(zod.object({
   "name": zod.string(),
   "value": zod.number()
@@ -641,6 +707,32 @@ export const AdminGetInsightsResponse = zod.object({
   "name": zod.string(),
   "value": zod.number()
 })),
+  "usersOverTime": zod.array(zod.object({
+  "date": zod.string(),
+  "value": zod.number(),
+  "currency": zod.string().optional()
+})),
+  "clientsOverTime": zod.array(zod.object({
+  "date": zod.string(),
+  "value": zod.number(),
+  "currency": zod.string().optional()
+})),
+  "projectsOverTime": zod.array(zod.object({
+  "date": zod.string(),
+  "value": zod.number(),
+  "currency": zod.string().optional()
+})),
+  "revenueOverTime": zod.array(zod.object({
+  "date": zod.string(),
+  "value": zod.number(),
+  "currency": zod.string().optional()
+})),
+  "creditPurchaseValueOverTime": zod.array(zod.object({
+  "date": zod.string(),
+  "value": zod.number(),
+  "currency": zod.string().optional()
+})),
+  "dataAvailability": zod.record(zod.string(), zod.boolean()),
   "insightsSummary": zod.array(zod.string())
 })
 
