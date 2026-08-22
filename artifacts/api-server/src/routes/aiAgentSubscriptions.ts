@@ -113,8 +113,14 @@ function decryptEmailToken(value: string) {
 }
 
 function getPaymentAmountSubunit(data: any) {
-  const amount = Number(data?.amount);
-  return Number.isInteger(amount) && amount >= 0 ? amount : undefined;
+  // Paystack's transaction `amount` can include processing fees paid by the customer.
+  // `requested_amount` is the merchant charge and must be used for plan validation.
+  const candidates = [data?.requested_amount, data?.transaction?.requested_amount, data?.amount, data?.transaction?.amount];
+  for (const candidate of candidates) {
+    const amount = Number(candidate);
+    if (Number.isInteger(amount) && amount >= 0) return amount;
+  }
+  return undefined;
 }
 
 function subscriptionError(res: Response, error: unknown) {
