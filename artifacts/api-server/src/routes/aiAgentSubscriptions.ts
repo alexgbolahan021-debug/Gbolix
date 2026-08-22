@@ -33,7 +33,7 @@ type PaystackResponse = {
 };
 
 function paystackSecret() {
-  const key = process.env.PAYSTACK_SECRET_KEY?.trim();
+  const key = process.env.PAYSTACK_AI_AGENT_SECRET_KEY?.trim() || process.env.PAYSTACK_SECRET_KEY?.trim();
   if (!key) throw new WalletError("PAYMENT_CONFIGURATION_ERROR", "Subscription checkout is not configured", 503);
   return key;
 }

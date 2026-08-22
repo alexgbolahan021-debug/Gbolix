@@ -338,11 +338,6 @@ router.post("/payments/paystack/verify/:reference", requireAuth, async (req, res
 
 router.post("/payments/paystack/webhook", async (req: RawBodyRequest, res: Response): Promise<void> => {
   try {
-    if (!webhookSignatureIsValid(req)) {
-      res.sendStatus(401);
-      return;
-    }
-
     const event = req.body as any;
     const eventType = String(event?.event ?? "");
     const eventReference = typeof event?.data?.reference === "string" ? event.data.reference : "";
@@ -356,6 +351,11 @@ router.post("/payments/paystack/webhook", async (req: RawBodyRequest, res: Respo
     if (isAIAgentSubscriptionEvent) {
       const handled = await handleAIAgentPaystackWebhook(req);
       res.sendStatus(handled ? 200 : 401);
+      return;
+    }
+
+    if (!webhookSignatureIsValid(req)) {
+      res.sendStatus(401);
       return;
     }
 
