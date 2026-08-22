@@ -133,6 +133,58 @@ export const productOrdersTable = pgTable("product_orders", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
+export const aiAgentSubscriptionPlansTable = pgTable("ai_agent_subscription_plans", {
+  id: serial("id").primaryKey(),
+  planKey: text("plan_key").notNull().unique(),
+  level: integer("level").notNull(),
+  displayPriceUsd: numeric("display_price_usd", { precision: 10, scale: 2 }).notNull(),
+  paystackPlanCode: text("paystack_plan_code").notNull().unique(),
+  paystackAmountSubunit: integer("paystack_amount_subunit"),
+  currency: text("currency").notNull().default("NGN"),
+  monthlyCredits: integer("monthly_credits").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+export const aiAgentSubscriptionsTable = pgTable("ai_agent_subscriptions", {
+  id: serial("id").primaryKey(),
+  subscriptionKey: text("subscription_key").notNull().unique(),
+  workspaceId: integer("workspace_id").notNull().references(() => workspacesTable.id, { onDelete: "restrict" }),
+  productId: integer("product_id").notNull().references(() => productsTable.id, { onDelete: "restrict" }),
+  planId: integer("plan_id").notNull().references(() => aiAgentSubscriptionPlansTable.id, { onDelete: "restrict" }),
+  purchasedByUserId: integer("purchased_by_user_id").notNull().references(() => usersTable.id, { onDelete: "restrict" }),
+  planKey: text("plan_key").notNull(),
+  level: integer("level").notNull(),
+  state: text("state", { enum: ["pending", "active", "past_due", "non_renewing", "cancelled", "failed"] }).notNull().default("pending"),
+  paymentReference: text("payment_reference").notNull().unique(),
+  paystackCustomerCode: text("paystack_customer_code"),
+  paystackSubscriptionCode: text("paystack_subscription_code").unique(),
+  paystackEmailTokenEncrypted: text("paystack_email_token_encrypted"),
+  amountSubunit: integer("amount_subunit"),
+  currency: text("currency"),
+  initialPaymentAt: timestamp("initial_payment_at", { withTimezone: true }),
+  currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  nextPaymentAt: timestamp("next_payment_at", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  metadata: jsonb("metadata").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+export const aiAgentSubscriptionEventsTable = pgTable("ai_agent_subscription_events", {
+  id: serial("id").primaryKey(),
+  deliveryId: text("delivery_id").notNull().unique(),
+  subscriptionId: integer("subscription_id").references(() => aiAgentSubscriptionsTable.id, { onDelete: "set null" }),
+  eventType: text("event_type").notNull(),
+  providerReference: text("provider_reference"),
+  payload: jsonb("payload").notNull().default({}),
+  payloadDigest: text("payload_digest").notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const leadsRequestsTable = pgTable("leads_requests", {
   id: serial("id").primaryKey(),
   requestKey: text("request_key").notNull().unique(),
@@ -176,6 +228,9 @@ export type CreditAccount = typeof creditAccountsTable.$inferSelect;
 export type CreditLedgerEntry = typeof creditLedgerEntriesTable.$inferSelect;
 export type CreditAuthorization = typeof creditAuthorizationsTable.$inferSelect;
 export type ProductOrder = typeof productOrdersTable.$inferSelect;
+export type AIAgentSubscriptionPlan = typeof aiAgentSubscriptionPlansTable.$inferSelect;
+export type AIAgentSubscription = typeof aiAgentSubscriptionsTable.$inferSelect;
+export type AIAgentSubscriptionEvent = typeof aiAgentSubscriptionEventsTable.$inferSelect;
 export type LeadsRequest = typeof leadsRequestsTable.$inferSelect;
 export type LeadsIntegrationEvent = typeof leadsIntegrationEventsTable.$inferSelect;
 

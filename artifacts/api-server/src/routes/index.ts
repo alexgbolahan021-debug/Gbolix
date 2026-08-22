@@ -14,6 +14,7 @@ import walletRouter from "./wallet";
 import leadsRouter from "./leads";
 import leadsIntegrationRouter from "./leadsIntegration";
 import aiAgentIntegrationRouter from "./aiAgentIntegration";
+import aiAgentSubscriptionsRouter from "./aiAgentSubscriptions";
 
 const router: IRouter = Router();
 
@@ -30,6 +31,7 @@ router.use("/wallet", walletRouter);
 router.use("/leads", leadsRouter);
 router.use("/integrations/leads", leadsIntegrationRouter);
 router.use("/internal", aiAgentIntegrationRouter);
+router.use("/ai-agent/subscriptions", aiAgentSubscriptionsRouter);
 router.use("/", paymentsRouter);
 router.use("/", offersRouter);
 

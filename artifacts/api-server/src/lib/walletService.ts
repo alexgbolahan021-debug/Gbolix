@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 import { and, eq, gte, inArray } from "drizzle-orm";
 import {
+  aiAgentSubscriptionEventsTable,
+  aiAgentSubscriptionPlansTable,
+  aiAgentSubscriptionsTable,
   creditAccountsTable,
   creditAuthorizationsTable,
   creditLedgerEntriesTable,
@@ -11,7 +14,7 @@ import {
   workspacesTable,
   workspaceMembershipsTable,
 } from "@workspace/db";
-import { CREDIT_AUTHORIZATION_TTL_MS, GBOLIX_AI_AGENT_PRODUCT_KEY, GBOLIX_LEADS_PRODUCT_KEY, approvedCreditPacks, calculateReleasedCredits } from "./walletPolicy";
+import { CREDIT_AUTHORIZATION_TTL_MS, GBOLIX_AI_AGENT_PRODUCT_KEY, GBOLIX_LEADS_PRODUCT_KEY, aiAgentCapabilitiesForLevel, aiAgentSubscriptionPlanDefinitions, approvedCreditPacks, calculateReleasedCredits } from "./walletPolicy";
 
 const NOW = () => new Date();
 
@@ -45,8 +48,9 @@ export async function ensureWalletFoundation() {
     marketingName: "Gbolix AI Agent",
     description: "Configurable AI workers for business conversations and tasks.",
     status: "private_beta",
-    usageModel: "credits",
+    usageModel: "hybrid",
   }).onConflictDoNothing({ target: productsTable.productKey });
+  await db.update(productsTable).set({ usageModel: "hybrid", updatedAt: NOW() }).where(eq(productsTable.productKey, GBOLIX_AI_AGENT_PRODUCT_KEY));
   const [leadsProduct] = await db.select().from(productsTable).where(eq(productsTable.productKey, GBOLIX_LEADS_PRODUCT_KEY)).limit(1);
   if (!leadsProduct) throw new WalletError("PRODUCT_CONFIGURATION_ERROR", "Gbolix Leads product configuration could not be loaded", 500);
   return leadsProduct;
@@ -197,6 +201,167 @@ export async function releaseCredits(input: { authorizationKey: string; releaseK
     const [released] = await tx.update(creditAuthorizationsTable).set({ state: "released", releasedCredits: authorization.maximumCredits, updatedAt: NOW() }).where(eq(creditAuthorizationsTable.id, authorization.id)).returning();
     return { authorization: released, account: updated, reused: false };
   });
+}
+
+export async function ensureAIAgentSubscriptionPlans() {
+  await ensureWalletFoundation();
+
+  for (const definition of aiAgentSubscriptionPlanDefinitions) {
+    const paystackPlanCode = process.env[definition.paystackPlanCodeEnv]?.trim();
+    if (!paystackPlanCode) continue;
+    await db.insert(aiAgentSubscriptionPlansTable).values({
+      planKey: definition.planKey,
+      level: definition.level,
+      displayPriceUsd: definition.displayPriceUsd,
+      paystackPlanCode,
+      monthlyCredits: definition.monthlyCredits,
+      currency: process.env.PAYSTACK_AI_AGENT_CURRENCY?.trim() || "NGN",
+      isActive: true,
+    }).onConflictDoUpdate({
+      target: aiAgentSubscriptionPlansTable.planKey,
+      set: { level: definition.level, displayPriceUsd: definition.displayPriceUsd, paystackPlanCode, monthlyCredits: definition.monthlyCredits, isActive: true, updatedAt: NOW() },
+    });
+  }
+  return db.select().from(aiAgentSubscriptionPlansTable).where(eq(aiAgentSubscriptionPlansTable.isActive, true));
+}
+
+export async function createAIAgentSubscriptionCheckout(input: { userId: number; planKey: string; paymentReference: string; metadata?: Record<string, unknown> }) {
+  const context = await ensureWorkspaceWallet(input.userId);
+  const plans = await ensureAIAgentSubscriptionPlans();
+  const plan = plans.find(item => item.planKey === input.planKey);
+  if (!plan) throw new WalletError("SUBSCRIPTION_PLAN_NOT_CONFIGURED", "This AI Agent subscription plan is not configured yet", 503);
+  const subscriptionKey = makeKey("gsub");
+  const [subscription] = await db.insert(aiAgentSubscriptionsTable).values({
+    subscriptionKey,
+    workspaceId: context.workspace.id,
+    productId: context.product.id,
+    planId: plan.id,
+    purchasedByUserId: input.userId,
+    planKey: plan.planKey,
+    level: plan.level,
+    paymentReference: input.paymentReference,
+    amountSubunit: plan.paystackAmountSubunit ?? undefined,
+    currency: plan.currency,
+    metadata: { source: "ai_agent_plan_picker", ...(input.metadata ?? {}) },
+  }).returning();
+  if (!subscription) throw new WalletError("SUBSCRIPTION_CREATE_FAILED", "The subscription checkout could not be created", 500);
+  return { subscription, plan, context };
+}
+
+function addOneMonth(date: Date) {
+  const next = new Date(date);
+  next.setUTCMonth(next.getUTCMonth() + 1);
+  return next;
+}
+
+export async function linkAIAgentSubscriptionProvider(input: { subscriptionId: number; paystackCustomerCode?: string; paystackSubscriptionCode?: string; encryptedEmailToken?: string; amountSubunit?: number; currency?: string; nextPaymentAt?: Date }) {
+  const [updated] = await db.update(aiAgentSubscriptionsTable).set({ paystackCustomerCode: input.paystackCustomerCode, paystackSubscriptionCode: input.paystackSubscriptionCode, paystackEmailTokenEncrypted: input.encryptedEmailToken, amountSubunit: input.amountSubunit, currency: input.currency, nextPaymentAt: input.nextPaymentAt, updatedAt: NOW() }).where(eq(aiAgentSubscriptionsTable.id, input.subscriptionId)).returning();
+  return updated;
+}
+
+export async function settleAIAgentSubscriptionPayment(input: {
+  paymentReference: string;
+  paystackCustomerCode?: string;
+  paystackSubscriptionCode?: string;
+  encryptedEmailToken?: string;
+  amountSubunit?: number;
+  currency?: string;
+  billingPeriodKey?: string;
+  currentPeriodStart?: Date;
+  currentPeriodEnd?: Date;
+  nextPaymentAt?: Date;
+}) {
+  return db.transaction(async tx => {
+    const [subscription] = await tx.select().from(aiAgentSubscriptionsTable).where(eq(aiAgentSubscriptionsTable.paymentReference, input.paymentReference)).limit(1);
+    if (!subscription) throw new WalletError("SUBSCRIPTION_NOT_FOUND", "AI Agent subscription checkout was not found", 404);
+    const [plan] = await tx.select().from(aiAgentSubscriptionPlansTable).where(eq(aiAgentSubscriptionPlansTable.id, subscription.planId)).limit(1);
+    if (!plan) throw new WalletError("SUBSCRIPTION_PLAN_NOT_FOUND", "AI Agent subscription plan was not found", 500);
+    if (input.currency && plan.currency && input.currency !== plan.currency) throw new WalletError("SUBSCRIPTION_CURRENCY_MISMATCH", "Paystack returned an unexpected subscription currency", 409);
+    if (plan.paystackAmountSubunit && input.amountSubunit && plan.paystackAmountSubunit !== input.amountSubunit) throw new WalletError("SUBSCRIPTION_AMOUNT_MISMATCH", "Paystack returned an unexpected subscription amount", 409);
+
+    const periodStart = input.currentPeriodStart ?? subscription.currentPeriodStart ?? NOW();
+    const periodEnd = input.currentPeriodEnd ?? subscription.currentPeriodEnd ?? addOneMonth(periodStart);
+    const [updatedSubscription] = await tx.update(aiAgentSubscriptionsTable).set({
+      state: "active",
+      paystackCustomerCode: input.paystackCustomerCode ?? subscription.paystackCustomerCode,
+      paystackSubscriptionCode: input.paystackSubscriptionCode ?? subscription.paystackSubscriptionCode,
+      paystackEmailTokenEncrypted: input.encryptedEmailToken ?? subscription.paystackEmailTokenEncrypted,
+      amountSubunit: input.amountSubunit ?? subscription.amountSubunit,
+      currency: input.currency ?? subscription.currency ?? plan.currency,
+      initialPaymentAt: subscription.initialPaymentAt ?? NOW(),
+      currentPeriodStart: periodStart,
+      currentPeriodEnd: periodEnd,
+      nextPaymentAt: input.nextPaymentAt ?? subscription.nextPaymentAt ?? periodEnd,
+      cancelAtPeriodEnd: false,
+      updatedAt: NOW(),
+    }).where(eq(aiAgentSubscriptionsTable.id, subscription.id)).returning();
+
+    const [entitlement] = await tx.insert(productEntitlementsTable).values({
+      workspaceId: subscription.workspaceId,
+      productId: subscription.productId,
+      status: "active",
+      planKey: subscription.planKey,
+      capabilities: aiAgentCapabilitiesForLevel(subscription.level),
+      startsAt: periodStart,
+      endsAt: periodEnd,
+    }).onConflictDoUpdate({
+      target: [productEntitlementsTable.workspaceId, productEntitlementsTable.productId],
+      set: { status: "active", planKey: subscription.planKey, capabilities: aiAgentCapabilitiesForLevel(subscription.level), startsAt: periodStart, endsAt: periodEnd, updatedAt: NOW() },
+    }).returning();
+
+    const account = await tx.select().from(creditAccountsTable).where(eq(creditAccountsTable.workspaceId, subscription.workspaceId)).limit(1);
+    if (!account[0]) throw new WalletError("WALLET_NOT_FOUND", "Wallet account was not found", 500);
+    const grantKey = `ai-agent-subscription:${subscription.id}:${input.billingPeriodKey ?? input.paymentReference}`;
+    const [grant] = await tx.insert(creditLedgerEntriesTable).values({
+      accountId: account[0].id,
+      workspaceId: subscription.workspaceId,
+      productId: subscription.productId,
+      entryType: "grant",
+      credits: plan.monthlyCredits,
+      idempotencyKey: grantKey,
+      sourceType: "ai_agent_subscription",
+      sourceKey: subscription.subscriptionKey,
+      metadata: { planKey: plan.planKey, level: plan.level, billingPeriodKey: input.billingPeriodKey ?? input.paymentReference, paymentReference: input.paymentReference },
+    }).onConflictDoNothing({ target: creditLedgerEntriesTable.idempotencyKey }).returning();
+    let updatedAccount = account[0];
+    if (grant) {
+      const [nextAccount] = await tx.update(creditAccountsTable).set({ availableCredits: account[0].availableCredits + plan.monthlyCredits, version: account[0].version + 1, updatedAt: NOW() }).where(and(eq(creditAccountsTable.id, account[0].id), eq(creditAccountsTable.version, account[0].version))).returning();
+      if (!nextAccount) throw new WalletError("CREDIT_GRANT_CONFLICT", "Wallet changed while granting subscription credits", 409);
+      updatedAccount = nextAccount;
+    }
+    return { subscription: updatedSubscription, entitlement, plan, account: updatedAccount, granted: Boolean(grant) };
+  });
+}
+
+export async function updateAIAgentSubscriptionState(input: { subscriptionCode?: string; paymentReference?: string; state: "active" | "past_due" | "non_renewing" | "cancelled"; nextPaymentAt?: Date; currentPeriodEnd?: Date }) {
+  return db.transaction(async tx => {
+    const conditions = input.subscriptionCode
+      ? eq(aiAgentSubscriptionsTable.paystackSubscriptionCode, input.subscriptionCode)
+      : input.paymentReference ? eq(aiAgentSubscriptionsTable.paymentReference, input.paymentReference) : undefined;
+    if (!conditions) throw new WalletError("SUBSCRIPTION_IDENTIFIER_REQUIRED", "A subscription identifier is required", 400);
+    const [subscription] = await tx.select().from(aiAgentSubscriptionsTable).where(conditions).limit(1);
+    if (!subscription) throw new WalletError("SUBSCRIPTION_NOT_FOUND", "AI Agent subscription was not found", 404);
+    const [updated] = await tx.update(aiAgentSubscriptionsTable).set({ state: input.state, cancelAtPeriodEnd: input.state === "non_renewing", nextPaymentAt: input.nextPaymentAt ?? subscription.nextPaymentAt, currentPeriodEnd: input.currentPeriodEnd ?? subscription.currentPeriodEnd, updatedAt: NOW() }).where(eq(aiAgentSubscriptionsTable.id, subscription.id)).returning();
+    if (input.state === "cancelled") {
+      await tx.update(productEntitlementsTable).set({ status: "cancelled", endsAt: input.currentPeriodEnd ?? NOW(), updatedAt: NOW() }).where(and(eq(productEntitlementsTable.workspaceId, subscription.workspaceId), eq(productEntitlementsTable.productId, subscription.productId)));
+    } else if (input.state === "past_due") {
+      await tx.update(productEntitlementsTable).set({ status: "past_due", updatedAt: NOW() }).where(and(eq(productEntitlementsTable.workspaceId, subscription.workspaceId), eq(productEntitlementsTable.productId, subscription.productId)));
+    }
+    return updated;
+  });
+}
+
+export async function checkAIAgentEntitlement(workspaceKey: string, requestedLevel: number) {
+  const context = await ensureAIAgentWorkspaceWallet(workspaceKey);
+  const capabilities = (context.entitlement.capabilities ?? {}) as Record<string, unknown>;
+  const currentLevel = Number(capabilities.agentLevel ?? 1);
+  const usable = context.entitlement.status === "active" && (!context.entitlement.endsAt || context.entitlement.endsAt.getTime() > Date.now());
+  return { allowed: requestedLevel <= 1 || (usable && currentLevel >= requestedLevel), currentLevel, status: context.entitlement.status, planKey: context.entitlement.planKey, endsAt: context.entitlement.endsAt };
+}
+
+export async function recordAIAgentSubscriptionEvent(input: { deliveryId: string; eventType: string; providerReference?: string; payload: Record<string, unknown>; payloadDigest: string; subscriptionId?: number }) {
+  const [event] = await db.insert(aiAgentSubscriptionEventsTable).values({ deliveryId: input.deliveryId, eventType: input.eventType, providerReference: input.providerReference, payload: input.payload, payloadDigest: input.payloadDigest, subscriptionId: input.subscriptionId, processedAt: NOW() }).onConflictDoNothing({ target: aiAgentSubscriptionEventsTable.deliveryId }).returning();
+  return { created: Boolean(event), event };
 }
 
 export async function settleCreditPurchase(orderKey: string) {

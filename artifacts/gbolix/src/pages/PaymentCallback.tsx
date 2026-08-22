@@ -4,7 +4,7 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Button } from "@/components/ui/button";
 import { customFetch } from "@workspace/api-client-react";
-import { isWalletPaymentReference, paystackVerificationPath } from "@/lib/paymentCallbackRouting";
+import { isAIAgentSubscriptionReference, isWalletPaymentReference, paystackVerificationPath } from "@/lib/paymentCallbackRouting";
 
 type VerificationResult = {
   paid: boolean;
@@ -50,9 +50,11 @@ export default function PaymentCallback() {
 
         if (result.paid) {
           setState("paid");
-          setMessage(isWalletPaymentReference(reference)
-            ? `Payment confirmed successfully. ${result.order?.credits ?? "Your"} Wallet credits are now available.`
-            : "Payment confirmed successfully. Your project is now in progress.");
+          setMessage(isAIAgentSubscriptionReference(reference)
+            ? "Payment confirmed successfully. Your AI Agent level and monthly Gbolix Credits are now active."
+            : isWalletPaymentReference(reference)
+              ? `Payment confirmed successfully. ${result.order?.credits ?? "Your"} Wallet credits are now available.`
+              : "Payment confirmed successfully. Your project is now in progress.");
           return;
         }
 
@@ -112,7 +114,13 @@ export default function PaymentCallback() {
           <p className="mt-3 text-sm text-muted-foreground">{message}</p>
           {state !== "checking" && (
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Button onClick={() => navigate(window.location.search.includes("GBX-WALLET-") ? "/dashboard/wallet" : "/tasks")}>{window.location.search.includes("GBX-WALLET-") ? "Go to Wallet" : "Go to Tasks"}</Button>
+              <Button onClick={() => {
+                const reference = new URLSearchParams(window.location.search).get("reference") || new URLSearchParams(window.location.search).get("trxref") || "";
+                navigate(isAIAgentSubscriptionReference(reference) ? "/dashboard/products/gbolix-ai-agent?subscription=active" : isWalletPaymentReference(reference) ? "/dashboard/wallet" : "/tasks");
+              }}>{(() => {
+                const reference = new URLSearchParams(window.location.search).get("reference") || new URLSearchParams(window.location.search).get("trxref") || "";
+                return isAIAgentSubscriptionReference(reference) ? "Open AI Agent workspace" : isWalletPaymentReference(reference) ? "Go to Wallet" : "Go to Tasks";
+              })()}</Button>
               {state !== "paid" && <Button variant="outline" onClick={retry}>Check Again</Button>}
             </div>
           )}
