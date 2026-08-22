@@ -2,10 +2,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import { useState, type FormEvent } from "react";
 import { Link } from "wouter";
-import { ArrowRight, DatabaseZap, Download, Eye, Loader2, LockKeyhole, SearchCheck, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronDown, DatabaseZap, Download, Eye, Loader2, LockKeyhole, MessageCircle, SearchCheck, Sparkles } from "lucide-react";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toConfirmedChatDiscoveryRequest, toLeadRequestBody, type LeadChatProposal } from "@/lib/leadChatProposal";
 
 type LeadRequest = {
   key: string;
@@ -48,6 +49,10 @@ async function getLeadResults(requestKey: string) {
   return customFetch<LeadsResultsResponse>(`/api/leads/requests/${encodeURIComponent(requestKey)}/results`, { responseType: "json" });
 }
 
+async function createLeadChatProposal(message: string) {
+  return customFetch<{ proposal: LeadChatProposal; pilot: { maximumLeads: number; attribution: string; confirmationRequired: boolean } }>("/api/leads/chat/proposal", { method: "POST", body: JSON.stringify({ message }), responseType: "json" });
+}
+
 function activityLabel(status: string, resultSetKey: string | null) {
   if (status === "completed") return resultSetKey ? "Results ready" : "Completed";
   if (status === "failed") return "Needs attention";
@@ -64,6 +69,10 @@ export default function LeadsWorkspace() {
   const [inputType, setInputType] = useState<"csv_upload" | "domain_list" | "openstreetmap_discovery">("domain_list");
   const [label, setLabel] = useState("My business list");
   const [rawContent, setRawContent] = useState("");
+  const [chatMessage, setChatMessage] = useState("");
+  const [chatProposal, setChatProposal] = useState<LeadChatProposal | null>(null);
+  const [planning, setPlanning] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [selectedRequestKey, setSelectedRequestKey] = useState<string | null>(null);
@@ -71,35 +80,13 @@ export default function LeadsWorkspace() {
   const results = useQuery({ queryKey: ["gbolix-lead-results", selectedRequestKey], queryFn: () => getLeadResults(selectedRequestKey!), enabled: Boolean(selectedRequestKey) });
   const active = leads.data?.product.entitlementStatus === "active" || leads.data?.product.entitlementStatus === "trialing";
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    if (!label.trim()) {
-      setError("Provide a label before starting this request.");
-      return;
-    }
-    if (inputType !== "openstreetmap_discovery" && !rawContent.trim()) {
-      setError("Provide a CSV or domain-list source before starting this request.");
-      return;
-    }
-    if (inputType === "openstreetmap_discovery" && !city.trim()) {
-      setError("OpenStreetMap pilot discovery requires a city.");
-      return;
-    }
-
+  const startRequest = async (request: { categoryCode: string; desiredLeadCount: number; inputType: "csv_upload" | "domain_list" | "openstreetmap_discovery"; label: string; rawContent: string; city: string; keywords?: string[] }) => {
     setSubmitting(true);
     try {
       await customFetch("/api/leads/requests", {
         method: "POST",
         headers: { "Idempotency-Key": `web_${crypto.randomUUID()}` },
-        body: JSON.stringify({
-          categoryCode,
-          desiredLeadCount,
-          inputType,
-          label,
-          rawContent,
-          geography: city ? { cities: [city] } : {},
-        }),
+        body: JSON.stringify(request.inputType === "openstreetmap_discovery" ? toLeadRequestBody({ ...request, keywords: request.keywords ?? [] }) : { categoryCode: request.categoryCode, desiredLeadCount: request.desiredLeadCount, inputType: request.inputType, label: request.label, rawContent: request.rawContent, geography: request.city ? { cities: [request.city] } : {}, keywords: request.keywords ?? [] }),
         responseType: "json",
       });
       await queryClient.invalidateQueries({ queryKey: ["gbolix-leads"] });
@@ -109,6 +96,40 @@ export default function LeadsWorkspace() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    if (!label.trim()) return setError("Provide a label before starting this request.");
+    if (inputType !== "openstreetmap_discovery" && !rawContent.trim()) return setError("Provide a CSV or domain-list source before starting this request.");
+    if (inputType === "openstreetmap_discovery" && !city.trim()) return setError("OpenStreetMap pilot discovery requires a city.");
+    await startRequest({ categoryCode, desiredLeadCount, inputType, label, rawContent, city });
+  };
+
+  const planChatRequest = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    if (!chatMessage.trim()) return setError("Tell Gbolix what businesses you want to find.");
+    setPlanning(true);
+    try {
+      const response = await createLeadChatProposal(chatMessage);
+      setChatProposal(response.proposal);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to understand this request right now.");
+    } finally {
+      setPlanning(false);
+    }
+  };
+
+  const confirmChatProposal = async () => {
+    if (!chatProposal) return;
+    const request = toConfirmedChatDiscoveryRequest(chatProposal);
+    if (!request) return;
+    setError(null);
+    await startRequest(request);
+    setChatProposal(null);
+    setChatMessage("");
   };
 
   const downloadCsv = async (requestKey: string) => {
@@ -153,36 +174,36 @@ export default function LeadsWorkspace() {
         ) : (
           <>
             <section className="mt-7 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-              <form onSubmit={submit} className="rounded-2xl border border-border bg-card p-6">
-                <div className="flex items-center gap-2"><DatabaseZap className="text-primary" size={18} /><h2 className="font-bold">New lead request</h2></div>
-                <p className="mt-2 text-sm text-muted-foreground">Import a source you provide, or run the tightly limited OpenStreetMap discovery pilot. The maximum requested leads is reserved; workspace duplicates are suppressed before final credit usage.</p>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Source type
-                    <select className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={inputType} onChange={event => { const next = event.target.value as "csv_upload" | "domain_list" | "openstreetmap_discovery"; setInputType(next); if (next === "openstreetmap_discovery") { setDesiredLeadCount(current => Math.min(current, 25)); setLabel(current => current === "My business list" ? "OpenStreetMap discovery" : current); } }}>
-                      <option value="domain_list">Domain list</option><option value="csv_upload">CSV source</option><option value="openstreetmap_discovery">Discover businesses — OpenStreetMap pilot</option>
-                    </select>
-                  </label>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Source label
-                    <input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={label} onChange={event => setLabel(event.target.value)} />
-                  </label>
-                </div>
-                {inputType === "openstreetmap_discovery" ? <div className="mt-4 rounded-xl border border-primary/25 bg-primary/[0.07] p-4 text-xs leading-5 text-muted-foreground"><p className="font-semibold text-primary">Limited OpenStreetMap discovery pilot</p><p className="mt-1">Search one city for Restaurants or Real Estate. The pilot returns at most 25 public place records, preserves source provenance, and is not intended for bulk or background discovery.</p><p className="mt-2 text-[11px]">Data © OpenStreetMap contributors.</p></div> : <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{inputType === "csv_upload" ? "CSV content" : "Domains (one per line)"}
-                  <textarea className="mt-2 min-h-32 w-full rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-xs" value={rawContent} onChange={event => setRawContent(event.target.value)} placeholder={inputType === "csv_upload" ? "Company Name,Website,Email\nRiver House,river.example,hello@river.example" : "river.example\nshore.example"} />
-                </label>}
-                <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category
-                  <select className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={categoryCode} onChange={event => setCategoryCode(event.target.value)}>
-                    <option value="restaurants">Restaurants</option><option value="real-estate">Real Estate</option>
-                  </select>
-                </label>
-                <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">City {inputType === "openstreetmap_discovery" ? "(required)" : "(optional)"}
-                  <input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" required={inputType === "openstreetmap_discovery"} value={city} onChange={event => setCity(event.target.value)} placeholder="Chicago" />
-                </label>
-                <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Maximum qualified leads
-                  <input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" type="number" min={1} max={inputType === "openstreetmap_discovery" ? 25 : 50000} value={desiredLeadCount} onChange={event => setDesiredLeadCount(Number(event.target.value))} />
-                </label>
-                {error && <p className="mt-4 text-xs text-destructive">{error}</p>}
-                <Button disabled={submitting} className="mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90">{submitting ? "Reserving credits…" : "Reserve credits & start job"}<SearchCheck className="ml-2 h-4 w-4" /></Button>
-              </form>
+              <div>
+                <form onSubmit={planChatRequest} className="rounded-2xl border border-primary/30 bg-card p-6 shadow-[0_20px_60px_-42px_hsl(var(--primary)/0.9)]">
+                  <div className="flex items-center gap-2"><MessageCircle className="text-primary" size={18} /><h2 className="font-bold">Tell Gbolix what you need</h2></div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">Write it naturally. For example: <span className="text-foreground">“Find 5 restaurants in Lagos that may need a new website.”</span></p>
+                  <textarea className="mt-5 min-h-32 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/15" value={chatMessage} onChange={event => setChatMessage(event.target.value)} placeholder="I want five real-estate businesses in Abuja that I can contact about automation…" />
+                  {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
+                  <Button disabled={planning || submitting} className="mt-4 w-full bg-primary text-primary-foreground hover:bg-primary/90">{planning ? "Understanding your request…" : "Create my lead plan"}<Sparkles className="ml-2 h-4 w-4" /></Button>
+                  <p className="mt-3 text-center text-[11px] text-muted-foreground">Gbolix will show the plan and maximum credit reservation before starting anything.</p>
+                </form>
+
+                {chatProposal && <section className="mt-4 rounded-2xl border border-primary/35 bg-primary/[0.07] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">Gbolix plan</p>
+                  <p className="mt-2 text-sm leading-6 text-foreground">{chatProposal.reply}</p>
+                  {chatProposal.kind === "proposal" && chatProposal.categoryCode && chatProposal.city && chatProposal.desiredLeadCount && chatProposal.label ? <>
+                    <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3"><div className="rounded-lg bg-background/80 p-3"><p className="text-muted-foreground">Target</p><p className="mt-1 font-semibold capitalize">{chatProposal.categoryCode.replace("-", " ")}</p></div><div className="rounded-lg bg-background/80 p-3"><p className="text-muted-foreground">Location</p><p className="mt-1 font-semibold">{chatProposal.city}</p></div><div className="rounded-lg bg-background/80 p-3"><p className="text-muted-foreground">Maximum reservation</p><p className="mt-1 font-semibold">Up to {chatProposal.desiredLeadCount} credits</p></div></div>
+                    {chatProposal.keywords.length > 0 && <p className="mt-3 text-xs text-muted-foreground">Requested focus: <span className="font-medium text-foreground">{chatProposal.keywords.join(", ")}</span></p>}
+                    <p className="mt-4 text-xs leading-5 text-muted-foreground">This limited pilot uses public OpenStreetMap place records. It can return fewer than requested. Credits finalize only for new qualified leads; duplicates and unused capacity are released. Data © OpenStreetMap contributors.</p>
+                    <div className="mt-4 flex flex-wrap gap-3"><Button type="button" disabled={submitting} onClick={() => void confirmChatProposal()} className="bg-primary text-primary-foreground hover:bg-primary/90">{submitting ? "Starting job…" : `Confirm & reserve up to ${chatProposal.desiredLeadCount} credits`}<SearchCheck className="ml-2 h-4 w-4" /></Button><Button type="button" variant="outline" onClick={() => setChatProposal(null)}>Edit request</Button></div>
+                  </> : <p className="mt-4 text-xs text-muted-foreground">Reply with the missing details and create another plan. Nothing has been reserved.</p>}
+                </section>}
+
+                <button type="button" onClick={() => setShowAdvanced(open => !open)} className="mt-4 flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground">Advanced: import a domain list or CSV <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`} /></button>
+                {showAdvanced && <form onSubmit={submit} className="mt-3 rounded-2xl border border-border bg-card p-5">
+                  <div className="flex items-center gap-2"><DatabaseZap className="text-primary" size={17} /><h3 className="font-semibold">Import your own source</h3></div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-muted-foreground">Source type<select className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={inputType === "openstreetmap_discovery" ? "domain_list" : inputType} onChange={event => setInputType(event.target.value as "csv_upload" | "domain_list")}><option value="domain_list">Domain list</option><option value="csv_upload">CSV source</option></select></label><label className="text-xs font-semibold text-muted-foreground">Source label<input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={label} onChange={event => setLabel(event.target.value)} /></label></div>
+                  <textarea className="mt-3 min-h-28 w-full rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-xs" value={rawContent} onChange={event => setRawContent(event.target.value)} placeholder={inputType === "csv_upload" ? "Company Name,Website,Email\nRiver House,river.example,hello@river.example" : "river.example\nshore.example"} />
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3"><label className="text-xs font-semibold text-muted-foreground">Category<select className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={categoryCode} onChange={event => setCategoryCode(event.target.value)}><option value="restaurants">Restaurants</option><option value="real-estate">Real Estate</option></select></label><label className="text-xs font-semibold text-muted-foreground">City (optional)<input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" value={city} onChange={event => setCity(event.target.value)} placeholder="Lagos" /></label><label className="text-xs font-semibold text-muted-foreground">Maximum leads<input className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" type="number" min={1} max={50000} value={desiredLeadCount} onChange={event => setDesiredLeadCount(Number(event.target.value))} /></label></div>
+                  <Button disabled={submitting} className="mt-4 w-full" variant="outline">{submitting ? "Starting job…" : "Reserve credits & import source"}</Button>
+                </form>}
+              </div>
               <div className="rounded-2xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2"><Sparkles className="text-primary" size={18} /><h2 className="font-bold">What happens next</h2></div>
                 <ol className="mt-5 space-y-4 text-sm text-muted-foreground">

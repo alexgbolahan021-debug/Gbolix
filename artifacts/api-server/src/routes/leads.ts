@@ -6,6 +6,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { canUseProduct } from "../lib/walletPolicy";
 import { WalletError, ensureWorkspaceWallet, releaseCredits, reserveCredits } from "../lib/walletService";
 import { createGbolixLeadsExport, dispatchGbolixLeadsRequest, getGbolixLeadsResults } from "../lib/leadsEngineClient";
+import { planLeadChatRequest } from "../lib/leadsAiPlanner";
 import { statusAfterSuccessfulLeadDispatch, statusAfterUsageFinalized } from "../lib/leadsLifecycleState";
 
 const router = Router();
@@ -35,6 +36,21 @@ router.get("/", requireAuth, async (req, res) => {
   } catch (error) { return fail(res, error); }
 });
 
+router.post("/chat/proposal", requireAuth, async (req, res) => {
+  try {
+    if (!req.userId) return res.status(404).json({ error: "USER_NOT_READY" });
+    const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    if (!message || message.length > 2_000) return res.status(422).json({ error: "LEADS_CHAT_MESSAGE_INVALID", message: "Describe the businesses, city, and approximate number of leads you want." });
+    const context = await ensureWorkspaceWallet(req.userId);
+    if (!canUseProduct(context.entitlement.status)) return res.status(403).json({ error: "PRODUCT_ENTITLEMENT_REQUIRED", message: "Activate Gbolix Leads or purchase a credit pack before planning a request." });
+    const proposal = await planLeadChatRequest(message);
+    return res.json({ proposal, pilot: { adapterKey: "openstreetmap-pilot-v1", maximumLeads: 25, attribution: "© OpenStreetMap contributors", confirmationRequired: true } });
+  } catch (error) {
+    if (error instanceof Error && error.message === "AI_REQUEST_ASSISTANT_NOT_CONFIGURED") return res.status(503).json({ error: "AI_REQUEST_ASSISTANT_NOT_CONFIGURED", message: "The AI request assistant is being configured. You can still import a CSV or domain list from the advanced option." });
+    return fail(res, error);
+  }
+});
+
 router.post("/requests", requireAuth, async (req, res) => {
   try {
     if (!req.userId) return res.status(404).json({ error: "USER_NOT_READY" });
@@ -62,7 +78,7 @@ router.post("/requests", requireAuth, async (req, res) => {
     const requestSpec = { categoryCode, inputType, label, geography: req.body?.geography ?? {}, keywords: Array.isArray(req.body?.keywords) ? req.body.keywords : [], sourcePolicy: { allowUserProvidedSources: inputType !== "openstreetmap_discovery", allowProviderDiscovery: inputType === "openstreetmap_discovery", adapterKey: inputType === "openstreetmap_discovery" ? "openstreetmap-pilot-v1" : "user-provided-v1", attribution: inputType === "openstreetmap_discovery" ? "© OpenStreetMap contributors" : undefined } };
     const [created] = await db.insert(leadsRequestsTable).values({ requestKey, workspaceId: context.workspace.id, productId: context.product.id, requestedByUserId: req.userId, creditAuthorizationId: reservation.authorization.id, idempotencyKey, requestSpec, requestedLeadCount: desiredLeadCount, status: "queued" }).returning();
     try {
-      const dispatch = await dispatchGbolixLeadsRequest({ externalRequestId: requestKey, externalWorkspaceId: context.workspace.workspaceKey, externalCustomerId: String(req.userId), actorId: String(req.userId), creditAuthorizationId: reservation.authorization.authorizationKey, label, inputType, rawContent, categoryCode, discovery: inputType === "openstreetmap_discovery" ? { adapterKey: "openstreetmap-pilot-v1", city, country: country || undefined, limit: desiredLeadCount } : undefined });
+      const dispatch = await dispatchGbolixLeadsRequest({ externalRequestId: requestKey, externalWorkspaceId: context.workspace.workspaceKey, externalCustomerId: String(req.userId), actorId: String(req.userId), creditAuthorizationId: reservation.authorization.authorizationKey, label, inputType, rawContent, categoryCode, keywords: Array.isArray(req.body?.keywords) ? req.body.keywords.filter((keyword: unknown) => typeof keyword === "string").map((keyword: string) => keyword.trim()).filter(Boolean).slice(0, 8) : [], discovery: inputType === "openstreetmap_discovery" ? { adapterKey: "openstreetmap-pilot-v1", city, country: country || undefined, limit: desiredLeadCount } : undefined });
       await db.update(leadsRequestsTable).set({ engineJobKey: dispatch.jobId, status: statusAfterSuccessfulLeadDispatch("queued"), updatedAt: new Date() }).where(and(eq(leadsRequestsTable.id, created.id), eq(leadsRequestsTable.status, "queued")));
       return res.status(202).json({ requestKey: created.requestKey, workspaceKey: context.workspace.workspaceKey, status: "running", engineJobKey: dispatch.jobId, creditAuthorization: { key: reservation.authorization.authorizationKey, maximumCredits: reservation.authorization.maximumCredits, state: reservation.authorization.state }, reused: false });
     } catch (dispatchError) {

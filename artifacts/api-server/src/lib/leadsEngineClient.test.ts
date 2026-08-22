@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createGbolixLeadsExport, getGbolixLeadsResults } from "./leadsEngineClient";
+import { createGbolixLeadsExport, dispatchGbolixLeadsRequest, getGbolixLeadsResults } from "./leadsEngineClient";
 
 const originalFetch = global.fetch;
 const originalUrl = process.env.GBOLIX_LEADS_ENGINE_URL;
@@ -34,5 +34,17 @@ describe("Gbolix Leads results client", () => {
 
     expect(result.downloadUrl).toBe("https://storage.example/download");
     expect(fetchMock).toHaveBeenCalledWith("https://lead.gbolix.site/api/integrations/gbolix/leads/exports", expect.objectContaining({ method: "POST" }));
+  });
+
+  it("preserves confirmed AI chat constraints in the signed discovery dispatch", async () => {
+    process.env.GBOLIX_LEADS_ENGINE_URL = "https://lead.gbolix.site";
+    process.env.GBOLIX_LEADS_SHARED_SECRET = "test-shared-secret";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ jobId: "job_1" }), { status: 200 }));
+    global.fetch = fetchMock;
+
+    await dispatchGbolixLeadsRequest({ externalRequestId: "grq_12345678", externalWorkspaceId: "gws_1", creditAuthorizationId: "auth_1", label: "Lagos restaurants", inputType: "openstreetmap_discovery", rawContent: "", categoryCode: "restaurants", keywords: ["website", "automation"], discovery: { adapterKey: "openstreetmap-pilot-v1", city: "Lagos, Nigeria", limit: 5 } });
+
+    const options = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(options.body))).toMatchObject({ inputType: "openstreetmap_discovery", keywords: ["website", "automation"], discovery: { city: "Lagos, Nigeria", limit: 5 } });
   });
 });

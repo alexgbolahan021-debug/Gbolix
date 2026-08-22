@@ -11,6 +11,7 @@ export type GbolixLeadsEngineRequest = {
   inputType: "csv_upload" | "domain_list" | "openstreetmap_discovery";
   rawContent: string;
   categoryCode: string;
+  keywords?: string[];
   discovery?: { adapterKey: "openstreetmap-pilot-v1"; city: string; country?: string; limit: number };
 };
 
