@@ -17,6 +17,11 @@ export type Agent = {
 
 export type Knowledge = { id: string; agentId: string; workspaceId: string; title: string; content: string; sourceType: string; status: string; createdAt: string; };
 export type AgentPlan = { level: AgentLevel; name: string; tagline: string; price: string; billing: string; credits: number; features: string[]; accent: "muted" | "green" | "violet" };
+export const AGENT_CAPABILITIES: Record<AgentLevel, { knowledge: boolean; tools: boolean; api: boolean; deployment: boolean }> = {
+  1: { knowledge: false, tools: false, api: false, deployment: true },
+  2: { knowledge: true, tools: false, api: false, deployment: true },
+  3: { knowledge: true, tools: true, api: true, deployment: true },
+};
 export const AGENT_PLANS: AgentPlan[] = [
   { level: 1, name: "AI Assistant", tagline: "Try the AI", price: "Free", billing: "No subscription required", credits: 0, features: ["Basic AI conversation", "Basic agent instructions", "Website deployment/widget", "Customer conversations", "Uses your Gbolix Wallet credits"], accent: "muted" },
   { level: 2, name: "AI Knowledge Agent", tagline: "Give the AI knowledge", price: "$15", billing: "per month", credits: 5000, features: ["Everything in Level 1", "Business knowledge base", "Upload documents and files", "Website and business information", "Advanced agent configuration", "5,000 Gbolix Credits every month"], accent: "green" },
