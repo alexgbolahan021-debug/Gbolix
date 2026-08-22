@@ -38,7 +38,7 @@ export function DiscoveryAssistantFloatingButton({ onClick, hidden = false, labe
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="fixed bottom-5 right-5 z-40 h-12 gap-2 rounded-full border border-primary/30 bg-[#10161f]/95 px-4 text-xs font-semibold text-white shadow-[0_12px_35px_rgba(0,0,0,0.35),0_0_28px_rgba(0,255,102,0.16)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-[#17212d] hover:shadow-[0_16px_40px_rgba(0,0,0,0.4),0_0_34px_rgba(0,255,102,0.25)] sm:bottom-7 sm:right-7"
+      className="fixed bottom-20 right-5 z-40 h-12 gap-2 rounded-full border border-primary/30 bg-[#10161f]/95 px-4 text-xs font-semibold text-white shadow-[0_12px_35px_rgba(0,0,0,0.35),0_0_28px_rgba(0,255,102,0.16)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-[#17212d] hover:shadow-[0_16px_40px_rgba(0,0,0,0.4),0_0_34px_rgba(0,255,102,0.25)] sm:bottom-24 sm:right-7"
     >
       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[#0B0F14]">
         <MessageCircle size={14} fill="currentColor" />
