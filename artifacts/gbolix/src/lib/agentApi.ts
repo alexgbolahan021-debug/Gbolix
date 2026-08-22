@@ -38,6 +38,7 @@ export type Conversation = { id: string; agentId: string; workspaceId: string; c
 export type ConversationMessage = { id: string; conversationId: string; role: string; content: string; toolName?: string; createdAt: string };
 export type Deployment = { id: string; agentId: string; workspaceId: string; channel: string; allowedOrigin?: string; tokenPrefix: string; status: string; createdAt: string; updatedAt: string };
 export type ApiKey = { id: string; agentId: string; workspaceId: string; keyPrefix: string; status: string; createdAt: string; lastUsedAt?: string };
+export type AgentConnection = { id: string; agentId: string; workspaceId: string; kind: "native" | "custom_api"; provider: string; name: string; endpoint?: string; method?: string; authType?: string; status: string; permissions: string[]; createdAt: string; updatedAt: string };
 export type AgentVersion = { id: string; agentId: string; workspaceId: string; version: number; config: Pick<Agent, "name" | "description" | "instructions" | "tone" | "model" | "level" | "status" | "welcomeMessage" | "enabledTools">; createdBy: string; createdAt: string };
 export type WalletLedgerEntry = { id: string; type: string; credits: number; sourceType: string; sourceKey: string; metadata?: Record<string, unknown>; createdAt: string };
 export type WorkspaceActivity = { id: string; type: string; description: string; status: string; agentId?: string; agentName?: string; createdAt: string };
