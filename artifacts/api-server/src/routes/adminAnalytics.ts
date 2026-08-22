@@ -91,9 +91,16 @@ router.get("/insights", requireAdmin, async (req, res): Promise<void> => {
     increment(serviceMap, project.serviceType);
   }
 
-  const paidPayments = payments.filter(payment => payment.status === "paid");
-  const pendingPayments = payments.filter(payment => payment.status === "pending");
-  const declinedPayments = payments.filter(payment => payment.status === "failed" || payment.status === "cancelled");
+  const latestPaymentByProject = new Map<number, typeof payments[number]>();
+  for (const payment of payments) {
+    if (payment.projectId === null) continue;
+    const current = latestPaymentByProject.get(payment.projectId);
+    if (!current || payment.createdAt > current.createdAt) latestPaymentByProject.set(payment.projectId, payment);
+  }
+  const canonicalPayments = [...latestPaymentByProject.values()];
+  const paidPayments = canonicalPayments.filter(payment => payment.status === "paid");
+  const pendingPayments = canonicalPayments.filter(payment => payment.status === "pending");
+  const declinedPayments = canonicalPayments.filter(payment => payment.status === "failed" || payment.status === "cancelled");
   const projectsInRange = start ? projects.filter(project => project.createdAt >= start) : projects;
   const usersInRange = start ? users.filter(user => user.createdAt >= start) : users;
   const ordersInRange = start ? orders.filter(order => order.createdAt >= start) : orders;
@@ -104,6 +111,7 @@ router.get("/insights", requireAdmin, async (req, res): Promise<void> => {
   const activeProjects = projects.filter(project => ACTIVE_PROJECT_STATUSES.has(project.status)).length;
   const pendingRequests = projects.filter(project => project.status === "pending_review").length;
   const declinedProjects = projects.filter(project => project.status === "declined").length;
+  const cancelledProjects = projects.filter(project => project.status === "cancelled").length;
   const conversionRate = projects.length ? Math.round((acceptedRequests / projects.length) * 10000) / 100 : 0;
 
   const walletPurchases = orders.filter(order => order.status === "paid");
@@ -133,7 +141,7 @@ router.get("/insights", requireAdmin, async (req, res): Promise<void> => {
     acceptedRequests,
     completedRequests: completedProjects,
     declinedProjects,
-    cancelledProjects: 0,
+    cancelledProjects,
     openTickets: null,
     newUsersThisWeek,
     conversionRate,
@@ -153,9 +161,16 @@ router.get("/insights", requireAdmin, async (req, res): Promise<void> => {
     acquisitionSourceBreakdown: slices(acquisitionMap),
     serviceRequestBreakdown: slices(serviceMap),
     statusBreakdown: slices(statusMap),
+    paymentValueBreakdown: [
+      { name: "Paid", values: moneyByCurrency(paidPayments) },
+      { name: "Pending", values: moneyByCurrency(pendingPayments) },
+      { name: "Declined", values: moneyByCurrency(declinedPayments) },
+    ],
     usersOverTime: trend(usersInRange.map(user => ({ createdAt: user.createdAt, value: 1 })), range),
     clientsOverTime: trend(usersInRange.filter(user => user.role === "client").map(user => ({ createdAt: user.createdAt, value: 1 })), range),
     projectsOverTime: trend(projectsInRange.map(project => ({ createdAt: project.createdAt, value: 1 })), range),
+    requestsOverTime: trend(projectsInRange.map(project => ({ createdAt: project.createdAt, value: 1 })), range),
+    projectValueOverTime: trend(projectsInRange.filter(project => project.price !== null).map(project => ({ createdAt: project.createdAt, value: Number(project.price ?? 0), currency: "USD" })), range),
     revenueOverTime: trend(paidPayments.filter(payment => !start || payment.createdAt >= start).map(payment => ({ createdAt: payment.createdAt, value: Number(payment.amount), currency: payment.currency })), range),
     creditPurchaseValueOverTime: trend(walletPurchases.filter(order => !start || order.createdAt >= start).map(order => ({ createdAt: order.createdAt, value: Number(order.amount), currency: order.currency })), range),
     walletOrdersInRange: ordersInRange.filter(order => order.status === "paid").length,

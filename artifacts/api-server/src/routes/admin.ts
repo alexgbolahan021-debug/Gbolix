@@ -49,7 +49,8 @@ router.get("/credits", requireAdmin, async (req, res): Promise<void> => {
   const filtered = customers.filter(customer => !query || [customer.name, customer.email].filter(Boolean).some(value => String(value).toLowerCase().includes(query)));
   const customerIds = filtered.map(customer => customer.id);
   const orders = customerIds.length ? await db.select().from(productOrdersTable).where(inArray(productOrdersTable.purchasedByUserId, customerIds)).orderBy(desc(productOrdersTable.createdAt)) : [];
-  const ledger = customerIds.length ? await db.select().from(creditLedgerEntriesTable).where(inArray(creditLedgerEntriesTable.workspaceId, filtered.map(customer => customer.workspaceId).filter((id): id is number => id !== null))).orderBy(desc(creditLedgerEntriesTable.createdAt)) : [];
+  const workspaceIds = filtered.map(customer => customer.workspaceId).filter((id): id is number => id !== null);
+  const ledger = workspaceIds.length ? await db.select().from(creditLedgerEntriesTable).where(inArray(creditLedgerEntriesTable.workspaceId, workspaceIds)).orderBy(desc(creditLedgerEntriesTable.createdAt)) : [];
 
   res.json(filtered.map(customer => {
     const customerOrders = orders.filter(order => order.purchasedByUserId === customer.id);
@@ -100,7 +101,7 @@ router.post("/credits/:userId/adjust", requireAdmin, async (req, res): Promise<v
     return updated;
   });
 
-  await db.insert(activityTable).values({ userId: customer.id, type: "payment", description: `Admin credit adjustment: +${credits} credits (${reason})` });
+  await db.insert(activityTable).values({ userId: customer.id, type: "payment", description: `Admin #${req.userId} credit adjustment: +${credits} credits (${reason})` });
   res.status(201).json({ ok: true, adjustmentKey, availableCredits: result.availableCredits, reservedCredits: result.reservedCredits });
 });
 
@@ -449,6 +450,17 @@ router.get("/projects", requireAdmin, async (req, res): Promise<void> => {
   );
 });
 
+router.get("/projects/:id/activity", requireAdmin, async (req, res): Promise<void> => {
+  const id = Number.parseInt(req.params.id as string, 10);
+  if (!Number.isInteger(id)) { res.status(400).json({ error: "Invalid project id" }); return; }
+  const rows = await db.select({ id: activityTable.id, type: activityTable.type, description: activityTable.description, createdAt: activityTable.createdAt })
+    .from(activityTable)
+    .where(eq(activityTable.projectId, id))
+    .orderBy(desc(activityTable.createdAt))
+    .limit(100);
+  res.json(rows.map(row => ({ ...row, createdAt: row.createdAt.toISOString() })));
+});
+
 /**
  * Update project/request details.
  *
@@ -466,6 +478,7 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
     internalNotes,
     price,
     paymentStatus,
+    reason,
   } = req.body;
 
   // Payment status cannot be manually changed through the
@@ -527,7 +540,7 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
       userId: project.userId,
       projectId: id,
       type: "status_change",
-      description: `Project status changed to ${status}: ${project.title}`,
+      description: `Admin #${req.userId ?? "unknown"} changed project status from ${project.status} to ${status}${reason ? ` — Reason: ${String(reason).trim()}` : ""}: ${project.title}`,
     });
 
     await db.insert(notificationsTable).values({
@@ -544,7 +557,7 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
 
 router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id as string);
-  const { action } = req.body;
+  const { action, reason } = req.body;
 
   if (!["approve", "request_info", "decline"].includes(action)) {
     res.status(400).json({ error: "Invalid review action" });
@@ -615,7 +628,7 @@ router.post("/projects/:id/review", requireAdmin, async (req, res): Promise<void
     userId: project.userId,
     projectId: id,
     type: "admin_response",
-    description: `Request ${status}: ${project.title}`,
+    description: `Admin #${req.userId ?? "unknown"} changed request status from ${project.status} to ${status}${reason ? ` — Reason: ${String(reason).trim()}` : ""}: ${project.title}`,
   });
 
   await db.insert(notificationsTable).values({

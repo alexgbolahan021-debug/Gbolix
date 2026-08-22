@@ -20,6 +20,7 @@ const statusColor: Record<string, string> = {
   needs_info: "bg-orange-500/10 text-orange-400",
   approved: "bg-primary/10 text-primary",
   declined: "bg-destructive/10 text-destructive",
+  cancelled: "bg-muted text-muted-foreground",
   agreement_sent: "bg-blue-500/10 text-blue-400",
   agreement_accepted: "bg-blue-500/10 text-blue-400",
   queued: "bg-blue-500/10 text-blue-400",
@@ -34,6 +35,7 @@ const statusLabel: Record<string, string> = {
   needs_info: "Needs More Info",
   approved: "Approved",
   declined: "Declined",
+  cancelled: "Cancelled",
   agreement_sent: "Agreement Sent",
   agreement_accepted: "Agreement Accepted",
   queued: "Queued",
@@ -89,10 +91,15 @@ export default function AdminProjects() {
   const [search, setSearch] = useState("");
   const [editingProject, setEditingProject] = useState<AdminProject | null>(null);
   const [viewingProject, setViewingProject] = useState<AdminProject | null>(null);
+  const [projectActivity, setProjectActivity] = useState<Array<{ id: number; type: string; description: string; createdAt: string }>>([]);
   const [editStatus, setEditStatus] = useState("");
   const [editPriority, setEditPriority] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editReason, setEditReason] = useState("");
   const [conversationDialog, setConversationDialog] = useState(false);
+  const [reviewAction, setReviewAction] = useState<"approve" | "request_info" | "decline" | null>(null);
+  const [reviewReason, setReviewReason] = useState("");
+  const [reviewSaving, setReviewSaving] = useState(false);
   const [offerDialog, setOfferDialog] = useState(false);
   const [offerProject, setOfferProject] = useState<AdminProject | null>(null);
   const [offerServiceType, setOfferServiceType] = useState("");
@@ -116,20 +123,28 @@ export default function AdminProjects() {
     p.clientName.toLowerCase().includes(search.toLowerCase()) ||
     p.serviceType.toLowerCase().includes(search.toLowerCase())
   ) ?? [];
-  const refresh = () => queryClient.invalidateQueries({ queryKey: getAdminListProjectsQueryKey({}) });
+  const refresh = () => { void queryClient.invalidateQueries({ queryKey: getAdminListProjectsQueryKey({}) }); void queryClient.invalidateQueries({ queryKey: ["/api/admin/insights"] }); };
+  const loadActivity = async (projectId: number) => { try { const rows = await customFetch<Array<{ id: number; type: string; description: string; createdAt: string }>>(apiUrl(`/admin/projects/${projectId}/activity`), { method: "GET", responseType: "json" }); setProjectActivity(rows); } catch { setProjectActivity([]); } };
+  const openProject = (project: AdminProject) => { setViewingProject(project); setProjectActivity([]); void loadActivity(project.id); };
 
   const openEdit = (p: AdminProject) => {
     setEditingProject(p);
     setEditStatus(p.status);
     setEditPriority(p.priority);
     setEditNotes(p.internalNotes ?? "");
+    setEditReason("");
   };
 
   const handleUpdate = () => {
     if (!editingProject) return;
+    const statusChanged = editStatus !== editingProject.status;
+    if (statusChanged && !editReason.trim()) {
+      toast({ title: "Reason required", description: "Add a reason before changing the project status.", variant: "destructive" });
+      return;
+    }
     updateMutation.mutate({
       id: editingProject.id,
-      data: { status: editStatus as any, priority: editPriority as any, internalNotes: editNotes },
+      data: { status: editStatus as any, priority: editPriority as any, internalNotes: editNotes, reason: statusChanged ? editReason.trim() : undefined } as any,
     }, {
       onSuccess: () => {
         refresh();
@@ -158,8 +173,11 @@ export default function AdminProjects() {
     setOfferDialog(true);
   };
 
-  const handleReview = async (action: "approve" | "request_info" | "decline") => {
-    if (!viewingProject) return;
+  const requestReview = (action: "approve" | "request_info" | "decline") => { setReviewAction(action); setReviewReason(""); };
+
+  const handleReview = async (action: "approve" | "request_info" | "decline", reason = "") => {
+    if (!viewingProject) return false;
+    setReviewSaving(true);
     try {
       const data = await customFetch<{ status: string; hasConversation: boolean }>(
         apiUrl(`/admin/projects/${viewingProject.id}/review`),
@@ -167,20 +185,25 @@ export default function AdminProjects() {
           method: "POST",
           responseType: "json",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action }),
+          body: JSON.stringify({ action, reason: reason.trim() || undefined }),
         },
       );
       refresh();
       const updated = { ...viewingProject, status: data.status, hasConversation: action !== "decline" };
       setViewingProject(updated);
+      void loadActivity(updated.id);
       toast({
         title: action === "approve" ? "Request approved" : action === "request_info" ? "More information requested" : "Request declined",
         description: action === "decline" ? "The request was declined without opening a conversation." : "The client has been notified. Continue in the request chat to provide the specific details needed.",
       });
       if (action === "approve") openOffer(updated);
       if (action === "request_info") setConversationDialog(true);
+      return true;
     } catch (error) {
       toast({ title: "Review failed", description: error instanceof Error ? error.message : "Unable to update request", variant: "destructive" });
+      return false;
+    } finally {
+      setReviewSaving(false);
     }
   };
 
@@ -257,7 +280,9 @@ export default function AdminProjects() {
           ) : !filtered.length ? (
             <div className="py-16 text-center text-muted-foreground text-sm">No projects found.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="space-y-2 p-3 md:hidden">{filtered.map(p => <div key={p.id} className="rounded-xl border border-border bg-background/40 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{p.clientName}</p><p className="truncate text-xs text-muted-foreground">{p.title}</p><p className="mt-1 text-[11px] text-muted-foreground">{p.serviceType} · {formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}</p></div><span className="shrink-0 text-sm font-semibold text-primary">{p.price ? `$${p.price}` : "—"}</span></div><div className="mt-3 flex flex-wrap items-center gap-2"><Badge className={`text-[10px] ${statusColor[p.status] ?? "bg-muted text-muted-foreground"}`}>{statusLabel[p.status] ?? p.status}</Badge>{p.paymentStatus && <Badge className={`text-[10px] ${paymentStatusColor[p.paymentStatus] ?? "bg-muted text-muted-foreground"}`}>{paymentStatusLabel[p.paymentStatus] ?? p.paymentStatus}</Badge>}<span className={`text-[10px] font-semibold uppercase ${priorityColor[p.priority]}`}>{p.priority}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => openProject(p)}>View details</Button><Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => openEdit(p)}><Edit size={12} /> Manage</Button></div></div>)}</div>
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
@@ -273,7 +298,7 @@ export default function AdminProjects() {
                 </thead>
                 <tbody>
                   {filtered.map(p => (
-                    <tr key={p.id} className="border-b border-border last:border-0 hover:bg-accent/20 cursor-pointer" onClick={() => setViewingProject(p)}>
+                    <tr key={p.id} className="border-b border-border last:border-0 hover:bg-accent/20 cursor-pointer" onClick={() => openProject(p)}>
                       <td className="px-5 py-3"><p className="font-medium text-xs">{p.clientName}</p><p className="text-[11px] text-muted-foreground">{p.clientEmail}</p></td>
                       <td className="px-5 py-3"><p className="text-xs font-medium truncate max-w-[140px]">{p.title}</p><p className="text-[11px] text-muted-foreground">{p.serviceType}</p></td>
                       <td className="px-5 py-3"><Badge className={`text-[10px] ${statusColor[p.status] ?? "bg-muted text-muted-foreground"}`}>{statusLabel[p.status] ?? p.status}</Badge></td>
@@ -281,12 +306,13 @@ export default function AdminProjects() {
                       <td className="px-5 py-3"><span className={`text-xs font-medium uppercase ${priorityColor[p.priority]}`}>{p.priority}</span></td>
                       <td className="px-5 py-3"><span className="text-primary font-medium text-xs">{p.price ? `$${p.price}` : "—"}</span></td>
                       <td className="px-5 py-3 text-muted-foreground text-xs whitespace-nowrap">{formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}</td>
-                      <td className="px-5 py-3"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={e => { e.stopPropagation(); setViewingProject(p); }}><ChevronRight size={13} /> View</Button><Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={e => { e.stopPropagation(); openEdit(p); }}><Edit size={12} /></Button></div></td>
+                      <td className="px-5 py-3"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={e => { e.stopPropagation(); openProject(p); }}><ChevronRight size={13} /> View</Button><Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={e => { e.stopPropagation(); openEdit(p); }}><Edit size={12} /></Button></div></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
 
@@ -299,9 +325,10 @@ export default function AdminProjects() {
                 <div className="flex flex-wrap items-center gap-2"><Badge className={statusColor[viewingProject.status] ?? "bg-muted text-muted-foreground"}>{statusLabel[viewingProject.status] ?? viewingProject.status}</Badge>{viewingProject.paymentStatus && <Badge className={paymentStatusColor[viewingProject.paymentStatus] ?? "bg-muted text-muted-foreground"}>{paymentStatusLabel[viewingProject.paymentStatus] ?? viewingProject.paymentStatus}</Badge>}<span className="font-semibold text-primary">{viewingProject.price ? `$${viewingProject.price}` : "—"}</span></div>
               </div>
               <div className="border-t border-border pt-5 space-y-4"><Detail label="Service" value={viewingProject.serviceType} /><Detail label="Request date" value={new Date(viewingProject.createdAt).toLocaleString()} /><Detail label="Complete requirements" value={formatRequirements(viewingProject.requirements, viewingProject.description)} />{viewingProject.requirements?.attached_files?.length > 0 && <div><p className="text-xs font-medium text-muted-foreground mb-1">Files</p><div className="space-y-1">{viewingProject.requirements.attached_files.map((name: string) => <div key={name} className="flex items-center gap-2 text-sm"><FileText size={14} className="text-primary" />{name}</div>)}</div></div>}</div>
-              {viewingProject.status === "pending_review" && <div className="border-t border-border pt-5"><p className="text-sm font-semibold mb-3">Review request</p><div className="grid grid-cols-1 sm:grid-cols-3 gap-2"><Button onClick={() => handleReview("approve")} disabled={updateMutation.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><Check size={15} /> Approve</Button><Button variant="outline" onClick={() => handleReview("request_info")} disabled={updateMutation.isPending} className="gap-2"><Info size={15} /> Need More Information</Button><Button variant="outline" onClick={() => handleReview("decline")} disabled={updateMutation.isPending} className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-2"><X size={15} /> Decline</Button></div></div>}
+              {viewingProject.status === "pending_review" && <div className="border-t border-border pt-5"><p className="text-sm font-semibold mb-3">Review request</p><div className="grid grid-cols-1 sm:grid-cols-3 gap-2"><Button onClick={() => requestReview("approve")} disabled={reviewSaving} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><Check size={15} /> Approve</Button><Button variant="outline" onClick={() => requestReview("request_info")} disabled={reviewSaving} className="gap-2"><Info size={15} /> Need More Information</Button><Button variant="outline" onClick={() => requestReview("decline")} disabled={reviewSaving} className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-2"><X size={15} /> Decline</Button></div></div>}
               {viewingProject.status === "approved" && <Button onClick={() => openOffer(viewingProject)} className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><FileSignature size={15} /> Create Offer</Button>}
               {viewingProject.status === "needs_info" && <div className="border-t border-border pt-5"><Button onClick={openConversation} className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><MessageSquare size={15} /> Open Chat</Button></div>}
+              <div className="border-t border-border pt-5"><p className="mb-3 text-sm font-semibold">Audit trail</p>{!projectActivity.length ? <p className="text-sm text-muted-foreground">No activity recorded for this project yet.</p> : <div className="space-y-3">{projectActivity.slice(0, 12).map(entry => <div key={entry.id} className="rounded-lg border border-border bg-muted/10 p-3"><div className="flex items-center justify-between gap-3"><span className="text-[10px] font-semibold uppercase tracking-wide text-primary">{entry.type.replace(/_/g, " ")}</span><span className="text-[10px] text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</span></div><p className="mt-1 text-xs leading-5 text-muted-foreground">{entry.description}</p></div>)}</div>}</div>
             </div>}
           </DialogContent>
         </Dialog>
@@ -310,7 +337,9 @@ export default function AdminProjects() {
 
         <Dialog open={offerDialog} onOpenChange={setOfferDialog}><DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Create Project Offer</DialogTitle></DialogHeader>{offerProject && <div className="space-y-4"><div className="rounded-lg border border-border bg-muted/20 p-3 text-sm"><p className="font-medium">{offerProject.clientName}</p><p className="text-xs text-muted-foreground">{offerProject.projectCode ?? `Project #${offerProject.id}`} · {offerProject.title}</p><p className="text-xs text-muted-foreground mt-1">Original request: {offerProject.serviceType}</p></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="text-xs font-medium mb-1.5 block">Service</label><Input value={offerServiceType} onChange={e => setOfferServiceType(e.target.value)} /></div><div><label className="text-xs font-medium mb-1.5 block">Project / Service Name</label><Input value={offerServiceName} onChange={e => setOfferServiceName(e.target.value)} /></div></div><div><label className="text-xs font-medium mb-1.5 block">Scope of Work</label><Textarea value={offerScope} onChange={e => setOfferScope(e.target.value)} rows={5} placeholder="Describe exactly what will be delivered..." /></div><div><label className="text-xs font-medium mb-1.5 block">Requirements</label><Textarea value={offerRequirements} onChange={e => setOfferRequirements(e.target.value)} rows={4} placeholder="Requirements and deliverables..." /></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="text-xs font-medium mb-1.5 block">Price (USD)</label><Input type="number" min="0" step="0.01" value={offerPrice} onChange={e => setOfferPrice(e.target.value)} /></div><div><label className="text-xs font-medium mb-1.5 block">Delivery Estimate</label><Input value={offerDelivery} onChange={e => setOfferDelivery(e.target.value)} placeholder="e.g. 5 business days" /></div></div><div><label className="text-xs font-medium mb-1.5 block">Terms / Notes</label><Textarea value={offerTerms} onChange={e => setOfferTerms(e.target.value)} rows={3} placeholder="Payment or project terms..." /></div><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setOfferDialog(false)} className="flex-1">Cancel</Button><Button onClick={sendOffer} disabled={offerSaving} className="flex-1 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><FileSignature size={15} />{offerSaving ? "Sending..." : "Send Offer"}</Button></div></div>}</DialogContent></Dialog>
 
-        <Dialog open={!!editingProject} onOpenChange={() => setEditingProject(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Update Project</DialogTitle></DialogHeader><div className="space-y-4 mt-2"><div><label className="text-sm font-medium mb-1.5 block">Status</label><Select value={editStatus} onValueChange={setEditStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(statusLabel).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div><div><label className="text-sm font-medium mb-1.5 block">Priority</label><Select value={editPriority} onValueChange={setEditPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem></SelectContent></Select></div><div><label className="text-sm font-medium mb-1.5 block">Internal Notes</label><Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Internal notes (not visible to client)..." rows={3} /></div><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setEditingProject(null)} className="flex-1">Cancel</Button><Button onClick={handleUpdate} disabled={updateMutation.isPending} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">{updateMutation.isPending ? "Saving..." : "Save Changes"}</Button></div></div></DialogContent></Dialog>
+        <Dialog open={!!reviewAction} onOpenChange={() => setReviewAction(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{reviewAction === "approve" ? "Approve request" : reviewAction === "request_info" ? "Request more information" : "Decline request"}</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">This will update the request status, notify the client, and refresh the shared dashboard metrics.</p><Textarea value={reviewReason} onChange={event => setReviewReason(event.target.value)} rows={4} placeholder="Reason or internal note (required)..." /><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setReviewAction(null)} className="flex-1">Cancel</Button><Button disabled={!reviewReason.trim() || reviewSaving} onClick={() => { if (!reviewAction) return; void handleReview(reviewAction, reviewReason).then(success => { if (success) setReviewAction(null); }); }} className="flex-1">{reviewSaving ? "Saving..." : "Confirm"}</Button></div></DialogContent></Dialog>
+
+        <Dialog open={!!editingProject} onOpenChange={() => setEditingProject(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Update Project</DialogTitle></DialogHeader><div className="space-y-4 mt-2"><div><label className="text-sm font-medium mb-1.5 block">Status</label><Select value={editStatus} onValueChange={setEditStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(statusLabel).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div><div><label className="text-sm font-medium mb-1.5 block">Priority</label><Select value={editPriority} onValueChange={setEditPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem></SelectContent></Select></div><div><label className="text-sm font-medium mb-1.5 block">Internal Notes</label><Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Internal notes (not visible to client)..." rows={3} /></div><div><label className="text-sm font-medium mb-1.5 block">Reason for status change</label><Textarea value={editReason} onChange={e => setEditReason(e.target.value)} placeholder={editStatus !== editingProject?.status ? "Required when changing status..." : "Optional audit note..."} rows={2} /></div><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setEditingProject(null)} className="flex-1">Cancel</Button><Button onClick={handleUpdate} disabled={updateMutation.isPending} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">{updateMutation.isPending ? "Saving..." : "Save Changes"}</Button></div></div></DialogContent></Dialog>
       </div>
     </ClientLayout>
   );

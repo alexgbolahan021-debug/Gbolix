@@ -1206,7 +1206,7 @@ components:
       properties:
         status:
           type: string
-          enum: [submitted, queued, pending_review, needs_info, approved, declined, agreement_sent, agreement_accepted, in_progress, review, completed]
+          enum: [submitted, queued, pending_review, needs_info, approved, declined, cancelled, agreement_sent, agreement_accepted, in_progress, review, completed]
         priority:
           type: string
           enum: [low, medium, high, urgent]
@@ -1214,6 +1214,9 @@ components:
           type: string
         price:
           type: number
+        reason:
+          type: string
+          description: Reason recorded when an admin changes the project status.
 
     Insights:
       type: object
@@ -1312,6 +1315,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PieSlice"
+        paymentValueBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentValueSlice"
         usersOverTime:
           type: array
           items:
@@ -1321,6 +1328,14 @@ components:
           items:
             $ref: "#/components/schemas/TrendPoint"
         projectsOverTime:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        requestsOverTime:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+        projectValueOverTime:
           type: array
           items:
             $ref: "#/components/schemas/TrendPoint"
@@ -1371,9 +1386,12 @@ components:
         - acquisitionSourceBreakdown
         - serviceRequestBreakdown
         - statusBreakdown
+        - paymentValueBreakdown
         - usersOverTime
         - clientsOverTime
         - projectsOverTime
+        - requestsOverTime
+        - projectValueOverTime
         - revenueOverTime
         - creditPurchaseValueOverTime
         - dataAvailability
@@ -1398,6 +1416,17 @@ components:
         amount:
           type: number
       required: [status, currency, amount]
+
+    PaymentValueSlice:
+      type: object
+      properties:
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyTotal"
+      required: [name, values]
 
     TrendPoint:
       type: object

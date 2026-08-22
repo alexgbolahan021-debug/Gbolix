@@ -11,7 +11,7 @@ export const projectsTable = pgTable("projects", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   requirements: jsonb("requirements"),
-  status: text("status", { enum: ["pending_review", "needs_info", "approved", "declined", "agreement_sent", "agreement_accepted", "payment_pending", "in_progress", "review", "completed"] }).notNull().default("pending_review"),
+  status: text("status", { enum: ["pending_review", "needs_info", "approved", "declined", "cancelled", "agreement_sent", "agreement_accepted", "payment_pending", "in_progress", "review", "completed"] }).notNull().default("pending_review"),
   priority: text("priority", { enum: ["low", "medium", "high", "urgent"] }).notNull().default("medium"),
   price: numeric("price", { precision: 10, scale: 2 }),
   internalNotes: text("internal_notes"),

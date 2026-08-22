@@ -108,7 +108,7 @@ router.post("/projects/:projectId/offers", requireAdmin, async (req, res): Promi
         userId: lockedProject.userId,
         projectId,
         type: "admin_response",
-        description: `Offer sent for project: ${lockedProject.title}`,
+        description: `Admin #${senderId} sent offer for project: ${lockedProject.title} (status: draft → sent)`,
       });
 
       return offer;
@@ -185,7 +185,7 @@ router.post("/offers/:offerId/send", requireAdmin, async (req, res): Promise<voi
         userId: project.userId,
         projectId: offer.projectId,
         type: "admin_response",
-        description: `Offer sent for project: ${project.title}`,
+        description: `Admin #${senderId} sent offer for project: ${project.title} (status: draft → sent)`,
       });
 
       return { offer: updatedOffer };
@@ -241,7 +241,7 @@ router.post("/offers/:offerId/withdraw", requireAdmin, async (req, res): Promise
         userId: project.userId,
         projectId: offer.projectId,
         type: "admin_response",
-        description: `Offer withdrawn for project: ${project.title}`,
+        description: `Admin #${senderId} withdrew offer for project: ${project.title} (status: sent → withdrawn)`,
       });
 
       return updatedOffer;

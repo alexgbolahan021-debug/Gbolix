@@ -17,6 +17,7 @@ const statusColor: Record<string, string> = {
   needs_info: "bg-orange-500/10 text-orange-400",
   approved: "bg-primary/10 text-primary",
   declined: "bg-destructive/10 text-destructive",
+  cancelled: "bg-muted text-muted-foreground",
   agreement_sent: "bg-blue-500/10 text-blue-400",
   agreement_accepted: "bg-blue-500/10 text-blue-400",
   queued: "bg-blue-500/10 text-blue-400",
@@ -27,7 +28,7 @@ const statusColor: Record<string, string> = {
 
 const statusLabel: Record<string, string> = {
   submitted: "Submitted", pending_review: "Pending Review", needs_info: "Needs More Info", approved: "Approved", declined: "Declined",
-  agreement_sent: "Agreement Sent", agreement_accepted: "Agreement Accepted", queued: "Queued", in_progress: "In Progress", review: "Review", completed: "Completed",
+  agreement_sent: "Agreement Sent", agreement_accepted: "Agreement Accepted", cancelled: "Cancelled", queued: "Queued", in_progress: "In Progress", review: "Review", completed: "Completed",
 };
 
 function money(values: Array<{ currency: string; amount: number }> | undefined) {
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
     { label: "Pending Requests", value: insights?.pendingRequests ?? 0, icon: Clock3, color: "text-orange-400" },
     { label: "Accepted Requests", value: insights?.acceptedRequests ?? 0, icon: TrendingUp, color: "text-blue-400" },
     { label: "Declined Projects", value: insights?.declinedProjects ?? 0, icon: XCircle, color: "text-destructive" },
+    { label: "Completed Requests", value: insights?.completedRequests ?? 0, icon: CheckSquare, color: "text-primary" },
   ];
 
   const recentProjects = projects?.slice(0, 8) ?? [];
@@ -101,6 +103,8 @@ export default function AdminDashboard() {
             <Link href="/admin/credits"><Button className="mt-5 h-9 w-full gap-2 text-xs"><CreditCard size={13} /> Manage credits</Button></Link>
           </div>
         </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><div className="rounded-xl border border-border bg-card p-4"><p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Total Revenue</p><p className="mt-2 text-lg font-bold text-primary">{money(insights?.totalRevenue)}</p><p className="mt-1 text-[11px] text-muted-foreground">Successful project payments</p></div><div className="rounded-xl border border-border bg-card p-4"><p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Total Credit Value</p><p className="mt-2 text-lg font-bold text-blue-400">{money(insights?.wallet.purchaseValue)}</p><p className="mt-1 text-[11px] text-muted-foreground">Successful wallet purchases</p></div><div className="rounded-xl border border-border bg-card p-4"><p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Outstanding Payment Value</p><p className="mt-2 text-lg font-bold text-yellow-400">{money(insights?.outstandingPaymentValue)}</p><p className="mt-1 text-[11px] text-muted-foreground">Pending project payments</p></div><div className="rounded-xl border border-border bg-card p-4"><p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Customers Who Purchased Credits</p><p className="mt-2 text-lg font-bold text-secondary">{(insights?.wallet.purchasingCustomers ?? 0).toLocaleString()}</p><p className="mt-1 text-[11px] text-muted-foreground">Unique successful buyers</p></div></div>
 
         {insights?.insightsSummary?.length ? <div className="mt-6 rounded-xl border border-primary/20 bg-card p-5"><h2 className="mb-3 flex items-center gap-2 text-sm font-semibold"><span className="h-2 w-2 rounded-full bg-primary" /> Live insights</h2><div className="grid gap-2 md:grid-cols-3">{insights.insightsSummary.map((item, index) => <p key={index} className="text-sm text-muted-foreground">{item}</p>)}</div></div> : null}
 
