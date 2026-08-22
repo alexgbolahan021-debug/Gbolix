@@ -24,6 +24,7 @@ import type {
   AdminAssignFreelancer200,
   AdminDeactivateUserBody,
   AdminGetInsightsParams,
+  AdminListFeedbackParams,
   AdminListProjectsParams,
   AdminListUsersParams,
   AdminPaymentStatusUpdate,
@@ -34,6 +35,8 @@ import type {
   AdminUserDetail,
   AssignFreelancerInput,
   DashboardSummary,
+  Feedback,
+  FeedbackStatusUpdate,
   FileRecord,
   FileUploadInput,
   HealthStatus,
@@ -47,11 +50,13 @@ import type {
   Project,
   ProjectInput,
   ProjectUpdate,
+  PublicFeedbackInput,
   RoleChangeInput,
   TeamMember,
   UnreadCount,
   UserProfile,
-  UserProfileUpdate
+  UserProfileUpdate,
+  WorkspaceFeedbackInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -592,6 +597,381 @@ export function useGetUnreadCount<TData = Awaited<ReturnType<typeof getUnreadCou
 
 
 
+
+export const getSubmitPublicFeedbackUrl = () => {
+
+
+
+
+  return `/api/feedback/public`
+}
+
+/**
+ * @summary Submit feedback as a public visitor
+ */
+export const submitPublicFeedback = async (publicFeedbackInput: PublicFeedbackInput, options?: RequestInit): Promise<Feedback> => {
+
+  return customFetch<Feedback>(getSubmitPublicFeedbackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      publicFeedbackInput,)
+  }
+);}
+
+
+
+
+export const getSubmitPublicFeedbackMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPublicFeedback>>, TError,{data: BodyType<PublicFeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitPublicFeedback>>, TError,{data: BodyType<PublicFeedbackInput>}, TContext> => {
+
+const mutationKey = ['submitPublicFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitPublicFeedback>>, {data: BodyType<PublicFeedbackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitPublicFeedback(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitPublicFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof submitPublicFeedback>>>
+    export type SubmitPublicFeedbackMutationBody = BodyType<PublicFeedbackInput>
+    export type SubmitPublicFeedbackMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit feedback as a public visitor
+ */
+export const useSubmitPublicFeedback = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPublicFeedback>>, TError,{data: BodyType<PublicFeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitPublicFeedback>>,
+        TError,
+        {data: BodyType<PublicFeedbackInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitPublicFeedbackMutationOptions(options));
+    }
+
+export const getSubmitWorkspaceFeedbackUrl = () => {
+
+
+
+
+  return `/api/feedback`
+}
+
+/**
+ * @summary Submit feedback as an authenticated client
+ */
+export const submitWorkspaceFeedback = async (workspaceFeedbackInput: WorkspaceFeedbackInput, options?: RequestInit): Promise<Feedback> => {
+
+  return customFetch<Feedback>(getSubmitWorkspaceFeedbackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      workspaceFeedbackInput,)
+  }
+);}
+
+
+
+
+export const getSubmitWorkspaceFeedbackMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitWorkspaceFeedback>>, TError,{data: BodyType<WorkspaceFeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitWorkspaceFeedback>>, TError,{data: BodyType<WorkspaceFeedbackInput>}, TContext> => {
+
+const mutationKey = ['submitWorkspaceFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitWorkspaceFeedback>>, {data: BodyType<WorkspaceFeedbackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitWorkspaceFeedback(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitWorkspaceFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof submitWorkspaceFeedback>>>
+    export type SubmitWorkspaceFeedbackMutationBody = BodyType<WorkspaceFeedbackInput>
+    export type SubmitWorkspaceFeedbackMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit feedback as an authenticated client
+ */
+export const useSubmitWorkspaceFeedback = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitWorkspaceFeedback>>, TError,{data: BodyType<WorkspaceFeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitWorkspaceFeedback>>,
+        TError,
+        {data: BodyType<WorkspaceFeedbackInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitWorkspaceFeedbackMutationOptions(options));
+    }
+
+export const getListMyFeedbackUrl = () => {
+
+
+
+
+  return `/api/feedback/mine`
+}
+
+/**
+ * @summary List feedback submitted by the current client
+ */
+export const listMyFeedback = async ( options?: RequestInit): Promise<Feedback[]> => {
+
+  return customFetch<Feedback[]>(getListMyFeedbackUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyFeedbackQueryKey = () => {
+    return [
+    `/api/feedback/mine`
+    ] as const;
+    }
+
+
+export const getListMyFeedbackQueryOptions = <TData = Awaited<ReturnType<typeof listMyFeedback>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyFeedbackQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyFeedback>>> = ({ signal }) => listMyFeedback({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMyFeedback>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMyFeedbackQueryResult = NonNullable<Awaited<ReturnType<typeof listMyFeedback>>>
+export type ListMyFeedbackQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List feedback submitted by the current client
+ */
+
+export function useListMyFeedback<TData = Awaited<ReturnType<typeof listMyFeedback>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMyFeedbackQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminListFeedbackUrl = (params?: AdminListFeedbackParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/feedback?${stringifiedParams}` : `/api/admin/feedback`
+}
+
+/**
+ * @summary List client and public feedback
+ */
+export const adminListFeedback = async (params?: AdminListFeedbackParams, options?: RequestInit): Promise<Feedback[]> => {
+
+  return customFetch<Feedback[]>(getAdminListFeedbackUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminListFeedbackQueryKey = (params?: AdminListFeedbackParams,) => {
+    return [
+    `/api/admin/feedback`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAdminListFeedbackQueryOptions = <TData = Awaited<ReturnType<typeof adminListFeedback>>, TError = ErrorType<unknown>>(params?: AdminListFeedbackParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListFeedbackQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListFeedback>>> = ({ signal }) => adminListFeedback(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListFeedback>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminListFeedbackQueryResult = NonNullable<Awaited<ReturnType<typeof adminListFeedback>>>
+export type AdminListFeedbackQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List client and public feedback
+ */
+
+export function useAdminListFeedback<TData = Awaited<ReturnType<typeof adminListFeedback>>, TError = ErrorType<unknown>>(
+ params?: AdminListFeedbackParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminListFeedbackQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminUpdateFeedbackStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/feedback/${id}/status`
+}
+
+/**
+ * @summary Update feedback review status
+ */
+export const adminUpdateFeedbackStatus = async (id: number,
+    feedbackStatusUpdate: FeedbackStatusUpdate, options?: RequestInit): Promise<Feedback> => {
+
+  return customFetch<Feedback>(getAdminUpdateFeedbackStatusUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      feedbackStatusUpdate,)
+  }
+);}
+
+
+
+
+export const getAdminUpdateFeedbackStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateFeedbackStatus>>, TError,{id: number;data: BodyType<FeedbackStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUpdateFeedbackStatus>>, TError,{id: number;data: BodyType<FeedbackStatusUpdate>}, TContext> => {
+
+const mutationKey = ['adminUpdateFeedbackStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdateFeedbackStatus>>, {id: number;data: BodyType<FeedbackStatusUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminUpdateFeedbackStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUpdateFeedbackStatusMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdateFeedbackStatus>>>
+    export type AdminUpdateFeedbackStatusMutationBody = BodyType<FeedbackStatusUpdate>
+    export type AdminUpdateFeedbackStatusMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update feedback review status
+ */
+export const useAdminUpdateFeedbackStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateFeedbackStatus>>, TError,{id: number;data: BodyType<FeedbackStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminUpdateFeedbackStatus>>,
+        TError,
+        {id: number;data: BodyType<FeedbackStatusUpdate>},
+        TContext
+      > => {
+      return useMutation(getAdminUpdateFeedbackStatusMutationOptions(options));
+    }
 
 export const getListProjectsUrl = () => {
 

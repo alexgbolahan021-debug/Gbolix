@@ -11,3 +11,4 @@ export * from "./invoices";
 export * from "./offers";
 export * from "./users";
 export * from "./wallet";
+export * from "./feedback";

@@ -154,6 +154,122 @@ export const GetUnreadCountResponse = zod.object({
 
 
 /**
+ * @summary Submit feedback as a public visitor
+ */
+export const submitPublicFeedbackBodyNameMax = 120;
+
+export const submitPublicFeedbackBodyEmailMax = 320;
+
+export const submitPublicFeedbackBodyRatingMax = 5;
+
+export const submitPublicFeedbackBodyCommentMin = 3;
+export const submitPublicFeedbackBodyCommentMax = 2000;
+
+export const submitPublicFeedbackBodyPageUrlMax = 500;
+
+
+
+export const SubmitPublicFeedbackBody = zod.object({
+  "name": zod.string().min(1).max(submitPublicFeedbackBodyNameMax),
+  "email": zod.string().email().max(submitPublicFeedbackBodyEmailMax),
+  "rating": zod.number().min(1).max(submitPublicFeedbackBodyRatingMax),
+  "comment": zod.string().min(submitPublicFeedbackBodyCommentMin).max(submitPublicFeedbackBodyCommentMax),
+  "pageUrl": zod.string().max(submitPublicFeedbackBodyPageUrlMax).optional()
+})
+
+
+/**
+ * @summary Submit feedback as an authenticated client
+ */
+export const submitWorkspaceFeedbackBodyRatingMax = 5;
+
+export const submitWorkspaceFeedbackBodyCommentMin = 3;
+export const submitWorkspaceFeedbackBodyCommentMax = 2000;
+
+export const submitWorkspaceFeedbackBodyPageUrlMax = 500;
+
+
+
+export const SubmitWorkspaceFeedbackBody = zod.object({
+  "rating": zod.number().min(1).max(submitWorkspaceFeedbackBodyRatingMax),
+  "comment": zod.string().min(submitWorkspaceFeedbackBodyCommentMin).max(submitWorkspaceFeedbackBodyCommentMax),
+  "pageUrl": zod.string().max(submitWorkspaceFeedbackBodyPageUrlMax).optional()
+})
+
+
+/**
+ * @summary List feedback submitted by the current client
+ */
+export const ListMyFeedbackResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number().nullable(),
+  "senderName": zod.string(),
+  "senderEmail": zod.string().nullable(),
+  "rating": zod.number(),
+  "comment": zod.string(),
+  "source": zod.enum(['workspace', 'public']),
+  "pageUrl": zod.string().nullable(),
+  "status": zod.enum(['new', 'reviewed', 'archived']),
+  "reviewedAt": zod.string().nullable(),
+  "reviewedByUserId": zod.number().nullable(),
+  "createdAt": zod.string()
+})
+export const ListMyFeedbackResponse = zod.array(ListMyFeedbackResponseItem)
+
+
+/**
+ * @summary List client and public feedback
+ */
+export const AdminListFeedbackQueryParams = zod.object({
+  "status": zod.enum(['all', 'new', 'reviewed', 'archived']).optional(),
+  "source": zod.enum(['all', 'workspace', 'public']).optional()
+})
+
+export const AdminListFeedbackResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number().nullable(),
+  "senderName": zod.string(),
+  "senderEmail": zod.string().nullable(),
+  "rating": zod.number(),
+  "comment": zod.string(),
+  "source": zod.enum(['workspace', 'public']),
+  "pageUrl": zod.string().nullable(),
+  "status": zod.enum(['new', 'reviewed', 'archived']),
+  "reviewedAt": zod.string().nullable(),
+  "reviewedByUserId": zod.number().nullable(),
+  "createdAt": zod.string()
+})
+export const AdminListFeedbackResponse = zod.array(AdminListFeedbackResponseItem)
+
+
+/**
+ * @summary Update feedback review status
+ */
+export const AdminUpdateFeedbackStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminUpdateFeedbackStatusBody = zod.object({
+  "status": zod.enum(['new', 'reviewed', 'archived'])
+})
+
+export const AdminUpdateFeedbackStatusResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number().nullable(),
+  "senderName": zod.string(),
+  "senderEmail": zod.string().nullable(),
+  "rating": zod.number(),
+  "comment": zod.string(),
+  "source": zod.enum(['workspace', 'public']),
+  "pageUrl": zod.string().nullable(),
+  "status": zod.enum(['new', 'reviewed', 'archived']),
+  "reviewedAt": zod.string().nullable(),
+  "reviewedByUserId": zod.number().nullable(),
+  "createdAt": zod.string()
+})
+
+
+/**
  * @summary List current user's projects
  */
 export const ListProjectsResponseItem = zod.object({

@@ -15,6 +15,7 @@ import leadsRouter from "./leads";
 import leadsIntegrationRouter from "./leadsIntegration";
 import aiAgentIntegrationRouter from "./aiAgentIntegration";
 import aiAgentSubscriptionsRouter from "./aiAgentSubscriptions";
+import feedbackRouter, { adminFeedbackRouter } from "./feedback";
 
 const router: IRouter = Router();
 
@@ -25,9 +26,11 @@ router.use("/files", filesRouter);
 router.use("/projects/:projectId/messages", messagesRouter);
 router.use("/admin", adminRouter);
 router.use("/admin", adminAnalyticsRouter);
+router.use("/admin/feedback", adminFeedbackRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/agreements", agreementsRouter);
 router.use("/wallet", walletRouter);
+router.use("/feedback", feedbackRouter);
 router.use("/leads", leadsRouter);
 router.use("/integrations/leads", leadsIntegrationRouter);
 router.use("/internal", aiAgentIntegrationRouter);

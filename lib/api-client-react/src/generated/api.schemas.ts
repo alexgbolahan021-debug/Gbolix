@@ -533,6 +533,93 @@ export interface AdminProjectUpdate {
   reason?: string;
 }
 
+export interface PublicFeedbackInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /** @maxLength 320 */
+  email: string;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating: number;
+  /**
+     * @minLength 3
+     * @maxLength 2000
+     */
+  comment: string;
+  /** @maxLength 500 */
+  pageUrl?: string;
+}
+
+export interface WorkspaceFeedbackInput {
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating: number;
+  /**
+     * @minLength 3
+     * @maxLength 2000
+     */
+  comment: string;
+  /** @maxLength 500 */
+  pageUrl?: string;
+}
+
+export type FeedbackStatusUpdateStatus = typeof FeedbackStatusUpdateStatus[keyof typeof FeedbackStatusUpdateStatus];
+
+
+export const FeedbackStatusUpdateStatus = {
+  new: 'new',
+  reviewed: 'reviewed',
+  archived: 'archived',
+} as const;
+
+export interface FeedbackStatusUpdate {
+  status: FeedbackStatusUpdateStatus;
+}
+
+export type FeedbackSource = typeof FeedbackSource[keyof typeof FeedbackSource];
+
+
+export const FeedbackSource = {
+  workspace: 'workspace',
+  public: 'public',
+} as const;
+
+export type FeedbackStatus = typeof FeedbackStatus[keyof typeof FeedbackStatus];
+
+
+export const FeedbackStatus = {
+  new: 'new',
+  reviewed: 'reviewed',
+  archived: 'archived',
+} as const;
+
+export interface Feedback {
+  id: number;
+  /** @nullable */
+  userId: number | null;
+  senderName: string;
+  /** @nullable */
+  senderEmail: string | null;
+  rating: number;
+  comment: string;
+  source: FeedbackSource;
+  /** @nullable */
+  pageUrl: string | null;
+  status: FeedbackStatus;
+  /** @nullable */
+  reviewedAt: string | null;
+  /** @nullable */
+  reviewedByUserId: number | null;
+  createdAt: string;
+}
+
 export type InsightsDisplayExchangeRate = {
   rate: number;
   source: string;
@@ -624,6 +711,30 @@ export interface Insights {
   dataAvailability: InsightsDataAvailability;
   insightsSummary: string[];
 }
+
+export type AdminListFeedbackParams = {
+status?: AdminListFeedbackStatus;
+source?: AdminListFeedbackSource;
+};
+
+export type AdminListFeedbackStatus = typeof AdminListFeedbackStatus[keyof typeof AdminListFeedbackStatus];
+
+
+export const AdminListFeedbackStatus = {
+  all: 'all',
+  new: 'new',
+  reviewed: 'reviewed',
+  archived: 'archived',
+} as const;
+
+export type AdminListFeedbackSource = typeof AdminListFeedbackSource[keyof typeof AdminListFeedbackSource];
+
+
+export const AdminListFeedbackSource = {
+  all: 'all',
+  workspace: 'workspace',
+  public: 'public',
+} as const;
 
 export type MarkMessagesRead200 = {
   updated: number;

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X, Shield } from "lucide-react";
+import { Moon, Sun, Menu, X, Shield, MessageSquarePlus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { Show } from "@clerk/react";
@@ -12,6 +12,7 @@ const navLinks = [
   { href: "/products", label: "Products" },
   { href: "/pricing",  label: "Pricing" },
   { href: "/about",    label: "About" },
+  { href: "/feedback", label: "Feedback" },
 ];
 
 export function PublicNav() {
@@ -188,6 +189,7 @@ export function PublicNav() {
           </div>
         )}
       </div>
+      {location !== "/feedback" && <Link href="/feedback" className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-primary/30 bg-card/95 px-4 py-3 text-sm font-semibold text-primary shadow-xl shadow-primary/10 backdrop-blur transition-transform hover:-translate-y-0.5" aria-label="Share feedback"><MessageSquarePlus size={16} /> <span className="hidden sm:inline">Feedback</span></Link>}
     </nav>
   );
 }

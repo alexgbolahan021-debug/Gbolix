@@ -22,6 +22,8 @@ tags:
     description: Notification operations
   - name: admin
     description: Admin portal operations
+  - name: feedback
+    description: Client and public feedback operations
 paths:
   /healthz:
     get:
@@ -128,6 +130,107 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UnreadCount"
+
+  # ── Feedback ─────────────────────────────────────────────────────────────────
+  /feedback/public:
+    post:
+      operationId: submitPublicFeedback
+      tags: [feedback]
+      summary: Submit feedback as a public visitor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicFeedbackInput"
+      responses:
+        "201":
+          description: Feedback received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feedback"
+  /feedback:
+    post:
+      operationId: submitWorkspaceFeedback
+      tags: [feedback]
+      summary: Submit feedback as an authenticated client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceFeedbackInput"
+      responses:
+        "201":
+          description: Feedback received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feedback"
+  /feedback/mine:
+    get:
+      operationId: listMyFeedback
+      tags: [feedback]
+      summary: List feedback submitted by the current client
+      responses:
+        "200":
+          description: Feedback history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Feedback"
+  /admin/feedback:
+    get:
+      operationId: adminListFeedback
+      tags: [admin]
+      summary: List client and public feedback
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, new, reviewed, archived]
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [all, workspace, public]
+      responses:
+        "200":
+          description: Feedback inbox
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Feedback"
+  /admin/feedback/{id}/status:
+    patch:
+      operationId: adminUpdateFeedbackStatus
+      tags: [admin]
+      summary: Update feedback review status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackStatusUpdate"
+      responses:
+        "200":
+          description: Updated feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feedback"
 
   # ── Projects (service requests) ──────────────────────────────────────────────
   /projects:
@@ -1278,6 +1381,85 @@ components:
         reason:
           type: string
           description: Reason recorded when an admin changes the project status.
+
+    PublicFeedbackInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          minLength: 3
+          maxLength: 2000
+        pageUrl:
+          type: string
+          maxLength: 500
+      required: [name, email, rating, comment]
+
+    WorkspaceFeedbackInput:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          minLength: 3
+          maxLength: 2000
+        pageUrl:
+          type: string
+          maxLength: 500
+      required: [rating, comment]
+
+    FeedbackStatusUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [new, reviewed, archived]
+      required: [status]
+
+    Feedback:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        senderName:
+          type: string
+        senderEmail:
+          type: ["string", "null"]
+        rating:
+          type: integer
+        comment:
+          type: string
+        source:
+          type: string
+          enum: [workspace, public]
+        pageUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [new, reviewed, archived]
+        reviewedAt:
+          type: ["string", "null"]
+        reviewedByUserId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+      required: [id, userId, senderName, senderEmail, rating, comment, source, pageUrl, status, reviewedAt, reviewedByUserId, createdAt]
 
     Insights:
       type: object
