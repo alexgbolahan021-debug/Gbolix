@@ -1,3 +1,4 @@
+export type AgentLevel = 1 | 2 | 3;
 export type Agent = {
   id: string;
   workspaceId: string;
@@ -6,6 +7,7 @@ export type Agent = {
   instructions: string;
   tone: string;
   model: string;
+  level: AgentLevel;
   status: "draft" | "active" | "paused" | "disabled";
   welcomeMessage: string;
   enabledTools: string[];
@@ -14,12 +16,18 @@ export type Agent = {
 };
 
 export type Knowledge = { id: string; agentId: string; workspaceId: string; title: string; content: string; sourceType: string; status: string; createdAt: string; };
+export type AgentPlan = { level: AgentLevel; name: string; tagline: string; price: string; billing: string; credits: number; features: string[]; accent: "muted" | "green" | "violet" };
+export const AGENT_PLANS: AgentPlan[] = [
+  { level: 1, name: "AI Assistant", tagline: "Try the AI", price: "Free", billing: "No subscription required", credits: 0, features: ["Basic AI conversation", "Basic agent instructions", "Website deployment/widget", "Customer conversations", "Uses your Gbolix Wallet credits"], accent: "muted" },
+  { level: 2, name: "AI Knowledge Agent", tagline: "Give the AI knowledge", price: "$15", billing: "per month", credits: 5000, features: ["Everything in Level 1", "Business knowledge base", "Upload documents and files", "Website and business information", "Advanced agent configuration", "5,000 Gbolix Credits every month"], accent: "green" },
+  { level: 3, name: "AI Action Agent", tagline: "Give the AI the ability to act", price: "$30", billing: "per month", credits: 15000, features: ["Everything in Level 2", "Tool calling", "Business actions and automations", "Developer API access", "CRM, email, and order integrations", "15,000 Gbolix Credits every month"], accent: "violet" },
+];
 export type UsageSummary = { requests: number; responses: number; failed?: number; toolCalls: number; creditsUsed: number; conversations?: number; resolved?: number; handoffs?: number; open?: number };
 export type Conversation = { id: string; agentId: string; workspaceId: string; channel: string; visitorKey: string; status: string; createdAt: string; updatedAt: string };
 export type ConversationMessage = { id: string; conversationId: string; role: string; content: string; toolName?: string; createdAt: string };
 export type Deployment = { id: string; agentId: string; workspaceId: string; channel: string; allowedOrigin?: string; tokenPrefix: string; status: string; createdAt: string; updatedAt: string };
 export type ApiKey = { id: string; agentId: string; workspaceId: string; keyPrefix: string; status: string; createdAt: string; lastUsedAt?: string };
-export type AgentVersion = { id: string; agentId: string; workspaceId: string; version: number; config: Pick<Agent, "name" | "description" | "instructions" | "tone" | "model" | "status" | "welcomeMessage" | "enabledTools">; createdBy: string; createdAt: string };
+export type AgentVersion = { id: string; agentId: string; workspaceId: string; version: number; config: Pick<Agent, "name" | "description" | "instructions" | "tone" | "model" | "level" | "status" | "welcomeMessage" | "enabledTools">; createdBy: string; createdAt: string };
 export type WalletLedgerEntry = { id: string; type: string; credits: number; sourceType: string; sourceKey: string; metadata?: Record<string, unknown>; createdAt: string };
 export type WorkspaceActivity = { id: string; type: string; description: string; status: string; agentId?: string; agentName?: string; createdAt: string };
 
