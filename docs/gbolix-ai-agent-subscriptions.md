@@ -20,13 +20,13 @@ Set the following variables on the **Gbolix API service on Render**. Do not plac
 | `PAYSTACK_SUBSCRIPTION_TOKEN_ENCRYPTION_KEY` | A long random server-only value used to encrypt Paystack email tokens at rest. |
 | `GBOLIX_AI_AGENT_PLATFORM_TOKEN` | The existing shared internal token already used by the engine/platform wallet bridge. |
 
-The Paystack webhook should target the Gbolix API service endpoint:
+Keep the existing Paystack Dashboard webhook URL unchanged so wallet and project payments continue to work:
 
 ```text
-https://api.gbolix.site/api/ai-agent/subscriptions/payments/paystack/webhook
+https://api.gbolix.site/api/payments/paystack/webhook
 ```
 
-Enable the relevant recurring events in Paystack, including `charge.success`, `subscription.create`, `invoice.update`, `invoice.payment_failed`, `subscription.not_renew`, and `subscription.disable`. The server validates `x-paystack-signature` against the raw request body before processing any event.
+The API now recognizes AI Agent subscription events on that same endpoint and dispatches them internally to the subscription handler; no second Paystack webhook URL is required. Enable the relevant recurring events in Paystack, including `charge.success`, `subscription.create`, `invoice.update`, `invoice.payment_failed`, `subscription.not_renew`, and `subscription.disable`. The server validates `x-paystack-signature` against the raw request body before processing any event, while preserving the existing legacy payment signature and settlement flow.
 
 ## Customer flow
 
@@ -36,6 +36,6 @@ The browser return page calls the server-side verification endpoint. The callbac
 
 ## Safe go-live sequence
 
-First create or confirm the two fixed monthly Paystack plans and copy their plan codes. Then add the Render variables above, configure the webhook, redeploy the API, and verify that the customer plan picker reports the paid plans as configured. Only after that should an owner perform a controlled Paystack test transaction using an approved payment method. No plan creation or payment charge is performed by the code automatically.
+First create or confirm the two fixed monthly Paystack plans and copy their plan codes. Then add the Render variables above, leave the existing Paystack Dashboard webhook unchanged, redeploy the API, and verify that the customer plan picker reports the paid plans as configured. Only after that should an owner perform a controlled Paystack test transaction using an approved payment method. No plan creation or payment charge is performed by the code automatically.
 
 The customer can later upgrade the same agent through the engine upgrade endpoint. Higher-level upgrades preserve the agent ID, instructions, knowledge, conversations, deployments, and configuration snapshots. A future downgrade can therefore lock capabilities without deleting those records; the entitlement layer remains the source of truth for whether paid capabilities are currently usable.

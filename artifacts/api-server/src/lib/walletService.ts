@@ -277,17 +277,7 @@ export async function settleAIAgentSubscriptionPayment(input: {
     const [plan] = await tx.select().from(aiAgentSubscriptionPlansTable).where(eq(aiAgentSubscriptionPlansTable.id, subscription.planId)).limit(1);
     if (!plan) throw new WalletError("SUBSCRIPTION_PLAN_NOT_FOUND", "AI Agent subscription plan was not found", 500);
     if (input.currency && plan.currency && input.currency !== plan.currency) throw new WalletError("SUBSCRIPTION_CURRENCY_MISMATCH", "Paystack returned an unexpected subscription currency", 409);
-    if (plan.paystackAmountSubunit && input.amountSubunit && plan.paystackAmountSubunit !== input.amountSubunit) {
-      console.warn("AI Agent subscription amount mismatch", {
-        paymentReference: input.paymentReference,
-        planKey: subscription.planKey,
-        configuredAmountSubunit: plan.paystackAmountSubunit,
-        receivedAmountSubunit: input.amountSubunit,
-        configuredCurrency: plan.currency,
-        receivedCurrency: input.currency ?? null,
-      });
-      throw new WalletError("SUBSCRIPTION_AMOUNT_MISMATCH", "Paystack returned an unexpected subscription amount", 409);
-    }
+    if (plan.paystackAmountSubunit && input.amountSubunit && plan.paystackAmountSubunit !== input.amountSubunit) throw new WalletError("SUBSCRIPTION_AMOUNT_MISMATCH", "Paystack returned an unexpected subscription amount", 409);
 
     const periodStart = input.currentPeriodStart ?? subscription.currentPeriodStart ?? NOW();
     const periodEnd = input.currentPeriodEnd ?? subscription.currentPeriodEnd ?? addOneMonth(periodStart);
