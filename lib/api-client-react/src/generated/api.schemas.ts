@@ -440,6 +440,7 @@ export const AdminProjectUpdateStatus = {
   needs_info: 'needs_info',
   approved: 'approved',
   declined: 'declined',
+  cancelled: 'cancelled',
   agreement_sent: 'agreement_sent',
   agreement_accepted: 'agreement_accepted',
   in_progress: 'in_progress',
@@ -462,7 +463,15 @@ export interface AdminProjectUpdate {
   priority?: AdminProjectUpdatePriority;
   internalNotes?: string;
   price?: number;
+  /** Reason recorded when an admin changes the project status. */
+  reason?: string;
 }
+
+export type InsightsDisplayExchangeRate = {
+  rate: number;
+  source: string;
+  fetchedAt: string;
+} | null;
 
 export type InsightsDataAvailability = {[key: string]: boolean};
 
@@ -492,6 +501,11 @@ export interface PieSlice {
   value: number;
 }
 
+export interface PaymentValueSlice {
+  name: string;
+  values: MoneyTotal[];
+}
+
 export interface TrendPoint {
   date: string;
   value: number;
@@ -499,8 +513,9 @@ export interface TrendPoint {
 }
 
 export interface Insights {
-  range?: string;
-  generatedAt?: string;
+  range: string;
+  generatedAt: string;
+  displayExchangeRate: InsightsDisplayExchangeRate;
   totalUsers: number;
   totalClients: number;
   totalRequests: number;
@@ -532,9 +547,12 @@ export interface Insights {
   acquisitionSourceBreakdown: PieSlice[];
   serviceRequestBreakdown: PieSlice[];
   statusBreakdown: PieSlice[];
+  paymentValueBreakdown: PaymentValueSlice[];
   usersOverTime: TrendPoint[];
   clientsOverTime: TrendPoint[];
   projectsOverTime: TrendPoint[];
+  requestsOverTime: TrendPoint[];
+  projectValueOverTime: TrendPoint[];
   revenueOverTime: TrendPoint[];
   creditPurchaseValueOverTime: TrendPoint[];
   dataAvailability: InsightsDataAvailability;

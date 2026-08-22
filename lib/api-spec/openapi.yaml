@@ -1225,6 +1225,17 @@ components:
           type: string
         generatedAt:
           type: string
+        displayExchangeRate:
+          nullable: true
+          type: object
+          properties:
+            rate:
+              type: number
+            source:
+              type: string
+            fetchedAt:
+              type: string
+          required: [rate, source, fetchedAt]
         totalUsers:
           type: integer
         totalClients:
@@ -1356,6 +1367,9 @@ components:
           items:
             type: string
       required:
+        - range
+        - generatedAt
+        - displayExchangeRate
         - totalUsers
         - totalClients
         - totalRequests

@@ -11,6 +11,7 @@ import {
   usersTable,
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAuth";
+import { getCachedUsdToNgnRate } from "../lib/exchange-rate";
 
 const router = Router();
 const ACTIVE_PROJECT_STATUSES = new Set(["approved", "agreement_sent", "agreement_accepted", "queued", "in_progress", "review"]);
@@ -64,6 +65,7 @@ function trend(rows: Array<{ createdAt: Date; value: number; currency?: string }
 
 router.get("/insights", requireAdmin, async (req, res): Promise<void> => {
   const { start, key: range } = dateRange(req.query.range);
+  const displayRate = await getCachedUsdToNgnRate().catch(error => { console.warn("Admin analytics could not load USD/NGN display rate", error); return null; });
   const [users, projects, payments, orders, accounts, ledger] = await Promise.all([
     db.select().from(usersTable),
     db.select().from(projectsTable),
@@ -131,6 +133,7 @@ router.get("/insights", requireAdmin, async (req, res): Promise<void> => {
   res.json({
     range,
     generatedAt: new Date().toISOString(),
+    displayExchangeRate: displayRate ? { rate: displayRate.rate, source: displayRate.source, fetchedAt: new Date(displayRate.fetchedAt).toISOString() } : null,
     totalUsers: users.length,
     totalClients: users.filter(user => user.role === "client").length,
     totalRequests: projects.length,

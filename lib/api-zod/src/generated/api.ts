@@ -531,10 +531,11 @@ export const AdminUpdateProjectParams = zod.object({
 })
 
 export const AdminUpdateProjectBody = zod.object({
-  "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']).optional(),
+  "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'cancelled', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']).optional(),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']).optional(),
   "internalNotes": zod.string().optional(),
-  "price": zod.number().optional()
+  "price": zod.number().optional(),
+  "reason": zod.string().optional().describe('Reason recorded when an admin changes the project status.')
 })
 
 export const AdminUpdateProjectResponse = zod.object({
@@ -615,8 +616,13 @@ export const AdminGetInsightsQueryParams = zod.object({
 })
 
 export const AdminGetInsightsResponse = zod.object({
-  "range": zod.string().optional(),
-  "generatedAt": zod.string().optional(),
+  "range": zod.string(),
+  "generatedAt": zod.string(),
+  "displayExchangeRate": zod.object({
+  "rate": zod.number(),
+  "source": zod.string(),
+  "fetchedAt": zod.string()
+}).nullable(),
   "totalUsers": zod.number(),
   "totalClients": zod.number(),
   "totalRequests": zod.number(),
@@ -707,6 +713,13 @@ export const AdminGetInsightsResponse = zod.object({
   "name": zod.string(),
   "value": zod.number()
 })),
+  "paymentValueBreakdown": zod.array(zod.object({
+  "name": zod.string(),
+  "values": zod.array(zod.object({
+  "currency": zod.string(),
+  "amount": zod.number()
+}))
+})),
   "usersOverTime": zod.array(zod.object({
   "date": zod.string(),
   "value": zod.number(),
@@ -718,6 +731,16 @@ export const AdminGetInsightsResponse = zod.object({
   "currency": zod.string().optional()
 })),
   "projectsOverTime": zod.array(zod.object({
+  "date": zod.string(),
+  "value": zod.number(),
+  "currency": zod.string().optional()
+})),
+  "requestsOverTime": zod.array(zod.object({
+  "date": zod.string(),
+  "value": zod.number(),
+  "currency": zod.string().optional()
+})),
+  "projectValueOverTime": zod.array(zod.object({
   "date": zod.string(),
   "value": zod.number(),
   "currency": zod.string().optional()
