@@ -39,8 +39,10 @@ function paystackSecret() {
 }
 
 function aiAgentCallbackUrl() {
-  const value = process.env.PAYSTACK_AI_AGENT_SUBSCRIPTION_CALLBACK_URL?.trim();
-  if (!value) throw new WalletError("PAYSTACK_CALLBACK_NOT_CONFIGURED", "PAYSTACK_AI_AGENT_SUBSCRIPTION_CALLBACK_URL is not configured", 503);
+  const value = process.env.PAYSTACK_AI_AGENT_SUBSCRIPTION_CALLBACK_URL?.trim()
+    || process.env.PAYSTACK_CALLBACK_URL?.trim()
+    || process.env.PAYSTACK_WALLET_CALLBACK_URL?.trim();
+  if (!value) throw new WalletError("PAYSTACK_CALLBACK_NOT_CONFIGURED", "A Paystack callback URL is not configured", 503);
   return value;
 }
 
@@ -281,35 +283,40 @@ router.post("/payments/paystack/verify/:reference", requireAuth, async (req, res
   } catch (error) { return subscriptionError(res, error); }
 });
 
+export async function handleAIAgentPaystackWebhook(req: RawBodyRequest): Promise<boolean> {
+  if (!webhookSignatureIsValid(req)) return false;
+  const event = req.body as any;
+  const raw = req.rawBody ?? Buffer.from(JSON.stringify(event));
+  const digest = crypto.createHash("sha256").update(raw).digest("hex");
+  const deliveryId = req.header("x-paystack-event-id")?.trim() || digest;
+  const providerReference = typeof event?.data?.reference === "string" ? event.data.reference : extractSubscriptionCode(event?.data);
+  const type = String(event?.event ?? "");
+  const data = event?.data ?? {};
+  if (type === "charge.success" || (type === "invoice.update" && (data.status === "success" || data.paid === true))) {
+    const reference = typeof data.reference === "string" ? data.reference : undefined;
+    const existing = await findSubscriptionByProviderData(data);
+    if (reference && reference.startsWith("GBX-AI-SUB-")) await settleVerifiedPaystackPayment(reference, data, reference);
+    else if (existing) await settleAIAgentSubscriptionPayment({ paymentReference: existing.paymentReference, paystackCustomerCode: extractCustomerCode(data), paystackSubscriptionCode: extractSubscriptionCode(data), encryptedEmailToken: encryptEmailToken(extractEmailToken(data)), amountSubunit: getPaymentAmountSubunit(data), currency: typeof data.currency === "string" ? data.currency : undefined, billingPeriodKey: data.paid_at || data.transaction_date || reference || deliveryId, currentPeriodStart: parseDate(data.paid_at) ?? parseDate(data.transaction_date), nextPaymentAt: parseDate(data.next_payment_date) });
+  } else if (type === "subscription.create") {
+    const existing = await findSubscriptionByProviderData(data);
+    if (existing) await linkAIAgentSubscriptionProvider({ subscriptionId: existing.id, paystackCustomerCode: extractCustomerCode(data), paystackSubscriptionCode: extractSubscriptionCode(data), encryptedEmailToken: encryptEmailToken(extractEmailToken(data)), amountSubunit: getPaymentAmountSubunit(data), currency: typeof data.currency === "string" ? data.currency : undefined, nextPaymentAt: parseDate(data.next_payment_date) });
+  } else if (type === "invoice.payment_failed") {
+    const existing = await findSubscriptionByProviderData(data);
+    if (existing) await updateAIAgentSubscriptionState({ subscriptionCode: existing.paystackSubscriptionCode ?? undefined, paymentReference: existing.paystackSubscriptionCode ? undefined : existing.paymentReference, state: "past_due" });
+  } else if (type === "subscription.not_renew") {
+    const existing = await findSubscriptionByProviderData(data);
+    if (existing) await updateAIAgentSubscriptionState({ subscriptionCode: existing.paystackSubscriptionCode ?? undefined, paymentReference: existing.paystackSubscriptionCode ? undefined : existing.paymentReference, state: "non_renewing", currentPeriodEnd: parseDate(data.next_payment_date) });
+  } else if (type === "subscription.disable") {
+    const existing = await findSubscriptionByProviderData(data);
+    if (existing) await updateAIAgentSubscriptionState({ subscriptionCode: existing.paystackSubscriptionCode ?? undefined, paymentReference: existing.paystackSubscriptionCode ? undefined : existing.paymentReference, state: "cancelled", currentPeriodEnd: parseDate(data.next_payment_date) });
+  }
+  await recordAIAgentSubscriptionEvent({ deliveryId, eventType: type || "unknown", providerReference, payload: event ?? {}, payloadDigest: digest });
+  return true;
+}
+
 router.post("/payments/paystack/webhook", async (req: RawBodyRequest, res) => {
   try {
-    if (!webhookSignatureIsValid(req)) return res.sendStatus(401);
-    const event = req.body as any;
-    const raw = req.rawBody ?? Buffer.from(JSON.stringify(event));
-    const digest = crypto.createHash("sha256").update(raw).digest("hex");
-    const deliveryId = req.header("x-paystack-event-id")?.trim() || digest;
-    const providerReference = typeof event?.data?.reference === "string" ? event.data.reference : extractSubscriptionCode(event?.data);
-    const type = String(event?.event ?? "");
-    const data = event?.data ?? {};
-    if (type === "charge.success" || (type === "invoice.update" && (data.status === "success" || data.paid === true))) {
-      const reference = typeof data.reference === "string" ? data.reference : undefined;
-      const existing = await findSubscriptionByProviderData(data);
-      if (reference && reference.startsWith("GBX-AI-SUB-")) await settleVerifiedPaystackPayment(reference, data, reference);
-      else if (existing) await settleAIAgentSubscriptionPayment({ paymentReference: existing.paymentReference, paystackCustomerCode: extractCustomerCode(data), paystackSubscriptionCode: extractSubscriptionCode(data), encryptedEmailToken: encryptEmailToken(extractEmailToken(data)), amountSubunit: getPaymentAmountSubunit(data), currency: typeof data.currency === "string" ? data.currency : undefined, billingPeriodKey: data.paid_at || data.transaction_date || reference || deliveryId, currentPeriodStart: parseDate(data.paid_at) ?? parseDate(data.transaction_date), nextPaymentAt: parseDate(data.next_payment_date) });
-    } else if (type === "subscription.create") {
-      const existing = await findSubscriptionByProviderData(data);
-      if (existing) await linkAIAgentSubscriptionProvider({ subscriptionId: existing.id, paystackCustomerCode: extractCustomerCode(data), paystackSubscriptionCode: extractSubscriptionCode(data), encryptedEmailToken: encryptEmailToken(extractEmailToken(data)), amountSubunit: getPaymentAmountSubunit(data), currency: typeof data.currency === "string" ? data.currency : undefined, nextPaymentAt: parseDate(data.next_payment_date) });
-    } else if (type === "invoice.payment_failed") {
-      const existing = await findSubscriptionByProviderData(data);
-      if (existing) await updateAIAgentSubscriptionState({ subscriptionCode: existing.paystackSubscriptionCode ?? undefined, paymentReference: existing.paystackSubscriptionCode ? undefined : existing.paymentReference, state: "past_due" });
-    } else if (type === "subscription.not_renew") {
-      const existing = await findSubscriptionByProviderData(data);
-      if (existing) await updateAIAgentSubscriptionState({ subscriptionCode: existing.paystackSubscriptionCode ?? undefined, paymentReference: existing.paystackSubscriptionCode ? undefined : existing.paymentReference, state: "non_renewing", currentPeriodEnd: parseDate(data.next_payment_date) });
-    } else if (type === "subscription.disable") {
-      const existing = await findSubscriptionByProviderData(data);
-      if (existing) await updateAIAgentSubscriptionState({ subscriptionCode: existing.paystackSubscriptionCode ?? undefined, paymentReference: existing.paystackSubscriptionCode ? undefined : existing.paymentReference, state: "cancelled", currentPeriodEnd: parseDate(data.next_payment_date) });
-    }
-    await recordAIAgentSubscriptionEvent({ deliveryId, eventType: type || "unknown", providerReference, payload: event ?? {}, payloadDigest: digest });
+    if (!(await handleAIAgentPaystackWebhook(req))) return res.sendStatus(401);
     return res.sendStatus(200);
   } catch (error) {
     console.error("AI Agent subscription webhook error", error);

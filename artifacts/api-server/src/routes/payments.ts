@@ -13,6 +13,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 import { getCachedUsdToNgnRate, toPaystackSubunit, usdToNgnMajorUnits } from "../lib/exchange-rate";
+import { handleAIAgentPaystackWebhook } from "./aiAgentSubscriptions";
 
 const router = Router();
 
@@ -343,6 +344,21 @@ router.post("/payments/paystack/webhook", async (req: RawBodyRequest, res: Respo
     }
 
     const event = req.body as any;
+    const eventType = String(event?.event ?? "");
+    const eventReference = typeof event?.data?.reference === "string" ? event.data.reference : "";
+    const isAIAgentSubscriptionEvent = eventReference.startsWith("GBX-AI-SUB-") || [
+      "subscription.create",
+      "invoice.update",
+      "invoice.payment_failed",
+      "subscription.not_renew",
+      "subscription.disable",
+    ].includes(eventType);
+    if (isAIAgentSubscriptionEvent) {
+      const handled = await handleAIAgentPaystackWebhook(req);
+      res.sendStatus(handled ? 200 : 401);
+      return;
+    }
+
     if (event?.event === "charge.success" && event?.data?.reference) {
       const reference = String(event.data.reference);
       const result = await finalizeVerifiedPayment(reference);
