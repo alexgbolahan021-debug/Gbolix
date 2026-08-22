@@ -98,6 +98,18 @@ function encryptEmailToken(token: unknown) {
   return `${iv.toString("base64url")}.${tag.toString("base64url")}.${ciphertext.toString("base64url")}`;
 }
 
+function decryptEmailToken(value: string) {
+  const configuredKey = process.env.PAYSTACK_SUBSCRIPTION_TOKEN_ENCRYPTION_KEY?.trim();
+  if (!configuredKey) return undefined;
+  try {
+    const [ivPart, tagPart, ciphertextPart] = value.split(".");
+    if (!ivPart || !tagPart || !ciphertextPart) return undefined;
+    const decipher = crypto.createDecipheriv("aes-256-gcm", crypto.createHash("sha256").update(configuredKey).digest(), Buffer.from(ivPart, "base64url"));
+    decipher.setAuthTag(Buffer.from(tagPart, "base64url"));
+    return Buffer.concat([decipher.update(Buffer.from(ciphertextPart, "base64url")), decipher.final()]).toString("utf8");
+  } catch { return undefined; }
+}
+
 function getPaymentAmountSubunit(data: any) {
   const amount = Number(data?.amount);
   return Number.isInteger(amount) && amount >= 0 ? amount : undefined;
@@ -233,6 +245,22 @@ router.post("/checkout/:planKey/initialize", requireAuth, async (req, res) => {
       return res.status(502).json({ error: "PAYSTACK_INITIALIZATION_FAILED", message: data.message || "Paystack did not return a checkout URL" });
     }
     return res.status(201).json({ authorizationUrl: data.data.authorization_url, reference, planKey, level: definition.level, displayPriceUsd: Number(definition.displayPriceUsd), monthlyCredits: definition.monthlyCredits });
+  } catch (error) { return subscriptionError(res, error); }
+});
+
+router.post("/cancel", requireAuth, async (req, res) => {
+  try {
+    if (!req.userId) return res.status(404).json({ error: "USER_NOT_READY" });
+    const context = await ensureAIAgentWorkspaceWallet(`gws_user_${req.userId}`);
+    const [subscription] = await db.select().from(aiAgentSubscriptionsTable).where(and(eq(aiAgentSubscriptionsTable.workspaceId, context.workspace.id), eq(aiAgentSubscriptionsTable.state, "active"))).orderBy(desc(aiAgentSubscriptionsTable.createdAt)).limit(1);
+    if (!subscription?.paystackSubscriptionCode || !subscription.paystackEmailTokenEncrypted) return res.status(409).json({ error: "SUBSCRIPTION_MANAGEMENT_UNAVAILABLE", message: "This subscription cannot be cancelled from Gbolix yet. Please contact support." });
+    const emailToken = decryptEmailToken(subscription.paystackEmailTokenEncrypted);
+    if (!emailToken) return res.status(503).json({ error: "SUBSCRIPTION_TOKEN_UNAVAILABLE", message: "Subscription management is temporarily unavailable." });
+    const response = await fetch(`${PAYSTACK_API}/subscription/disable`, { method: "POST", headers: { Authorization: `Bearer ${paystackSecret()}`, "Content-Type": "application/json" }, body: JSON.stringify({ code: subscription.paystackSubscriptionCode, token: emailToken }) });
+    const data = await response.json() as PaystackResponse;
+    if (!response.ok || !data.status) return res.status(502).json({ error: "PAYSTACK_CANCELLATION_FAILED", message: data.message || "Paystack could not cancel the subscription" });
+    const updated = await updateAIAgentSubscriptionState({ subscriptionCode: subscription.paystackSubscriptionCode, state: "non_renewing" });
+    return res.json({ cancelled: true, state: updated?.state, currentPeriodEnd: updated?.currentPeriodEnd });
   } catch (error) { return subscriptionError(res, error); }
 });
 
