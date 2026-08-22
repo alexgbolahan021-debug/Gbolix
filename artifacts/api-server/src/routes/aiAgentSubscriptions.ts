@@ -126,7 +126,17 @@ function subscriptionError(res: Response, error: unknown) {
 async function fetchPaystackPlan(planCode: string) {
   const response = await fetch(`${PAYSTACK_API}/plan/${encodeURIComponent(planCode)}`, { headers: { Authorization: `Bearer ${paystackSecret()}` } });
   const data = await response.json() as PaystackResponse;
-  if (!response.ok || !data.status || !data.data?.amount || !data.data?.currency) throw new WalletError("PAYSTACK_PLAN_UNAVAILABLE", "The configured Paystack recurring plan could not be verified", 503);
+  if (!response.ok || !data.status || data.data?.amount == null || !data.data?.currency) {
+    console.warn("Paystack AI Agent plan lookup failed", {
+      planCode,
+      httpStatus: response.status,
+      paystackStatus: data.status ?? null,
+      paystackMessage: data.message ?? null,
+      hasPlanPayload: Boolean(data.data),
+      returnedCurrency: data.data?.currency ?? null,
+    });
+    throw new WalletError("PAYSTACK_PLAN_UNAVAILABLE", "The configured Paystack recurring plan could not be verified", 503);
+  }
   return { amountSubunit: Number(data.data.amount), currency: String(data.data.currency) };
 }
 
