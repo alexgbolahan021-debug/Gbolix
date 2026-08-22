@@ -480,30 +480,56 @@ router.patch("/projects/:id/payment-status", requireAdmin, async (req, res): Pro
 
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
   if (!project) { res.status(404).json({ error: "Project not found" }); return; }
-  const [payment] = await db.select().from(paymentsTable)
+  let [payment] = await db.select().from(paymentsTable)
     .where(eq(paymentsTable.projectId, id))
     .orderBy(desc(paymentsTable.createdAt))
     .limit(1);
-  if (!payment) { res.status(404).json({ error: "No payment record exists for this project" }); return; }
-  if (payment.status === status) {
+  let createdManualPayment = false;
+  const requestedAmount = Number(req.body?.amount);
+  const requestedCurrency = String(req.body?.currency ?? "USD").toUpperCase();
+  if (!payment) {
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0 || !["USD", "NGN"].includes(requestedCurrency)) {
+      res.status(400).json({ error: "A positive amount and USD or NGN currency are required when creating a manual payment record" });
+      return;
+    }
+    const [created] = await db.insert(paymentsTable).values({
+      projectId: id,
+      gateway: "manual",
+      amount: requestedAmount.toFixed(2),
+      currency: requestedCurrency,
+      status,
+      reference: `manual:${id}:${crypto.randomUUID()}`,
+      paidAt: status === "paid" ? new Date() : null,
+      markedPaidByAdminId: status === "paid" ? req.userId : null,
+    }).returning();
+    payment = created;
+    createdManualPayment = true;
+  }
+  if (!payment) { res.status(500).json({ error: "Unable to create payment record" }); return; }
+  if (payment.status === status && !createdManualPayment) {
     res.json({ projectId: id, paymentId: payment.id, paymentStatus: payment.status, changed: false });
     return;
   }
 
-  const [updatedPayment] = await db.update(paymentsTable)
-    .set({
-      status,
-      paidAt: status === "paid" ? new Date() : null,
-      markedPaidByAdminId: status === "paid" ? req.userId : null,
-    })
-    .where(eq(paymentsTable.id, payment.id))
-    .returning();
+  let updatedPayment = payment;
+  if (!createdManualPayment) {
+    const [updated] = await db.update(paymentsTable)
+      .set({
+        status,
+        paidAt: status === "paid" ? new Date() : null,
+        markedPaidByAdminId: status === "paid" ? req.userId : null,
+      })
+      .where(eq(paymentsTable.id, payment.id))
+      .returning();
+    if (!updated) { res.status(409).json({ error: "Payment changed before the admin update completed" }); return; }
+    updatedPayment = updated;
+  }
 
   await db.insert(activityTable).values({
     userId: project.userId,
     projectId: id,
     type: "payment",
-    description: `Admin #${req.userId} manually changed payment status from ${payment.status} to ${status} for ${project.title}. Reason: ${normalizedReason}`,
+    description: `Admin #${req.userId} ${createdManualPayment ? "created a manual payment record" : `manually changed payment status from ${payment.status} to ${status}`} for ${project.title}. Reason: ${normalizedReason}`,
   });
   await db.insert(notificationsTable).values({
     userId: project.userId,

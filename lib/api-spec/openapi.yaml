@@ -1238,6 +1238,14 @@ components:
         reason:
           type: string
           minLength: 1
+        amount:
+          type: number
+          exclusiveMinimum: 0
+          description: Required only when the project has no payment record and the admin is creating a manual record.
+        currency:
+          type: string
+          enum: [USD, NGN]
+          description: Required only when creating a manual payment record; settlement workflows remain unchanged.
       required: [status, reason]
 
     AdminPaymentStatusUpdateResponse:

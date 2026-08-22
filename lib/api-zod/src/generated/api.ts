@@ -570,11 +570,15 @@ export const AdminUpdateProjectPaymentStatusParams = zod.object({
 })
 
 
+export const adminUpdateProjectPaymentStatusBodyAmountExclusiveMin = 0;
+
 
 
 export const AdminUpdateProjectPaymentStatusBody = zod.object({
   "status": zod.enum(['pending', 'paid', 'failed', 'cancelled']),
-  "reason": zod.string().min(1)
+  "reason": zod.string().min(1),
+  "amount": zod.number().gt(adminUpdateProjectPaymentStatusBodyAmountExclusiveMin).optional().describe('Required only when the project has no payment record and the admin is creating a manual record.'),
+  "currency": zod.enum(['USD', 'NGN']).optional().describe('Required only when creating a manual payment record; settlement workflows remain unchanged.')
 })
 
 export const AdminUpdateProjectPaymentStatusResponse = zod.object({

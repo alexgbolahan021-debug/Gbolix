@@ -455,10 +455,28 @@ export const AdminPaymentStatusUpdateStatus = {
   cancelled: 'cancelled',
 } as const;
 
+/**
+ * Required only when creating a manual payment record; settlement workflows remain unchanged.
+ */
+export type AdminPaymentStatusUpdateCurrency = typeof AdminPaymentStatusUpdateCurrency[keyof typeof AdminPaymentStatusUpdateCurrency];
+
+
+export const AdminPaymentStatusUpdateCurrency = {
+  USD: 'USD',
+  NGN: 'NGN',
+} as const;
+
 export interface AdminPaymentStatusUpdate {
   status: AdminPaymentStatusUpdateStatus;
   /** @minLength 1 */
   reason: string;
+  /**
+     * Required only when the project has no payment record and the admin is creating a manual record.
+     * @exclusiveMinimum 0
+     */
+  amount?: number;
+  /** Required only when creating a manual payment record; settlement workflows remain unchanged. */
+  currency?: AdminPaymentStatusUpdateCurrency;
 }
 
 export type AdminPaymentStatusUpdateResponsePaymentStatus = typeof AdminPaymentStatusUpdateResponsePaymentStatus[keyof typeof AdminPaymentStatusUpdateResponsePaymentStatus];
