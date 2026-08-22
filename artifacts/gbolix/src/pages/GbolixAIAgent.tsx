@@ -81,7 +81,7 @@ export default function GbolixAIAgent() {
   async function loadSelected(agentId: string) {
     const token = await getToken();
     if (!token) return;
-    const [agent, knowledgeResult, usageResult, versionsResult] = await Promise.all([
+    const [agent, knowledgeResult, usageResult, versionsResult, connectionsResult] = await Promise.all([
       agentRequest<Agent>(token, `/v1/agents/${agentId}`),
       agentRequest<Knowledge[]>(token, `/v1/agents/${agentId}/knowledge`),
       agentRequest<{ summary: UsageSummary }>(token, `/v1/agents/${agentId}/usage`),
