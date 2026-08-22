@@ -226,7 +226,7 @@ export async function ensureAIAgentSubscriptionPlans() {
 }
 
 export async function createAIAgentSubscriptionCheckout(input: { userId: number; planKey: string; paymentReference: string; metadata?: Record<string, unknown> }) {
-  const context = await ensureWorkspaceWallet(input.userId);
+  const context = await ensureAIAgentWorkspaceWallet(`gws_user_${input.userId}`);
   const plans = await ensureAIAgentSubscriptionPlans();
   const plan = plans.find(item => item.planKey === input.planKey);
   if (!plan) throw new WalletError("SUBSCRIPTION_PLAN_NOT_CONFIGURED", "This AI Agent subscription plan is not configured yet", 503);
