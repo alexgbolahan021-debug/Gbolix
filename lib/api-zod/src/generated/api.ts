@@ -507,6 +507,7 @@ export const AdminListProjectsResponseItem = zod.object({
   "serviceType": zod.string(),
   "description": zod.string(),
   "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']),
+  "paymentStatus": zod.union([zod.literal('pending'),zod.literal('paid'),zod.literal('failed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']),
   "price": zod.number().nullish(),
   "internalNotes": zod.string().nullish(),
@@ -545,6 +546,7 @@ export const AdminUpdateProjectResponse = zod.object({
   "serviceType": zod.string(),
   "description": zod.string(),
   "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']),
+  "paymentStatus": zod.union([zod.literal('pending'),zod.literal('paid'),zod.literal('failed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']),
   "price": zod.number().nullish(),
   "internalNotes": zod.string().nullish(),
@@ -557,6 +559,29 @@ export const AdminUpdateProjectResponse = zod.object({
 })),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Manually update a project payment status (admin)
+ */
+export const AdminUpdateProjectPaymentStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const AdminUpdateProjectPaymentStatusBody = zod.object({
+  "status": zod.enum(['pending', 'paid', 'failed', 'cancelled']),
+  "reason": zod.string().min(1)
+})
+
+export const AdminUpdateProjectPaymentStatusResponse = zod.object({
+  "projectId": zod.number(),
+  "paymentId": zod.number(),
+  "paymentStatus": zod.enum(['pending', 'paid', 'failed', 'cancelled']),
+  "changed": zod.boolean()
 })
 
 
@@ -574,6 +599,7 @@ export const AdminStartConversationResponse = zod.object({
   "serviceType": zod.string(),
   "description": zod.string(),
   "status": zod.enum(['submitted', 'queued', 'pending_review', 'needs_info', 'approved', 'declined', 'agreement_sent', 'agreement_accepted', 'in_progress', 'review', 'completed']),
+  "paymentStatus": zod.union([zod.literal('pending'),zod.literal('paid'),zod.literal('failed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
   "priority": zod.enum(['low', 'medium', 'high', 'urgent']),
   "price": zod.number().nullish(),
   "internalNotes": zod.string().nullish(),

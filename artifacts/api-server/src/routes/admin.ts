@@ -462,13 +462,58 @@ router.get("/projects/:id/activity", requireAdmin, async (req, res): Promise<voi
 });
 
 /**
- * Update project/request details.
+ * Manually override the latest payment record from the Admin Portal.
  *
  * IMPORTANT:
- * `status` belongs to the project/request lifecycle.
- * Payment status belongs to paymentsTable and must only be changed
- * by the payment flow.
+ * This is separate from the project/request lifecycle status. A reason,
+ * admin attribution, audit entry, and client notification are always required.
  */
+router.patch("/projects/:id/payment-status", requireAdmin, async (req, res): Promise<void> => {
+  const id = Number.parseInt(req.params.id as string, 10);
+  const { status, reason } = req.body ?? {};
+  const allowedStatuses = ["pending", "paid", "failed", "cancelled"] as const;
+  if (!Number.isInteger(id)) { res.status(400).json({ error: "Invalid project id" }); return; }
+  if (!allowedStatuses.includes(status)) { res.status(400).json({ error: "Invalid payment status" }); return; }
+  const normalizedReason = typeof reason === "string" ? reason.trim() : "";
+  if (!normalizedReason) { res.status(400).json({ error: "A reason is required for manual payment-status changes" }); return; }
+  if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
+  if (!project) { res.status(404).json({ error: "Project not found" }); return; }
+  const [payment] = await db.select().from(paymentsTable)
+    .where(eq(paymentsTable.projectId, id))
+    .orderBy(desc(paymentsTable.createdAt))
+    .limit(1);
+  if (!payment) { res.status(404).json({ error: "No payment record exists for this project" }); return; }
+  if (payment.status === status) {
+    res.json({ projectId: id, paymentId: payment.id, paymentStatus: payment.status, changed: false });
+    return;
+  }
+
+  const [updatedPayment] = await db.update(paymentsTable)
+    .set({
+      status,
+      paidAt: status === "paid" ? new Date() : null,
+      markedPaidByAdminId: status === "paid" ? req.userId : null,
+    })
+    .where(eq(paymentsTable.id, payment.id))
+    .returning();
+
+  await db.insert(activityTable).values({
+    userId: project.userId,
+    projectId: id,
+    type: "payment",
+    description: `Admin #${req.userId} manually changed payment status from ${payment.status} to ${status} for ${project.title}. Reason: ${normalizedReason}`,
+  });
+  await db.insert(notificationsTable).values({
+    userId: project.userId,
+    projectId: id,
+    title: "Payment Update",
+    message: `Payment status for your project "${project.title}" was changed to ${status.replace("_", " ")}.`,
+    type: "payment",
+  });
+  res.json({ projectId: id, paymentId: updatedPayment.id, paymentStatus: updatedPayment.status, changed: true });
+});
 router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id as string);
 
@@ -481,8 +526,8 @@ router.patch("/projects/:id", requireAdmin, async (req, res): Promise<void> => {
     reason,
   } = req.body;
 
-  // Payment status cannot be manually changed through the
-  // project update endpoint.
+  // Payment status is changed only through the dedicated, audited
+  // payment-status endpoint above.
   if (paymentStatus !== undefined) {
     res.status(400).json({
       error:

@@ -395,6 +395,19 @@ export const AdminProjectStatus = {
   completed: 'completed',
 } as const;
 
+/**
+ * @nullable
+ */
+export type AdminProjectPaymentStatus = typeof AdminProjectPaymentStatus[keyof typeof AdminProjectPaymentStatus] | null;
+
+
+export const AdminProjectPaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const;
+
 export type AdminProjectPriority = typeof AdminProjectPriority[keyof typeof AdminProjectPriority];
 
 
@@ -417,6 +430,8 @@ export interface AdminProject {
   serviceType: string;
   description: string;
   status: AdminProjectStatus;
+  /** @nullable */
+  paymentStatus: AdminProjectPaymentStatus;
   priority: AdminProjectPriority;
   /** @nullable */
   price?: number | null;
@@ -428,6 +443,39 @@ export interface AdminProject {
   assignedFreelancers: AdminProjectAssignedFreelancersItem[];
   createdAt: string;
   updatedAt: string;
+}
+
+export type AdminPaymentStatusUpdateStatus = typeof AdminPaymentStatusUpdateStatus[keyof typeof AdminPaymentStatusUpdateStatus];
+
+
+export const AdminPaymentStatusUpdateStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface AdminPaymentStatusUpdate {
+  status: AdminPaymentStatusUpdateStatus;
+  /** @minLength 1 */
+  reason: string;
+}
+
+export type AdminPaymentStatusUpdateResponsePaymentStatus = typeof AdminPaymentStatusUpdateResponsePaymentStatus[keyof typeof AdminPaymentStatusUpdateResponsePaymentStatus];
+
+
+export const AdminPaymentStatusUpdateResponsePaymentStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface AdminPaymentStatusUpdateResponse {
+  projectId: number;
+  paymentId: number;
+  paymentStatus: AdminPaymentStatusUpdateResponsePaymentStatus;
+  changed: boolean;
 }
 
 export type AdminProjectUpdateStatus = typeof AdminProjectUpdateStatus[keyof typeof AdminProjectUpdateStatus];

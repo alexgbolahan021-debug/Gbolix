@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Edit, Search, ChevronRight, Check, X, FileText, Info, FileSignature, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { CurrencyDisplayDisclosure, CurrencyToggle, formatMoney, type AdminCurrency } from "@/components/admin-currency";
 
 const statusColor: Record<string, string> = {
   submitted: "bg-muted text-muted-foreground",
@@ -110,12 +111,20 @@ export default function AdminProjects() {
   const [offerDelivery, setOfferDelivery] = useState("");
   const [offerTerms, setOfferTerms] = useState("");
   const [offerSaving, setOfferSaving] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState<AdminCurrency>("USD");
+  const [editingPaymentProject, setEditingPaymentProject] = useState<AdminProject | null>(null);
+  const [editPaymentStatus, setEditPaymentStatus] = useState("pending");
+  const [editPaymentReason, setEditPaymentReason] = useState("");
+  const [paymentSaving, setPaymentSaving] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const params = statusFilter !== "all" ? { status: statusFilter as any } : {};
   const { data: projects, isLoading } = useAdminListProjects(params, { query: { queryKey: getAdminListProjectsQueryKey(params) } });
   const { data: insights } = useAdminGetInsights({ range: "all" }, { query: { queryKey: getAdminGetInsightsQueryKey({ range: "all" }) } });
+  const displayRate = insights?.displayExchangeRate?.rate;
+  const displayMoney = (values: Array<{ currency: string; amount: number }> | undefined) => formatMoney(values, displayCurrency, displayRate);
+  const displayPrice = (price?: number | null) => price == null ? "—" : displayMoney([{ currency: "USD", amount: price }]);
   const updateMutation = useAdminUpdateProject();
   const filtered = (projects as AdminProject[] | undefined)?.filter(p =>
     !search ||
@@ -126,6 +135,30 @@ export default function AdminProjects() {
   const refresh = () => { void queryClient.invalidateQueries({ queryKey: getAdminListProjectsQueryKey({}) }); void queryClient.invalidateQueries({ queryKey: ["/api/admin/insights"] }); };
   const loadActivity = async (projectId: number) => { try { const rows = await customFetch<Array<{ id: number; type: string; description: string; createdAt: string }>>(apiUrl(`/admin/projects/${projectId}/activity`), { method: "GET", responseType: "json" }); setProjectActivity(rows); } catch { setProjectActivity([]); } };
   const openProject = (project: AdminProject) => { setViewingProject(project); setProjectActivity([]); void loadActivity(project.id); };
+  const openPaymentEdit = (project: AdminProject) => { setEditingPaymentProject(project); setEditPaymentStatus(project.paymentStatus ?? "pending"); setEditPaymentReason(""); };
+
+  const handlePaymentUpdate = async () => {
+    if (!editingPaymentProject || !editPaymentReason.trim()) {
+      toast({ title: "Reason required", description: "Add a reason before changing the payment status.", variant: "destructive" });
+      return;
+    }
+    setPaymentSaving(true);
+    try {
+      const data = await customFetch<{ projectId: number; paymentId: number; paymentStatus: string; changed: boolean }>(apiUrl(`/admin/projects/${editingPaymentProject.id}/payment-status`), {
+        method: "PATCH",
+        responseType: "json",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: editPaymentStatus, reason: editPaymentReason.trim() }),
+      });
+      refresh();
+      setViewingProject(current => current && current.id === editingPaymentProject.id ? { ...current, paymentStatus: data.paymentStatus } : current);
+      setEditingPaymentProject(null);
+      toast({ title: data.changed ? "Payment status updated" : "No change made", description: data.changed ? "The manual override was recorded in the project audit trail." : "The payment already had that status." });
+      if (data.changed) void loadActivity(editingPaymentProject.id);
+    } catch (error) {
+      toast({ title: "Payment status update failed", description: error instanceof Error ? error.message : "Unable to update payment status", variant: "destructive" });
+    } finally { setPaymentSaving(false); }
+  };
 
   const openEdit = (p: AdminProject) => {
     setEditingProject(p);
@@ -251,14 +284,16 @@ export default function AdminProjects() {
   return (
     <ClientLayout>
       <div className="p-6 max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Projects</h1>
-            <p className="text-muted-foreground text-sm mt-1">Review and manage all client service requests.</p>
+            <p className="text-muted-foreground text-sm mt-1">Review requests and manage project and payment statuses separately.</p>
           </div>
+          <div className="flex flex-wrap items-center justify-end gap-2"><span className="text-xs text-muted-foreground">Display currency</span><CurrencyToggle value={displayCurrency} onChange={setDisplayCurrency} /></div>
         </div>
+        <div className="mb-5 rounded-lg border border-border/70 bg-card/50 px-3 py-2"><CurrencyDisplayDisclosure currency={displayCurrency} exchangeRate={insights?.displayExchangeRate} /></div>
 
-        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5"><Summary label="Total projects" value={insights?.totalProjects ?? projects?.length ?? 0} /><Summary label="Active" value={insights?.activeProjects ?? 0} tone="text-yellow-400" /><Summary label="Completed" value={insights?.completedProjects ?? 0} tone="text-primary" /><Summary label="Pending payments" value={insights ? formatMoney(insights.totalAmountPending) : "—"} tone="text-orange-400" /><Summary label="Paid value" value={insights ? formatMoney(insights.totalAmountPaid) : "—"} tone="text-primary" /></div>
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5"><Summary label="Total projects" value={insights?.totalProjects ?? projects?.length ?? 0} /><Summary label="Active" value={insights?.activeProjects ?? 0} tone="text-yellow-400" /><Summary label="Completed" value={insights?.completedProjects ?? 0} tone="text-primary" /><Summary label="Pending payments" value={insights ? displayMoney(insights.totalAmountPending) : "—"} tone="text-orange-400" /><Summary label="Paid value" value={insights ? displayMoney(insights.totalAmountPaid) : "—"} tone="text-primary" /></div>
 
         <div className="flex flex-wrap gap-3 mb-6">
           <div className="relative flex-1 min-w-48 max-w-72">
@@ -281,7 +316,7 @@ export default function AdminProjects() {
             <div className="py-16 text-center text-muted-foreground text-sm">No projects found.</div>
           ) : (
             <>
-            <div className="space-y-2 p-3 md:hidden">{filtered.map(p => <div key={p.id} className="rounded-xl border border-border bg-background/40 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{p.clientName}</p><p className="truncate text-xs text-muted-foreground">{p.title}</p><p className="mt-1 text-[11px] text-muted-foreground">{p.serviceType} · {formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}</p></div><span className="shrink-0 text-sm font-semibold text-primary">{p.price ? `$${p.price}` : "—"}</span></div><div className="mt-3 flex flex-wrap items-center gap-2"><Badge className={`text-[10px] ${statusColor[p.status] ?? "bg-muted text-muted-foreground"}`}>{statusLabel[p.status] ?? p.status}</Badge>{p.paymentStatus && <Badge className={`text-[10px] ${paymentStatusColor[p.paymentStatus] ?? "bg-muted text-muted-foreground"}`}>{paymentStatusLabel[p.paymentStatus] ?? p.paymentStatus}</Badge>}<span className={`text-[10px] font-semibold uppercase ${priorityColor[p.priority]}`}>{p.priority}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => openProject(p)}>View details</Button><Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => openEdit(p)}><Edit size={12} /> Manage</Button></div></div>)}</div>
+            <div className="space-y-2 p-3 md:hidden">{filtered.map(p => <div key={p.id} className="rounded-xl border border-border bg-background/40 p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{p.clientName}</p><p className="truncate text-xs text-muted-foreground">{p.title}</p><p className="mt-1 text-[11px] text-muted-foreground">{p.serviceType} · {formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}</p></div><span className="shrink-0 text-sm font-semibold text-primary">{displayPrice(p.price)}</span></div><div className="mt-3 flex flex-wrap items-center gap-2"><Badge className={`text-[10px] ${statusColor[p.status] ?? "bg-muted text-muted-foreground"}`}>{statusLabel[p.status] ?? p.status}</Badge>{p.paymentStatus && <Badge className={`text-[10px] ${paymentStatusColor[p.paymentStatus] ?? "bg-muted text-muted-foreground"}`}>{paymentStatusLabel[p.paymentStatus] ?? p.paymentStatus}</Badge>}<span className={`text-[10px] font-semibold uppercase ${priorityColor[p.priority]}`}>{p.priority}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => openProject(p)}>View details</Button><Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => openEdit(p)}><Edit size={12} /> Manage</Button></div></div>)}</div>
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead>
@@ -304,7 +339,7 @@ export default function AdminProjects() {
                       <td className="px-5 py-3"><Badge className={`text-[10px] ${statusColor[p.status] ?? "bg-muted text-muted-foreground"}`}>{statusLabel[p.status] ?? p.status}</Badge></td>
                       <td className="px-5 py-3">{p.paymentStatus ? <Badge className={`text-[10px] ${paymentStatusColor[p.paymentStatus] ?? "bg-muted text-muted-foreground"}`}>{paymentStatusLabel[p.paymentStatus] ?? p.paymentStatus}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</td>
                       <td className="px-5 py-3"><span className={`text-xs font-medium uppercase ${priorityColor[p.priority]}`}>{p.priority}</span></td>
-                      <td className="px-5 py-3"><span className="text-primary font-medium text-xs">{p.price ? `$${p.price}` : "—"}</span></td>
+                      <td className="px-5 py-3"><span className="text-primary font-medium text-xs">{displayPrice(p.price)}</span></td>
                       <td className="px-5 py-3 text-muted-foreground text-xs whitespace-nowrap">{formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}</td>
                       <td className="px-5 py-3"><div className="flex items-center justify-end gap-1"><Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={e => { e.stopPropagation(); openProject(p); }}><ChevronRight size={13} /> View</Button><Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={e => { e.stopPropagation(); openEdit(p); }}><Edit size={12} /></Button></div></td>
                     </tr>
@@ -322,9 +357,10 @@ export default function AdminProjects() {
             {viewingProject && <div className="space-y-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div><h2 className="font-semibold text-lg">{viewingProject.title}</h2><p className="text-sm text-muted-foreground">{viewingProject.clientName} · {viewingProject.clientEmail}</p><p className="text-xs text-muted-foreground mt-1">{viewingProject.projectCode ?? `Project #${viewingProject.id}`}</p></div>
-                <div className="flex flex-wrap items-center gap-2"><Badge className={statusColor[viewingProject.status] ?? "bg-muted text-muted-foreground"}>{statusLabel[viewingProject.status] ?? viewingProject.status}</Badge>{viewingProject.paymentStatus && <Badge className={paymentStatusColor[viewingProject.paymentStatus] ?? "bg-muted text-muted-foreground"}>{paymentStatusLabel[viewingProject.paymentStatus] ?? viewingProject.paymentStatus}</Badge>}<span className="font-semibold text-primary">{viewingProject.price ? `$${viewingProject.price}` : "—"}</span></div>
+                <div className="flex flex-wrap items-center gap-2"><Badge className={statusColor[viewingProject.status] ?? "bg-muted text-muted-foreground"}>{statusLabel[viewingProject.status] ?? viewingProject.status}</Badge>{viewingProject.paymentStatus && <Badge className={paymentStatusColor[viewingProject.paymentStatus] ?? "bg-muted text-muted-foreground"}>{paymentStatusLabel[viewingProject.paymentStatus] ?? viewingProject.paymentStatus}</Badge>}<span className="font-semibold text-primary">{displayPrice(viewingProject.price)}</span></div>
               </div>
               <div className="border-t border-border pt-5 space-y-4"><Detail label="Service" value={viewingProject.serviceType} /><Detail label="Request date" value={new Date(viewingProject.createdAt).toLocaleString()} /><Detail label="Complete requirements" value={formatRequirements(viewingProject.requirements, viewingProject.description)} />{viewingProject.requirements?.attached_files?.length > 0 && <div><p className="text-xs font-medium text-muted-foreground mb-1">Files</p><div className="space-y-1">{viewingProject.requirements.attached_files.map((name: string) => <div key={name} className="flex items-center gap-2 text-sm"><FileText size={14} className="text-primary" />{name}</div>)}</div></div>}</div>
+              <div className="border-t border-border pt-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold">Payment status</p><p className="mt-1 text-xs text-muted-foreground">Separate from the project/request status above.</p></div><div className="flex items-center gap-2">{viewingProject.paymentStatus ? <Badge className={paymentStatusColor[viewingProject.paymentStatus] ?? "bg-muted text-muted-foreground"}>{paymentStatusLabel[viewingProject.paymentStatus] ?? viewingProject.paymentStatus}</Badge> : <span className="text-xs text-muted-foreground">No payment record</span>}<Button variant="outline" size="sm" disabled={!viewingProject.paymentStatus} onClick={() => openPaymentEdit(viewingProject)}>Change</Button></div></div></div>
               {viewingProject.status === "pending_review" && <div className="border-t border-border pt-5"><p className="text-sm font-semibold mb-3">Review request</p><div className="grid grid-cols-1 sm:grid-cols-3 gap-2"><Button onClick={() => requestReview("approve")} disabled={reviewSaving} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"><Check size={15} /> Approve</Button><Button variant="outline" onClick={() => requestReview("request_info")} disabled={reviewSaving} className="gap-2"><Info size={15} /> Need More Information</Button><Button variant="outline" onClick={() => requestReview("decline")} disabled={reviewSaving} className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-2"><X size={15} /> Decline</Button></div></div>}
               {viewingProject.status === "approved" && <Button onClick={() => openOffer(viewingProject)} className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><FileSignature size={15} /> Create Offer</Button>}
               {viewingProject.status === "needs_info" && <div className="border-t border-border pt-5"><Button onClick={openConversation} className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><MessageSquare size={15} /> Open Chat</Button></div>}
@@ -337,6 +373,8 @@ export default function AdminProjects() {
 
         <Dialog open={offerDialog} onOpenChange={setOfferDialog}><DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Create Project Offer</DialogTitle></DialogHeader>{offerProject && <div className="space-y-4"><div className="rounded-lg border border-border bg-muted/20 p-3 text-sm"><p className="font-medium">{offerProject.clientName}</p><p className="text-xs text-muted-foreground">{offerProject.projectCode ?? `Project #${offerProject.id}`} · {offerProject.title}</p><p className="text-xs text-muted-foreground mt-1">Original request: {offerProject.serviceType}</p></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="text-xs font-medium mb-1.5 block">Service</label><Input value={offerServiceType} onChange={e => setOfferServiceType(e.target.value)} /></div><div><label className="text-xs font-medium mb-1.5 block">Project / Service Name</label><Input value={offerServiceName} onChange={e => setOfferServiceName(e.target.value)} /></div></div><div><label className="text-xs font-medium mb-1.5 block">Scope of Work</label><Textarea value={offerScope} onChange={e => setOfferScope(e.target.value)} rows={5} placeholder="Describe exactly what will be delivered..." /></div><div><label className="text-xs font-medium mb-1.5 block">Requirements</label><Textarea value={offerRequirements} onChange={e => setOfferRequirements(e.target.value)} rows={4} placeholder="Requirements and deliverables..." /></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="text-xs font-medium mb-1.5 block">Price (USD)</label><Input type="number" min="0" step="0.01" value={offerPrice} onChange={e => setOfferPrice(e.target.value)} /></div><div><label className="text-xs font-medium mb-1.5 block">Delivery Estimate</label><Input value={offerDelivery} onChange={e => setOfferDelivery(e.target.value)} placeholder="e.g. 5 business days" /></div></div><div><label className="text-xs font-medium mb-1.5 block">Terms / Notes</label><Textarea value={offerTerms} onChange={e => setOfferTerms(e.target.value)} rows={3} placeholder="Payment or project terms..." /></div><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setOfferDialog(false)} className="flex-1">Cancel</Button><Button onClick={sendOffer} disabled={offerSaving} className="flex-1 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"><FileSignature size={15} />{offerSaving ? "Sending..." : "Send Offer"}</Button></div></div>}</DialogContent></Dialog>
 
+        <Dialog open={!!editingPaymentProject} onOpenChange={() => setEditingPaymentProject(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Change payment status</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">This changes only the payment status for {editingPaymentProject?.title}. It does not change the project/request status and does not send a Paystack request.</p><div className="space-y-3"><div><label className="text-sm font-medium mb-1.5 block">Payment status</label><Select value={editPaymentStatus} onValueChange={setEditPaymentStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pending">Pending</SelectItem><SelectItem value="paid">Paid</SelectItem><SelectItem value="failed">Failed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent></Select></div><div><label className="text-sm font-medium mb-1.5 block">Reason</label><Textarea value={editPaymentReason} onChange={event => setEditPaymentReason(event.target.value)} rows={4} placeholder="Required audit reason, e.g. verified bank transfer" /></div></div><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setEditingPaymentProject(null)} className="flex-1">Cancel</Button><Button onClick={() => void handlePaymentUpdate()} disabled={!editPaymentReason.trim() || paymentSaving} className="flex-1">{paymentSaving ? "Saving..." : "Save status"}</Button></div></DialogContent></Dialog>
+
         <Dialog open={!!reviewAction} onOpenChange={() => setReviewAction(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{reviewAction === "approve" ? "Approve request" : reviewAction === "request_info" ? "Request more information" : "Decline request"}</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">This will update the request status, notify the client, and refresh the shared dashboard metrics.</p><Textarea value={reviewReason} onChange={event => setReviewReason(event.target.value)} rows={4} placeholder="Reason or internal note (required)..." /><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setReviewAction(null)} className="flex-1">Cancel</Button><Button disabled={!reviewReason.trim() || reviewSaving} onClick={() => { if (!reviewAction) return; void handleReview(reviewAction, reviewReason).then(success => { if (success) setReviewAction(null); }); }} className="flex-1">{reviewSaving ? "Saving..." : "Confirm"}</Button></div></DialogContent></Dialog>
 
         <Dialog open={!!editingProject} onOpenChange={() => setEditingProject(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Update Project</DialogTitle></DialogHeader><div className="space-y-4 mt-2"><div><label className="text-sm font-medium mb-1.5 block">Status</label><Select value={editStatus} onValueChange={setEditStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(statusLabel).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div><div><label className="text-sm font-medium mb-1.5 block">Priority</label><Select value={editPriority} onValueChange={setEditPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="urgent">Urgent</SelectItem></SelectContent></Select></div><div><label className="text-sm font-medium mb-1.5 block">Internal Notes</label><Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Internal notes (not visible to client)..." rows={3} /></div><div><label className="text-sm font-medium mb-1.5 block">Reason for status change</label><Textarea value={editReason} onChange={e => setEditReason(e.target.value)} placeholder={editStatus !== editingProject?.status ? "Required when changing status..." : "Optional audit note..."} rows={2} /></div><div className="flex gap-2 pt-2"><Button variant="outline" onClick={() => setEditingProject(null)} className="flex-1">Cancel</Button><Button onClick={handleUpdate} disabled={updateMutation.isPending} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">{updateMutation.isPending ? "Saving..." : "Save Changes"}</Button></div></div></DialogContent></Dialog>
@@ -346,7 +384,6 @@ export default function AdminProjects() {
 }
 
 function Summary({ label, value, tone = "text-foreground" }: { label: string; value: number | string; tone?: string }) { return <div className="rounded-xl border border-border bg-card p-4"><p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p><p className={`mt-2 text-lg font-bold ${tone}`}>{typeof value === "number" ? value.toLocaleString() : value}</p></div>; }
-function formatMoney(values: Array<{ currency: string; amount: number }>) { return values.length ? values.map(value => `${value.currency} ${value.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`).join(" · ") : "—"; }
 
 function Detail({ label, value }: { label: string; value?: unknown }) {
   if (value === undefined || value === null || value === "") return null;

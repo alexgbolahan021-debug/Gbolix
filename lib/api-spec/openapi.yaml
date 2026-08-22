@@ -550,6 +550,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminProject"
 
+  /admin/projects/{id}/payment-status:
+    patch:
+      operationId: adminUpdateProjectPaymentStatus
+      tags: [admin]
+      summary: Manually update a project payment status (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminPaymentStatusUpdate"
+      responses:
+        "200":
+          description: Payment status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPaymentStatusUpdateResponse"
   /admin/projects/{id}/start-conversation:
     post:
       operationId: adminStartConversation
@@ -1157,6 +1181,9 @@ components:
         status:
           type: string
           enum: [submitted, queued, pending_review, needs_info, approved, declined, agreement_sent, agreement_accepted, in_progress, review, completed]
+        paymentStatus:
+          type: ["string", "null"]
+          enum: [pending, paid, failed, cancelled, null]
         priority:
           type: string
           enum: [low, medium, high, urgent]
@@ -1193,6 +1220,7 @@ components:
         - serviceType
         - description
         - status
+        - paymentStatus
         - priority
         - hasConversation
         - clientName
@@ -1200,6 +1228,31 @@ components:
         - assignedFreelancers
         - createdAt
         - updatedAt
+
+    AdminPaymentStatusUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, paid, failed, cancelled]
+        reason:
+          type: string
+          minLength: 1
+      required: [status, reason]
+
+    AdminPaymentStatusUpdateResponse:
+      type: object
+      properties:
+        projectId:
+          type: integer
+        paymentId:
+          type: integer
+        paymentStatus:
+          type: string
+          enum: [pending, paid, failed, cancelled]
+        changed:
+          type: boolean
+      required: [projectId, paymentId, paymentStatus, changed]
 
     AdminProjectUpdate:
       type: object

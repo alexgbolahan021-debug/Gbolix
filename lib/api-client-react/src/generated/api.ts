@@ -26,6 +26,8 @@ import type {
   AdminGetInsightsParams,
   AdminListProjectsParams,
   AdminListUsersParams,
+  AdminPaymentStatusUpdate,
+  AdminPaymentStatusUpdateResponse,
   AdminProject,
   AdminProjectUpdate,
   AdminUser,
@@ -2155,6 +2157,78 @@ export const useAdminUpdateProject = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAdminUpdateProjectMutationOptions(options));
+    }
+
+export const getAdminUpdateProjectPaymentStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/projects/${id}/payment-status`
+}
+
+/**
+ * @summary Manually update a project payment status (admin)
+ */
+export const adminUpdateProjectPaymentStatus = async (id: number,
+    adminPaymentStatusUpdate: AdminPaymentStatusUpdate, options?: RequestInit): Promise<AdminPaymentStatusUpdateResponse> => {
+
+  return customFetch<AdminPaymentStatusUpdateResponse>(getAdminUpdateProjectPaymentStatusUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminPaymentStatusUpdate,)
+  }
+);}
+
+
+
+
+export const getAdminUpdateProjectPaymentStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateProjectPaymentStatus>>, TError,{id: number;data: BodyType<AdminPaymentStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUpdateProjectPaymentStatus>>, TError,{id: number;data: BodyType<AdminPaymentStatusUpdate>}, TContext> => {
+
+const mutationKey = ['adminUpdateProjectPaymentStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdateProjectPaymentStatus>>, {id: number;data: BodyType<AdminPaymentStatusUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminUpdateProjectPaymentStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUpdateProjectPaymentStatusMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdateProjectPaymentStatus>>>
+    export type AdminUpdateProjectPaymentStatusMutationBody = BodyType<AdminPaymentStatusUpdate>
+    export type AdminUpdateProjectPaymentStatusMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Manually update a project payment status (admin)
+ */
+export const useAdminUpdateProjectPaymentStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateProjectPaymentStatus>>, TError,{id: number;data: BodyType<AdminPaymentStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminUpdateProjectPaymentStatus>>,
+        TError,
+        {id: number;data: BodyType<AdminPaymentStatusUpdate>},
+        TContext
+      > => {
+      return useMutation(getAdminUpdateProjectPaymentStatusMutationOptions(options));
     }
 
 export const getAdminStartConversationUrl = (id: number,) => {
