@@ -86,6 +86,7 @@ export default function GbolixAIAgent() {
       agentRequest<{ summary: UsageSummary }>(token, `/v1/agents/${agentId}/usage`),
       agentRequest<AgentVersion[]>(token, `/v1/agents/${agentId}/versions`),
     ]);
+    setAgents((current) => current.map((item) => item.id === agent.id ? agent : item));
     setForm({ name: agent.name, description: agent.description, instructions: agent.instructions, tone: agent.tone, welcomeMessage: agent.welcomeMessage, model: agent.model, enabledTools: agent.enabledTools });
     setKnowledge(knowledgeResult);
     setUsage(usageResult.summary);
